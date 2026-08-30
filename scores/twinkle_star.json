@@ -1,0 +1,108 @@
+{
+  "title": "小星星",
+  "key": "C",
+  "mode": "major",
+  "timeSignature": "4/4",
+  "bpm": 100,
+  "description": "入門視唱必備曲目 · 1=C 大調 · 節奏工整清晰",
+  "notes": [
+    {
+      "degree": 1,
+      "octave": 0,
+      "accidental": 0,
+      "duration": 1,
+      "lyric": "一"
+    },
+    {
+      "degree": 1,
+      "octave": 0,
+      "accidental": 0,
+      "duration": 1,
+      "lyric": "閃"
+    },
+    {
+      "degree": 5,
+      "octave": 0,
+      "accidental": 0,
+      "duration": 1,
+      "lyric": "一"
+    },
+    {
+      "degree": 5,
+      "octave": 0,
+      "accidental": 0,
+      "duration": 1,
+      "lyric": "閃"
+    },
+    {
+      "degree": 6,
+      "octave": 0,
+      "accidental": 0,
+      "duration": 1,
+      "lyric": "亮"
+    },
+    {
+      "degree": 6,
+      "octave": 0,
+      "accidental": 0,
+      "duration": 1,
+      "lyric": "晶"
+    },
+    {
+      "degree": 5,
+      "octave": 0,
+      "accidental": 0,
+      "duration": 2,
+      "lyric": "晶"
+    },
+    {
+      "degree": 4,
+      "octave": 0,
+      "accidental": 0,
+      "duration": 1,
+      "lyric": "滿"
+    },
+    {
+      "degree": 4,
+      "octave": 0,
+      "accidental": 0,
+      "duration": 1,
+      "lyric": "天"
+    },
+    {
+      "degree": 3,
+      "octave": 0,
+      "accidental": 0,
+      "duration": 1,
+      "lyric": "都"
+    },
+    {
+      "degree": 3,
+      "octave": 0,
+      "accidental": 0,
+      "duration": 1,
+      "lyric": "是"
+    },
+    {
+      "degree": 2,
+      "octave": 0,
+      "accidental": 0,
+      "duration": 1,
+      "lyric": "小"
+    },
+    {
+      "degree": 2,
+      "octave": 0,
+      "accidental": 0,
+      "duration": 1,
+      "lyric": "星"
+    },
+    {
+      "degree": 1,
+      "octave": 0,
+      "accidental": 0,
+      "duration": 2,
+      "lyric": "星"
+    }
+  ]
+}

@@ -339,6 +339,43 @@
         body[data-text-size="xlarge"] .key-signature-help { font-size: 14px; }
 
         :focus-visible { outline: 3px solid rgba(244,123,69,.65); outline-offset: 2px; }
+
+        /* 模態彈窗通用樣式 */
+        .app-modal-backdrop {
+            position: fixed; inset: 0; background: rgba(5, 12, 18, 0.78); backdrop-filter: blur(6px);
+            display: flex; align-items: center; justify-content: center; z-index: 100;
+            opacity: 0; pointer-events: none; transition: opacity 0.18s ease;
+        }
+        .app-modal-backdrop.is-open { opacity: 1; pointer-events: auto; }
+        .app-modal-content {
+            background: #0f1c26; border: 1px solid #2a3e4d; border-radius: 14px;
+            box-shadow: 0 20px 48px rgba(0,0,0,0.5); width: 92%; max-width: 520px;
+            overflow: hidden; display: flex; flex-direction: column; transform: scale(0.96);
+            transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .app-modal-backdrop.is-open .app-modal-content { transform: scale(1); }
+        .app-modal-header {
+            padding: 12px 16px; display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid #233543; background: #132330;
+        }
+        .app-modal-title { font-size: 13px; font-weight: 800; color: #f2eee5; display: flex; align-items: center; gap: 8px; }
+        .app-modal-close {
+            width: 28px; height: 28px; border-radius: 6px; border: 1px solid #334856;
+            background: #192a37; color: #a2b4bf; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; font-size: 13px; font-weight: bold;
+        }
+        .app-modal-close:hover { color: #fff; border-color: var(--baton); }
+        .app-modal-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; max-height: 76vh; overflow-y: auto; }
+        .app-modal-footer {
+            padding: 10px 16px; border-top: 1px solid #233543; background: #132330;
+            display: flex; align-items: center; justify-content: flex-end; gap: 8px;
+        }
+        .score-lib-card {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 9px 12px; border-radius: 9px; border: 1px solid #2a3d4c; background: #13222d;
+            cursor: pointer; transition: all 0.12s ease;
+        }
+        .score-lib-card:hover { border-color: var(--baton); background: #182a38; transform: translateY(-1px); }
         @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; } }
         @media (max-width: 980px) {
             body { height: auto !important; min-height: 100vh; overflow-y: auto !important; overflow-x: hidden !important; }
@@ -463,14 +500,8 @@
                 <span id="ui-text-size-label">字級標準</span>
                 <button id="ui-text-increase" type="button" aria-label="放大介面文字">A＋</button>
             </div>
-            <select id="app-preset-select" class="header-control" aria-label="載入預設曲目">
-                <option value="">預設曲目</option>
-                <option value="twinkle">小星星</option>
-                <option value="joy">歡樂頌</option>
-                <option value="birthday">生日快樂</option>
-            </select>
-            <button id="app-export-btn" class="header-action" type="button">匯出</button>
-            <button id="app-import-btn" class="header-action" type="button">匯入</button>
+            <button id="app-load-score-btn" class="header-action font-bold bg-indigo-600/60 hover:bg-indigo-600 text-white" type="button">📂 載入樂譜</button>
+            <button id="app-export-btn" class="header-action" type="button">💾 匯出</button>
         </div>
     </header>
 
@@ -640,7 +671,7 @@
                     <div class="paper-actions">
                         <button id="editor-undo-btn" class="paper-button" type="button">↶ 上一步</button>
                         <button id="editor-redo-btn" class="paper-button" type="button">↷ 下一步</button>
-                        <button id="editor-delete-btn" class="paper-button" type="button">⌫ 刪除前音</button>
+                        <button id="editor-delete-btn" class="paper-button" type="button">⌫ 刪除</button>
                         <button id="editor-clear-btn" class="paper-button" type="button">清空</button>
                     </div>
                 </div>
@@ -648,7 +679,7 @@
             </section>
 
             <div class="shortcut-legend">
-                <span><kbd>1–7</kbd> 或 <kbd>C–B</kbd> 立即輸入　<kbd>0</kbd> 休止符　<kbd>←</kbd><kbd>→</kbd> 移動游標　<kbd>Backspace</kbd> 刪除前音</span>
+                <span><kbd>1–7</kbd> 或 <kbd>C–B</kbd> 立即輸入　<kbd>0</kbd> 休止符　<kbd>←</kbd><kbd>→</kbd> 移動游標　<kbd>Backspace</kbd> 刪除　雙擊音符編輯</span>
                 <span><kbd>Q</kbd> 四分　<kbd>E</kbd> 八分　<kbd>S</kbd> 十六分　<kbd>.</kbd> 附點　<kbd>[</kbd><kbd>]</kbd> 八度</span>
             </div>
         </main>
@@ -660,6 +691,13 @@
             <div>
                 <div class="eyebrow">Practice room</div>
                 <h2 class="panel-title">聽音與練唱</h2>
+            </div>
+            <div class="tool-row items-center ml-auto mr-3" id="practice-instrument-toolbar">
+                <span class="tool-label text-slate-400">音色</span>
+                <button class="choice-button instrument-choice is-active" type="button" data-instrument="piano" title="鋼琴：溫暖自然的觸鍵與延音">🎹 鋼琴</button>
+                <button class="choice-button instrument-choice" type="button" data-instrument="flute" title="長笛管樂：純淨連音，最適合視唱練唱">🪈 長笛</button>
+                <button class="choice-button instrument-choice" type="button" data-instrument="strings" title="溫暖弦樂：醇厚悠揚的平滑長音">🎻 弦樂</button>
+                <button class="choice-button instrument-choice" type="button" data-instrument="vocal" title="人聲導唱：模擬 Ahh 人聲共鳴">🎤 人聲</button>
             </div>
             <div class="practice-mode-group" aria-label="練唱操作">
                 <button class="practice-mode-button is-active" type="button" data-practice-mode="learn">單音聽音</button>
@@ -940,7 +978,123 @@
         </div>
     </section>
 
-    <!-- 4. 逻辑代码 -->
+    <!-- 4. 音符雙擊編輯彈窗 (Note Inspector Modal) -->
+    <div id="note-inspector-modal" class="app-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="inspector-title">
+        <div class="app-modal-content">
+            <div class="app-modal-header">
+                <div class="app-modal-title">
+                    <span>🎵 編輯音符</span>
+                    <span id="inspector-badge" class="text-xs bg-indigo-950 text-indigo-300 px-2 py-0.5 rounded border border-indigo-700/60 font-mono">#1</span>
+                </div>
+                <button id="close-inspector-btn" class="app-modal-close" type="button" aria-label="關閉">✕</button>
+            </div>
+            <div class="app-modal-body">
+                <!-- 歌詞輸入 -->
+                <div>
+                    <label class="field-label" for="inspect-lyric">歌詞</label>
+                    <input id="inspect-lyric" class="editor-input text-base" type="text" placeholder="請輸入單字歌詞 (如：每)" maxlength="16">
+                </div>
+
+                <!-- 音高選擇：度數 + 記號 + 八度 -->
+                <div>
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="field-label mb-0">音高 (唱名度數)</span>
+                        <span id="inspect-pitch-preview" class="text-xs font-black text-amber-400 font-mono">E♭4 (63 MIDI)</span>
+                    </div>
+                    <!-- 1~7 及 休止符 -->
+                    <div class="grid grid-cols-8 gap-1 mb-2" id="inspect-degree-group">
+                        <button type="button" class="choice-button inspect-degree-btn" data-degree="1">1</button>
+                        <button type="button" class="choice-button inspect-degree-btn" data-degree="2">2</button>
+                        <button type="button" class="choice-button inspect-degree-btn" data-degree="3">3</button>
+                        <button type="button" class="choice-button inspect-degree-btn" data-degree="4">4</button>
+                        <button type="button" class="choice-button inspect-degree-btn" data-degree="5">5</button>
+                        <button type="button" class="choice-button inspect-degree-btn" data-degree="6">6</button>
+                        <button type="button" class="choice-button inspect-degree-btn" data-degree="7">7</button>
+                        <button type="button" class="choice-button inspect-degree-btn rest-btn text-amber-400 font-bold" data-degree="0">休</button>
+                    </div>
+                    <!-- 升降號與八度 -->
+                    <div class="flex gap-2 flex-wrap items-center">
+                        <span class="text-[9px] font-bold text-slate-400">記號:</span>
+                        <div class="flex gap-1" id="inspect-acc-group">
+                            <button type="button" class="choice-button inspect-acc-btn" data-acc="0">♮ 原音</button>
+                            <button type="button" class="choice-button inspect-acc-btn" data-acc="1">♯ 升</button>
+                            <button type="button" class="choice-button inspect-acc-btn" data-acc="-1">♭ 降</button>
+                        </div>
+                        
+                        <span class="text-[9px] font-bold text-slate-400 ml-2">八度:</span>
+                        <div class="flex gap-1" id="inspect-oct-group">
+                            <button type="button" class="choice-button inspect-oct-btn" data-oct="-1">低音 (-1)</button>
+                            <button type="button" class="choice-button inspect-oct-btn" data-oct="0">中央 (0)</button>
+                            <button type="button" class="choice-button inspect-oct-btn" data-oct="1">高音 (+1)</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 時值/長度選擇 -->
+                <div>
+                    <span class="field-label">音長 / 時值 (自動調整板塊寬度)</span>
+                    <div class="grid grid-cols-4 gap-1.5" id="inspect-dur-group">
+                        <button type="button" class="choice-button inspect-dur-btn" data-dur="4">全音符 (4拍)</button>
+                        <button type="button" class="choice-button inspect-dur-btn" data-dur="2">二分 (2拍)</button>
+                        <button type="button" class="choice-button inspect-dur-btn" data-dur="1.5">附點四分 (1.5)</button>
+                        <button type="button" class="choice-button inspect-dur-btn" data-dur="1">四分 (1拍)</button>
+                        <button type="button" class="choice-button inspect-dur-btn" data-dur="0.75">附點八分 (0.75)</button>
+                        <button type="button" class="choice-button inspect-dur-btn" data-dur="0.5">八分 (0.5拍)</button>
+                        <button type="button" class="choice-button inspect-dur-btn" data-dur="0.25">十六分 (0.25)</button>
+                    </div>
+                </div>
+            </div>
+            <div class="app-modal-footer">
+                <button id="inspect-play-btn" class="paper-button" type="button">🔊 試聽</button>
+                <button id="inspect-delete-btn" class="quiet-button text-red-400 hover:text-red-300" type="button">🗑️ 刪除此音</button>
+                <div class="flex-1"></div>
+                <button id="inspect-cancel-btn" class="quiet-button" type="button">取消</button>
+                <button id="inspect-save-btn" class="primary-small px-4 py-1.5" type="button">💾 保存修改</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. 載入樂譜中心彈窗 (Load Score Modal) -->
+    <div id="load-score-modal" class="app-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="load-score-title">
+        <div class="app-modal-content max-w-[540px]">
+            <div class="app-modal-header">
+                <div class="app-modal-title">
+                    <span>📂 載入樂譜中心</span>
+                </div>
+                <button id="close-load-modal-btn" class="app-modal-close" type="button" aria-label="關閉">✕</button>
+            </div>
+            <div class="app-modal-body">
+                <!-- 區塊 1: scores/ 資料夾樂譜庫 -->
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="field-label mb-0">📚 官方與專屬樂譜庫 (scores/ 資料夾)</span>
+                        <span class="text-[9px] text-slate-400 font-mono">點擊直接載入</span>
+                    </div>
+                    <div id="builtin-scores-list" class="flex flex-col gap-1.5">
+                        <!-- 動態渲染 scores 列表 -->
+                    </div>
+                </div>
+
+                <div class="border-t border-slate-800 my-1"></div>
+
+                <!-- 區塊 2: 從本機電腦載入 -->
+                <div>
+                    <span class="field-label">💻 從本機電腦載入 JSON 檔案</span>
+                    <button id="local-file-trigger-btn" class="primary-small w-full py-2.5 text-center flex items-center justify-center gap-1.5 font-bold" type="button">
+                        <span>📁</span> <span>選擇電腦中的 .json 樂譜檔案</span>
+                    </button>
+                    <p class="text-[9px] text-slate-400 mt-1.5 leading-relaxed">
+                        支援由本系統匯出的標準樂譜 JSON 檔案；匯入後可立即在排練桌檢視、修改或練唱。
+                    </p>
+                </div>
+            </div>
+            <div class="app-modal-footer">
+                <button id="cancel-load-modal-btn" class="quiet-button" type="button">關閉</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. 逻辑代码 -->
     <script>
         const KEY_MIDI_MAP = {
             'Cb': 59, 'C': 60, 'C#': 61, 'Db': 61, 'D': 62, 'D#': 63, 'Eb': 63,
@@ -1786,6 +1940,7 @@
             card.setAttribute('aria-label', note.degree === 0
                 ? `${getDurationLabel(note.duration)}休止符`
                 : `${note.accidental === 1 ? '升' : note.accidental === -1 ? '降' : ''}${note.degree} (${pitchName})，${getDurationLabel(note.duration)}，歌詞${note.lyric || '空白'}`);
+            card.title = "點擊選取／試聽，雙擊編輯歌詞與音高";
 
             const nameEl = document.createElement('div');
             nameEl.className = 'editor-note-name';
@@ -1816,6 +1971,11 @@
                 editorCursorIndex = index + 1;
                 renderEditorScore();
                 if (note.degree !== 0) playSynthesizedTone(noteToMidi(note, currentKey, currentMode), getNoteDurationSeconds(note), 0.45);
+            });
+            card.addEventListener('dblclick', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                openNoteInspector(index);
             });
             return card;
         }
@@ -2079,18 +2239,378 @@
             }
         }
 
+        // --- 內建樂譜庫 (scores/ 資料夾清單) ---
+        const BUILTIN_SCORES = [
+            {
+                id: 'invisible_wings',
+                title: '隱形的翅膀',
+                key: 'Eb',
+                mode: 'major',
+                timeSignature: '4/4',
+                bpm: 90,
+                file: 'scores/invisible_wings.json',
+                desc: '3♭ E♭ 大調 · 4/4 拍 · 經典抒情勵志練唱曲 (附完整歌詞)'
+            },
+            {
+                id: 'twinkle_star',
+                title: '小星星 (Twinkle Star)',
+                key: 'C',
+                mode: 'major',
+                timeSignature: '4/4',
+                bpm: 100,
+                file: 'scores/twinkle_star.json',
+                desc: '1=C 大調 · 4/4 拍 · 入門視唱必備曲目'
+            },
+            {
+                id: 'canon_in_d',
+                title: '卡農 (Canon in D)',
+                key: 'D',
+                mode: 'major',
+                timeSignature: '4/4',
+                bpm: 80,
+                file: 'scores/canon_in_d.json',
+                desc: '2♯ D 大調 · 4/4 拍 · 經典巴洛克和弦長音'
+            }
+        ];
+
+        // 離線備用快取（確保即使在 file:// 協定下 fetch 受限時依然 100% 能瞬間載入）
+        const PRESET_SONGS_CACHE = {
+            'invisible_wings': {
+                title: "隱形的翅膀", key: "Eb", mode: "major", timeSignature: "4/4", bpm: 90,
+                notes: [
+                    { degree: 3, octave: 0, accidental: 0, duration: 1, lyric: "每" },
+                    { degree: 3, octave: 0, accidental: 0, duration: 1, lyric: "一" },
+                    { degree: 5, octave: 0, accidental: 0, duration: 1, lyric: "次" },
+                    { degree: 6, octave: 0, accidental: 0, duration: 1, lyric: "都" },
+                    { degree: 5, octave: 0, accidental: 0, duration: 2, lyric: "在" },
+                    { degree: 3, octave: 0, accidental: 0, duration: 1, lyric: "徘" },
+                    { degree: 2, octave: 0, accidental: 0, duration: 1, lyric: "徊" },
+                    { degree: 1, octave: 0, accidental: 0, duration: 1, lyric: "中" },
+                    { degree: 2, octave: 0, accidental: 0, duration: 1, lyric: "堅" },
+                    { degree: 3, octave: 0, accidental: 0, duration: 2, lyric: "強" },
+                    { degree: 0, octave: 0, accidental: 0, duration: 1, lyric: "" },
+                    { degree: 3, octave: 0, accidental: 0, duration: 1, lyric: "每" },
+                    { degree: 3, octave: 0, accidental: 0, duration: 1, lyric: "一" },
+                    { degree: 5, octave: 0, accidental: 0, duration: 1, lyric: "次" },
+                    { degree: 6, octave: 0, accidental: 0, duration: 1, lyric: "就" },
+                    { degree: 5, octave: 0, accidental: 0, duration: 1, lyric: "算" },
+                    { degree: 3, octave: 0, accidental: 0, duration: 1, lyric: "受" },
+                    { degree: 2, octave: 0, accidental: 0, duration: 1, lyric: "傷" },
+                    { degree: 1, octave: 0, accidental: 0, duration: 1, lyric: "也" },
+                    { degree: 2, octave: 0, accidental: 0, duration: 1, lyric: "不" },
+                    { degree: 3, octave: 0, accidental: 0, duration: 1, lyric: "閃" },
+                    { degree: 2, octave: 0, accidental: 0, duration: 2, lyric: "躲" },
+                    { degree: 0, octave: 0, accidental: 0, duration: 1, lyric: "" }
+                ]
+            },
+            'twinkle_star': {
+                title: "小星星", key: "C", mode: "major", timeSignature: "4/4", bpm: 100,
+                notes: [
+                    { degree: 1, octave: 0, accidental: 0, duration: 1, lyric: "一" },
+                    { degree: 1, octave: 0, accidental: 0, duration: 1, lyric: "閃" },
+                    { degree: 5, octave: 0, accidental: 0, duration: 1, lyric: "一" },
+                    { degree: 5, octave: 0, accidental: 0, duration: 1, lyric: "閃" },
+                    { degree: 6, octave: 0, accidental: 0, duration: 1, lyric: "亮" },
+                    { degree: 6, octave: 0, accidental: 0, duration: 1, lyric: "晶" },
+                    { degree: 5, octave: 0, accidental: 0, duration: 2, lyric: "晶" },
+                    { degree: 4, octave: 0, accidental: 0, duration: 1, lyric: "滿" },
+                    { degree: 4, octave: 0, accidental: 0, duration: 1, lyric: "天" },
+                    { degree: 3, octave: 0, accidental: 0, duration: 1, lyric: "都" },
+                    { degree: 3, octave: 0, accidental: 0, duration: 1, lyric: "是" },
+                    { degree: 2, octave: 0, accidental: 0, duration: 1, lyric: "小" },
+                    { degree: 2, octave: 0, accidental: 0, duration: 1, lyric: "星" },
+                    { degree: 1, octave: 0, accidental: 0, duration: 2, lyric: "星" }
+                ]
+            },
+            'canon_in_d': {
+                title: "卡農 (Canon in D)", key: "D", mode: "major", timeSignature: "4/4", bpm: 80,
+                notes: [
+                    { degree: 1, octave: 1, accidental: 0, duration: 2, lyric: "La" },
+                    { degree: 7, octave: 0, accidental: 0, duration: 2, lyric: "La" },
+                    { degree: 6, octave: 0, accidental: 0, duration: 2, lyric: "La" },
+                    { degree: 5, octave: 0, accidental: 0, duration: 2, lyric: "La" },
+                    { degree: 4, octave: 0, accidental: 0, duration: 2, lyric: "La" },
+                    { degree: 3, octave: 0, accidental: 0, duration: 2, lyric: "La" },
+                    { degree: 4, octave: 0, accidental: 0, duration: 2, lyric: "La" },
+                    { degree: 5, octave: 0, accidental: 0, duration: 2, lyric: "La" }
+                ]
+            }
+        };
+
+        // --- 載入樂譜中心邏輯 ---
+        function openLoadScoreModal() {
+            renderBuiltinScoresList();
+            document.getElementById('load-score-modal').classList.add('is-open');
+        }
+
+        function closeLoadScoreModal() {
+            document.getElementById('load-score-modal').classList.remove('is-open');
+        }
+
+        function renderBuiltinScoresList() {
+            const listEl = document.getElementById('builtin-scores-list');
+            if (!listEl) return;
+            listEl.innerHTML = '';
+            BUILTIN_SCORES.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'score-lib-card';
+                card.innerHTML = `
+                    <div class="min-w-0 pr-2">
+                        <div class="text-xs font-bold text-slate-100 truncate">${escapeHtml(item.title)}</div>
+                        <div class="text-[9px] text-slate-400 mt-0.5 truncate">${escapeHtml(item.desc)}</div>
+                    </div>
+                    <button class="primary-small px-3 py-1 text-[10px] shrink-0" type="button">載入</button>
+                `;
+                card.addEventListener('click', () => loadBuiltinScore(item));
+                listEl.appendChild(card);
+            });
+        }
+
+        async function loadBuiltinScore(scoreInfo) {
+            try {
+                let scoreData = null;
+                try {
+                    const resp = await fetch(scoreInfo.file);
+                    if (resp.ok) {
+                        scoreData = await resp.json();
+                    }
+                } catch (_) {}
+
+                if (!scoreData && PRESET_SONGS_CACHE[scoreInfo.id]) {
+                    scoreData = PRESET_SONGS_CACHE[scoreInfo.id];
+                }
+
+                if (scoreData) {
+                    applyScoreData(scoreData);
+                    closeLoadScoreModal();
+                    showWorkbenchToast(`已載入樂譜《${scoreData.title || scoreInfo.title}》`);
+                } else {
+                    showWorkbenchToast('載入失敗，請確認 scores/ 目錄下的樂譜檔案');
+                }
+            } catch (e) {
+                showWorkbenchToast('載入樂譜時發生錯誤');
+            }
+        }
+
+        function applyScoreData(data) {
+            if (!data || !Array.isArray(data.notes)) return;
+            saveHistoryState();
+            currentScoreTitle = data.title || '未命名樂譜';
+            currentKey = data.key || 'C';
+            currentMode = data.mode === 'minor' ? 'minor' : 'major';
+            currentTimeSignature = data.timeSignature || '4/4';
+            currentBpm = Math.max(40, Math.min(200, Number(data.bpm) || 90));
+            scoreNotes = JSON.parse(JSON.stringify(data.notes));
+            editorCursorIndex = scoreNotes.length;
+            selectedEditorIndex = null;
+
+            syncWorkbenchControls();
+            updateKeySignatureGuidance();
+            updatePitchPadDisplay();
+            renderInteractiveStaff();
+            renderMelodyTrack();
+        }
+
+        // --- 音符雙擊檢查器 (Note Inspector) 邏輯 ---
+        let inspectingNoteIndex = null;
+        let inspectTempNote = null;
+
+        function openNoteInspector(index) {
+            if (index < 0 || index >= scoreNotes.length) return;
+            inspectingNoteIndex = index;
+            inspectTempNote = { ...scoreNotes[index] };
+
+            document.getElementById('inspector-badge').textContent = `#${index + 1} · 第 ${calculateMeasureIndex(index)} 小節`;
+            const lyricInput = document.getElementById('inspect-lyric');
+            lyricInput.value = inspectTempNote.lyric || '';
+
+            updateInspectorUI();
+            document.getElementById('note-inspector-modal').classList.add('is-open');
+            setTimeout(() => lyricInput.focus(), 80);
+        }
+
+        function calculateMeasureIndex(noteIndex) {
+            const capacity = getTimeSignatureCapacity();
+            let currentBeats = 0;
+            let measureNum = 1;
+            for (let i = 0; i < noteIndex; i++) {
+                const note = scoreNotes[i];
+                const dur = Number(note.duration) || 1;
+                if (currentBeats + dur > capacity + 0.0001) {
+                    measureNum++;
+                    currentBeats = dur;
+                } else {
+                    currentBeats += dur;
+                    if (Math.abs(currentBeats - capacity) <= 0.0001) {
+                        measureNum++;
+                        currentBeats = 0;
+                    }
+                }
+            }
+            return measureNum;
+        }
+
+        function updateInspectorUI() {
+            if (!inspectTempNote) return;
+
+            document.querySelectorAll('.inspect-degree-btn').forEach(btn => {
+                btn.classList.toggle('is-active', Number(btn.dataset.degree) === Number(inspectTempNote.degree));
+            });
+            document.querySelectorAll('.inspect-acc-btn').forEach(btn => {
+                btn.classList.toggle('is-active', Number(btn.dataset.acc) === Number(inspectTempNote.accidental));
+            });
+            document.querySelectorAll('.inspect-oct-btn').forEach(btn => {
+                btn.classList.toggle('is-active', Number(btn.dataset.oct) === Number(inspectTempNote.octave));
+            });
+            document.querySelectorAll('.inspect-dur-btn').forEach(btn => {
+                btn.classList.toggle('is-active', Number(btn.dataset.dur) === Number(inspectTempNote.duration));
+            });
+
+            const previewEl = document.getElementById('inspect-pitch-preview');
+            if (inspectTempNote.degree === 0) {
+                previewEl.textContent = '休止符 (0 拍)';
+            } else {
+                const midi = noteToMidi(inspectTempNote, currentKey, currentMode);
+                const pitchName = midiToPitchName(midi);
+                previewEl.textContent = `${pitchName} (${midi} MIDI · ${Math.round(midiToFreq(midi))}Hz)`;
+            }
+        }
+
+        function previewInspectedNote() {
+            if (!inspectTempNote) return;
+            if (inspectTempNote.degree !== 0) {
+                const midi = noteToMidi(inspectTempNote, currentKey, currentMode);
+                playSynthesizedTone(midi, getNoteDurationSeconds(inspectTempNote), 0.48);
+            }
+        }
+
+        function saveInspectedNote() {
+            if (inspectingNoteIndex === null || !inspectTempNote) return;
+            saveHistoryState();
+            inspectTempNote.lyric = document.getElementById('inspect-lyric').value.trim();
+            scoreNotes[inspectingNoteIndex] = { ...inspectTempNote };
+            renderMelodyTrack();
+            closeNoteInspector();
+            showWorkbenchToast(`已更新第 ${inspectingNoteIndex + 1} 個音符`);
+        }
+
+        function deleteInspectedNote() {
+            if (inspectingNoteIndex === null) return;
+            saveHistoryState();
+            scoreNotes.splice(inspectingNoteIndex, 1);
+            if (editorCursorIndex > inspectingNoteIndex) editorCursorIndex--;
+            selectedEditorIndex = null;
+            renderMelodyTrack();
+            closeNoteInspector();
+            showWorkbenchToast('已刪除音符');
+        }
+
+        function closeNoteInspector() {
+            document.getElementById('note-inspector-modal').classList.remove('is-open');
+            inspectingNoteIndex = null;
+            inspectTempNote = null;
+        }
+
         function initializeWorkbench() {
             document.getElementById('workspace-tab-editor').addEventListener('click', () => setWorkspaceView('editor'));
             document.getElementById('workspace-tab-practice').addEventListener('click', () => setWorkspaceView('practice'));
+
+            // 頂部載入樂譜中心與匯出
+            const appLoadBtn = document.getElementById('app-load-score-btn');
+            if (appLoadBtn) appLoadBtn.addEventListener('click', openLoadScoreModal);
+            document.getElementById('close-load-modal-btn').addEventListener('click', closeLoadScoreModal);
+            document.getElementById('cancel-load-modal-btn').addEventListener('click', closeLoadScoreModal);
+
+            const localTriggerBtn = document.getElementById('local-file-trigger-btn');
+            const localScoreInput = document.getElementById('local-score-input');
+            if (localTriggerBtn && localScoreInput) {
+                localTriggerBtn.addEventListener('click', () => localScoreInput.click());
+                localScoreInput.addEventListener('change', (e) => {
+                    const file = e.target.files && e.target.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = (evt) => {
+                        try {
+                            const parsed = JSON.parse(evt.target.result);
+                            if (parsed.notes && Array.isArray(parsed.notes)) {
+                                applyScoreData(parsed);
+                                closeLoadScoreModal();
+                                showWorkbenchToast(`成功匯入本機樂譜《${parsed.title || file.name}》`);
+                            } else {
+                                showWorkbenchToast('JSON 格式不符合樂譜結構');
+                            }
+                        } catch (err) {
+                            showWorkbenchToast('JSON 解析失敗');
+                        }
+                    };
+                    reader.readAsText(file);
+                    e.target.value = '';
+                });
+            }
+
             document.getElementById('app-export-btn').addEventListener('click', () => document.getElementById('export-btn').click());
-            document.getElementById('app-import-btn').addEventListener('click', () => document.getElementById('import-btn').click());
-            document.getElementById('app-preset-select').addEventListener('change', event => {
-                const legacyPreset = document.getElementById('preset-select');
-                legacyPreset.value = event.target.value;
-                legacyPreset.dispatchEvent(new Event('change'));
-                event.target.value = '';
+
+            // Note Inspector 彈窗事件綁定
+            document.getElementById('close-inspector-btn').addEventListener('click', closeNoteInspector);
+            document.getElementById('inspect-cancel-btn').addEventListener('click', closeNoteInspector);
+            document.getElementById('inspect-save-btn').addEventListener('click', saveInspectedNote);
+            document.getElementById('inspect-delete-btn').addEventListener('click', deleteInspectedNote);
+            document.getElementById('inspect-play-btn').addEventListener('click', previewInspectedNote);
+
+            document.querySelectorAll('.inspect-degree-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    if (!inspectTempNote) return;
+                    inspectTempNote.degree = Number(btn.dataset.degree);
+                    updateInspectorUI();
+                    previewInspectedNote();
+                });
+            });
+            document.querySelectorAll('.inspect-acc-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    if (!inspectTempNote) return;
+                    inspectTempNote.accidental = Number(btn.dataset.acc);
+                    updateInspectorUI();
+                    previewInspectedNote();
+                });
+            });
+            document.querySelectorAll('.inspect-oct-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    if (!inspectTempNote) return;
+                    inspectTempNote.octave = Number(btn.dataset.oct);
+                    updateInspectorUI();
+                    previewInspectedNote();
+                });
+            });
+            document.querySelectorAll('.inspect-dur-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    if (!inspectTempNote) return;
+                    inspectTempNote.duration = Number(btn.dataset.dur);
+                    updateInspectorUI();
+                });
             });
 
+            // 彈窗背景點擊關閉
+            document.querySelectorAll('.app-modal-backdrop').forEach(backdrop => {
+                backdrop.addEventListener('click', (e) => {
+                    if (e.target === backdrop) {
+                        backdrop.classList.remove('is-open');
+                        inspectingNoteIndex = null;
+                        inspectTempNote = null;
+                    }
+                });
+            });
+
+            document.getElementById('inspect-lyric').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    saveInspectedNote();
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    closeNoteInspector();
+                }
+            });
+
+            // 輸譜控制項
             document.getElementById('editor-score-title').addEventListener('input', event => {
                 currentScoreTitle = event.target.value;
                 renderEditorScore();

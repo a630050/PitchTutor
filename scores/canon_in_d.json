@@ -1,0 +1,66 @@
+{
+  "title": "卡農 (Canon in D)",
+  "key": "D",
+  "mode": "major",
+  "timeSignature": "4/4",
+  "bpm": 80,
+  "description": "經典巴洛克和弦旋律 · 2♯ D 大調 · 適合音程與連音練唱",
+  "notes": [
+    {
+      "degree": 1,
+      "octave": 1,
+      "accidental": 0,
+      "duration": 2,
+      "lyric": "La"
+    },
+    {
+      "degree": 7,
+      "octave": 0,
+      "accidental": 0,
+      "duration": 2,
+      "lyric": "La"
+    },
+    {
+      "degree": 6,
+      "octave": 0,
+      "accidental": 0,
+      "duration": 2,
+      "lyric": "La"
+    },
+    {
+      "degree": 5,
+      "octave": 0,
+      "accidental": 0,
+      "duration": 2,
+      "lyric": "La"
+    },
+    {
+      "degree": 4,
+      "octave": 0,
+      "accidental": 0,
+      "duration": 2,
+      "lyric": "La"
+    },
+    {
+      "degree": 3,
+      "octave": 0,
+      "accidental": 0,
+      "duration": 2,
+      "lyric": "La"
+    },
+    {
+      "degree": 4,
+      "octave": 0,
+      "accidental": 0,
+      "duration": 2,
+      "lyric": "La"
+    },
+    {
+      "degree": 5,
+      "octave": 0,
+      "accidental": 0,
+      "duration": 2,
+      "lyric": "La"
+    }
+  ]
+}
