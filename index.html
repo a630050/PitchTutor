@@ -709,12 +709,22 @@
                 <div class="eyebrow">Practice room</div>
                 <h2 class="panel-title">聽音與練唱</h2>
             </div>
-            <div class="tool-row items-center ml-auto mr-3" id="practice-instrument-toolbar">
+            <div class="tool-row items-center ml-auto mr-2" id="practice-instrument-toolbar">
                 <span class="tool-label text-slate-400">音色</span>
                 <button class="choice-button instrument-choice is-active" type="button" data-instrument="piano" title="鋼琴：溫暖自然的觸鍵與延音">🎹 鋼琴</button>
                 <button class="choice-button instrument-choice" type="button" data-instrument="flute" title="長笛管樂：純淨連音，最適合視唱練唱">🪈 長笛</button>
                 <button class="choice-button instrument-choice" type="button" data-instrument="strings" title="溫暖弦樂：醇厚悠揚的平滑長音">🎻 弦樂</button>
                 <button class="choice-button instrument-choice" type="button" data-instrument="vocal" title="人聲導唱：模擬 Ahh 人聲共鳴">🎤 人聲</button>
+            </div>
+            <div class="tool-row items-center gap-1.5 bg-slate-950/80 px-2.5 py-1 rounded-lg border border-slate-800 mr-2" id="practice-bpm-toolbar" title="調整練唱與播放速度 (BPM)">
+                <span class="tool-label text-slate-400">速度</span>
+                <button id="practice-bpm-minus" class="quiet-button px-1.5 py-0.5 text-xs font-bold text-slate-300 hover:text-white" type="button" title="降低 5 BPM">−5</button>
+                <input type="range" id="practice-bpm-slider" min="40" max="200" step="1" value="82" class="w-16 accent-orange-500 cursor-pointer h-1.5 bg-slate-700 rounded-lg">
+                <button id="practice-bpm-plus" class="quiet-button px-1.5 py-0.5 text-xs font-bold text-slate-300 hover:text-white" type="button" title="增加 5 BPM">+5</button>
+                <div class="flex items-center gap-0.5 text-xs font-mono font-bold text-amber-400">
+                    <span id="practice-bpm-display">82</span>
+                    <span class="text-[9px] text-slate-500 font-sans">BPM</span>
+                </div>
             </div>
             <div class="practice-mode-group" aria-label="練唱操作">
                 <button class="practice-mode-button is-active" type="button" data-practice-mode="learn">單音聽音</button>
@@ -2306,17 +2316,37 @@
             verticalHandle.addEventListener('dblclick', () => workbench.style.removeProperty('--console-height'));
         }
 
+        function setGlobalBpm(nextBpm) {
+            currentBpm = Math.max(40, Math.min(200, Math.round(Number(nextBpm) || 82)));
+
+            const editorBpm = document.getElementById('editor-score-bpm');
+            if (editorBpm && editorBpm.value !== String(currentBpm)) editorBpm.value = String(currentBpm);
+
+            const practiceDisplay = document.getElementById('practice-bpm-display');
+            if (practiceDisplay) practiceDisplay.textContent = String(currentBpm);
+
+            const practiceSlider = document.getElementById('practice-bpm-slider');
+            if (practiceSlider && practiceSlider.value !== String(currentBpm)) practiceSlider.value = String(currentBpm);
+
+            const legacySlider = document.getElementById('score-bpm-range');
+            if (legacySlider && legacySlider.value !== String(currentBpm)) legacySlider.value = String(currentBpm);
+
+            const legacyVal = document.getElementById('score-bpm-val');
+            if (legacyVal) legacyVal.innerText = currentBpm;
+
+            renderEditorScore();
+        }
+
         function syncWorkbenchControls() {
             const keyControl = document.getElementById('editor-score-key');
             const modeControl = document.getElementById('editor-score-mode');
-            const bpmControl = document.getElementById('editor-score-bpm');
             const timeControl = document.getElementById('editor-time-signature');
             const titleControl = document.getElementById('editor-score-title');
             if (keyControl) keyControl.value = currentKey;
             if (modeControl) modeControl.value = currentMode;
-            if (bpmControl) bpmControl.value = String(currentBpm);
             if (timeControl) timeControl.value = currentTimeSignature;
             if (titleControl) titleControl.value = currentScoreTitle;
+            setGlobalBpm(currentBpm);
             setStickyDuration(stickyDuration);
             setEditorOctave(editorOctave);
             setAccidentalChoice(tempAccidentalOverride);
@@ -4478,14 +4508,28 @@
                 currentTimeSignature = event.target.value;
                 renderEditorScore();
             });
-            document.getElementById('editor-score-bpm').addEventListener('change', event => {
-                const nextBpm = Math.max(40, Math.min(200, Number(event.target.value) || 90));
-                event.target.value = String(nextBpm);
-                const legacyBpm = document.getElementById('score-bpm-range');
-                legacyBpm.value = String(nextBpm);
-                legacyBpm.dispatchEvent(new Event('input'));
-                renderEditorScore();
+            document.getElementById('editor-score-bpm').addEventListener('input', event => {
+                setGlobalBpm(event.target.value);
             });
+
+            const practiceSlider = document.getElementById('practice-bpm-slider');
+            if (practiceSlider) {
+                practiceSlider.addEventListener('input', event => {
+                    setGlobalBpm(event.target.value);
+                });
+            }
+            const practiceMinus = document.getElementById('practice-bpm-minus');
+            if (practiceMinus) {
+                practiceMinus.addEventListener('click', () => {
+                    setGlobalBpm(currentBpm - 5);
+                });
+            }
+            const practicePlus = document.getElementById('practice-bpm-plus');
+            if (practicePlus) {
+                practicePlus.addEventListener('click', () => {
+                    setGlobalBpm(currentBpm + 5);
+                });
+            }
 
             document.querySelectorAll('.input-mode-choice').forEach(button => {
                 button.addEventListener('click', () => setEditorInputMode(button.dataset.inputMode));
@@ -5327,11 +5371,7 @@
         });
 
         document.getElementById('score-bpm-range').addEventListener('input', (e) => {
-            currentBpm = parseInt(e.target.value);
-            document.getElementById('score-bpm-val').innerText = currentBpm;
-            const editorBpm = document.getElementById('editor-score-bpm');
-            if (editorBpm) editorBpm.value = String(currentBpm);
-            renderEditorScore();
+            setGlobalBpm(e.target.value);
         });
 
         document.getElementById('export-btn').addEventListener('click', () => {
