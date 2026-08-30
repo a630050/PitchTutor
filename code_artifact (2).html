@@ -376,6 +376,23 @@
             cursor: pointer; transition: all 0.12s ease;
         }
         .score-lib-card:hover { border-color: var(--baton); background: #182a38; transform: translateY(-1px); }
+
+        .inline-lyric-input {
+            width: 90%;
+            height: 22px;
+            background: #182e40;
+            border: 1.5px solid var(--baton);
+            border-radius: 4px;
+            color: #ffefdb;
+            font-size: 13px;
+            font-weight: 800;
+            text-align: center;
+            outline: none;
+            box-shadow: 0 0 8px rgba(244, 123, 69, 0.45);
+            padding: 0 2px;
+            margin: 0;
+            z-index: 10;
+        }
         @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; } }
         @media (max-width: 980px) {
             body { height: auto !important; min-height: 100vh; overflow-y: auto !important; overflow-x: hidden !important; }
@@ -1083,6 +1100,7 @@
                     <button id="local-file-trigger-btn" class="primary-small w-full py-2.5 text-center flex items-center justify-center gap-1.5 font-bold" type="button">
                         <span>📁</span> <span>選擇電腦中的 .json 樂譜檔案</span>
                     </button>
+                    <input type="file" id="local-score-input" accept=".json" class="hidden">
                     <p class="text-[9px] text-slate-400 mt-1.5 leading-relaxed">
                         支援由本系統匯出的標準樂譜 JSON 檔案；匯入後可立即在排練桌檢視、修改或練唱。
                     </p>
@@ -1940,7 +1958,7 @@
             card.setAttribute('aria-label', note.degree === 0
                 ? `${getDurationLabel(note.duration)}休止符`
                 : `${note.accidental === 1 ? '升' : note.accidental === -1 ? '降' : ''}${note.degree} (${pitchName})，${getDurationLabel(note.duration)}，歌詞${note.lyric || '空白'}`);
-            card.title = "點擊選取／試聽，雙擊編輯歌詞與音高";
+            card.title = "點擊選取／試聽，雙擊開啟音符面板，滑鼠右鍵直接就地編輯歌詞 (Tab可換下一音)";
 
             const nameEl = document.createElement('div');
             nameEl.className = 'editor-note-name';
@@ -1962,10 +1980,13 @@
             const lyric = document.createElement('div');
             lyric.className = 'editor-note-lyric';
             lyric.textContent = note.degree === 0 ? '休' : (note.lyric || '—');
+            lyric.title = "右鍵或雙擊此處可就地修改歌詞";
+
             const duration = document.createElement('div');
             duration.className = 'editor-note-duration';
             duration.textContent = getDurationLabel(note.duration);
             card.append(nameEl, pitch, lyric, duration);
+
             card.addEventListener('click', () => {
                 selectedEditorIndex = index;
                 editorCursorIndex = index + 1;
@@ -1977,7 +1998,119 @@
                 e.stopPropagation();
                 openNoteInspector(index);
             });
+
+            // 右鍵點擊／右鍵雙擊：就地編輯歌詞，不彈出大視窗
+            card.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                startInlineLyricEditing(index, lyric);
+            });
+
+            // 雙擊歌詞文字：就地編輯歌詞
+            lyric.addEventListener('dblclick', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                startInlineLyricEditing(index, lyric);
+            });
+
             return card;
+        }
+
+        // --- 就地行內歌詞編輯器 (Inline Lyric Editor) ---
+        let activeInlineLyricIndex = null;
+
+        function startInlineLyricEditing(index, lyricEl) {
+            if (index < 0 || index >= scoreNotes.length) return;
+            if (activeInlineLyricIndex !== null && activeInlineLyricIndex !== index) {
+                const existingInput = document.querySelector('.inline-lyric-input');
+                if (existingInput) saveInlineLyric(activeInlineLyricIndex, existingInput.value);
+            }
+
+            activeInlineLyricIndex = index;
+            const note = scoreNotes[index];
+            const originalText = note.lyric || '';
+
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'inline-lyric-input';
+            input.value = originalText;
+            input.maxLength = 16;
+            input.placeholder = note.degree === 0 ? '休' : '歌詞';
+            input.setAttribute('aria-label', `編輯第 ${index + 1} 個音符歌詞`);
+
+            const parent = lyricEl.parentNode;
+            if (!parent) return;
+            parent.replaceChild(input, lyricEl);
+
+            setTimeout(() => {
+                input.focus();
+                input.select();
+            }, 25);
+
+            let isSaved = false;
+
+            const commitAndFinish = (nextDelta = 0) => {
+                if (isSaved) return;
+                isSaved = true;
+                const val = input.value.trim();
+                saveInlineLyric(index, val);
+                activeInlineLyricIndex = null;
+                renderEditorScore();
+
+                if (nextDelta !== 0) {
+                    const nextIndex = index + nextDelta;
+                    if (nextIndex >= 0 && nextIndex < scoreNotes.length) {
+                        setTimeout(() => {
+                            const allCards = document.querySelectorAll('#editor-score-container .editor-note');
+                            if (allCards[nextIndex]) {
+                                const nextLyricEl = allCards[nextIndex].querySelector('.editor-note-lyric');
+                                if (nextLyricEl) startInlineLyricEditing(nextIndex, nextLyricEl);
+                            }
+                        }, 40);
+                    }
+                }
+            };
+
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    commitAndFinish(0);
+                    showWorkbenchToast(`已更新歌詞「${input.value.trim() || '—'}」`);
+                } else if (e.key === 'Tab') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    commitAndFinish(e.shiftKey ? -1 : 1);
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    isSaved = true;
+                    activeInlineLyricIndex = null;
+                    renderEditorScore();
+                } else {
+                    e.stopPropagation(); // 防止觸發全域音符輸入快捷鍵
+                }
+            });
+
+            input.addEventListener('blur', () => {
+                commitAndFinish(0);
+            });
+
+            input.addEventListener('click', (e) => e.stopPropagation());
+            input.addEventListener('dblclick', (e) => e.stopPropagation());
+            input.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            });
+        }
+
+        function saveInlineLyric(index, text) {
+            if (index < 0 || index >= scoreNotes.length) return;
+            if (scoreNotes[index].lyric !== text) {
+                saveHistoryState();
+                scoreNotes[index].lyric = text;
+                renderMelodyTrack();
+            }
         }
 
         function groupNotesIntoMeasures() {
