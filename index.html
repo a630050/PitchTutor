@@ -554,28 +554,36 @@
             z-index: 10;
         }
         @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation: none !important; } }
+        
+        /* 平板與中螢幕 (Tablet & Medium Screens) */
         @media (max-width: 980px) {
             body { height: auto !important; min-height: 100vh; overflow-y: auto !important; overflow-x: hidden !important; }
-            .workbench-header { grid-template-columns: 1fr auto; }
+            .workbench-header { grid-template-columns: 1fr auto; padding: 8px 12px; }
             .workspace-tabs { grid-row: 2; grid-column: 1 / -1; justify-self: stretch; }
-            .workspace-tab { flex: 1; }
+            .workspace-tab { flex: 1; text-align: center; }
             .brand-subtitle { display: none; }
             #editor-page.is-active { display: flex; flex-direction: column; height: auto; min-height: auto; flex: none; overflow: visible; }
             .panel-resizer { display: none; }
-            .reference-panel { min-height: 300px; border-right: 0; border-bottom: 1px solid #22313d; }
-            .reference-stage { min-height: 200px; }
+            .reference-panel { min-height: 280px; border-right: 0; border-bottom: 1px solid #22313d; }
+            .reference-stage { min-height: 180px; }
             .editor-center-panel { min-height: auto; overflow: visible; }
             .editor-studio-panel { border-left: 0; border-top: 1px solid #22313d; }
             .score-paper { min-height: 360px; flex: none; }
+            .practice-toolbar { flex-direction: column; align-items: stretch; gap: 8px; padding: 10px 12px 0; }
+            .practice-mode-group { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; width: 100%; }
+            .practice-mode-button { text-align: center; padding: 8px 4px; font-size: 11px; }
+            #practice-page > main { padding: 10px; }
         }
+
+        /* 手機直式 (Mobile Portrait <= 680px) */
         @media (max-width: 680px) {
-            .workbench-header { position: sticky; top: 0; padding: 8px 10px; grid-template-columns: 1fr auto; }
-            .brand-title { font-size: 12px; }
-            .brand-mark { width: 32px; height: 32px; font-size: 18px; }
+            .workbench-header { position: sticky; top: 0; padding: 6px 10px; grid-template-columns: 1fr auto; }
+            .brand-title { font-size: 13px; font-weight: 900; }
+            .brand-mark { width: 28px; height: 28px; font-size: 15px; }
             .header-control { display: none; }
             .text-size-control { display: none; }
-            .header-action { padding: 0 7px; }
-            .workspace-tab { min-width: 0; padding: 7px 10px; }
+            .header-action { padding: 0 8px; font-size: 11px; height: 28px; }
+            .workspace-tab { min-width: 0; padding: 6px 8px; font-size: 12px; }
             .editor-meta { grid-template-columns: 1fr 1fr; }
             .editor-meta > :first-child { grid-column: 1 / -1; }
             .key-signature-help { grid-template-columns: 1fr; }
@@ -584,9 +592,40 @@
             .step-console { display: block; }
             .pitch-pad { grid-template-columns: repeat(4, 1fr); }
             .tool-label { width: 100%; }
-            .score-paper { min-height: 360px; }
-            .practice-toolbar { align-items: flex-start; }
-            #practice-page > main { padding: 10px; }
+            .score-paper { min-height: 320px; }
+            
+            /* 練唱頁手機端優化 */
+            .practice-toolbar { padding: 6px 8px 0; gap: 6px; }
+            .practice-mode-group { grid-template-columns: repeat(2, 1fr); }
+            .practice-mode-button { font-size: 11px; padding: 7px 4px; }
+            #practice-instrument-toolbar { width: 100%; justify-content: space-between; margin-right: 0; }
+            #practice-bpm-toolbar { width: 100%; justify-content: space-between; margin-right: 0; }
+            #practice-page > main { padding: 8px; gap: 8px; }
+            #tuner-panel { padding: 10px; }
+            #tuner-panel > div { flex-direction: column; align-items: stretch; gap: 10px; }
+            #tuner-hear-sound { width: 100%; justify-content: center; padding: 8px; }
+            .practice-score-tabs { flex-wrap: wrap; }
+            .notation-panel { padding: 8px; overflow-x: auto; width: 100%; -webkit-overflow-scrolling: touch; }
+            .notation-stage { min-width: 520px; }
+            .note-tile { width: 44px; height: 68px; }
+        }
+
+        /* 手機橫式 (Mobile Landscape <= 520px Height) */
+        @media (max-height: 520px) and (orientation: landscape) {
+            body { height: auto !important; min-height: 100vh; overflow-y: auto !important; }
+            .workbench-header { padding: 3px 10px; grid-template-columns: auto 1fr auto; }
+            .workspace-tabs { grid-row: 1; grid-column: auto; }
+            .brand-subtitle { display: none; }
+            .text-size-control { display: none; }
+            .header-action { height: 26px; font-size: 10px; padding: 0 6px; }
+            .practice-toolbar { padding: 4px 10px 0; flex-direction: row; flex-wrap: wrap; gap: 4px; }
+            .practice-mode-group { display: flex; width: auto; }
+            .practice-mode-button { padding: 4px 8px; font-size: 10px; }
+            #practice-page > main { padding: 6px 10px; gap: 6px; overflow-y: auto; }
+            #tuner-panel { padding: 6px 10px; }
+            #tuner-panel > div { flex-direction: row; align-items: center; justify-content: space-between; }
+            .note-tile { width: 42px; height: 64px; }
+            .notation-panel { min-height: 180px; }
         }
     </style>
 </head>
@@ -676,6 +715,7 @@
                 <span id="ui-text-size-label">字級標準</span>
                 <button id="ui-text-increase" type="button" aria-label="放大介面文字">A＋</button>
             </div>
+            <button id="app-share-link-btn" class="header-action font-bold bg-emerald-700/80 hover:bg-emerald-600 text-white" type="button" title="複製學員練唱專屬連結（帶參數直接進入練唱）">🔗 分享</button>
             <button id="app-load-score-btn" class="header-action font-bold bg-indigo-600/60 hover:bg-indigo-600 text-white" type="button">📂 載入樂譜</button>
             <button id="app-export-btn" class="header-action" type="button">💾 匯出</button>
         </div>
@@ -3045,16 +3085,16 @@
             currentBpm = Math.max(BPM_MIN, Math.min(BPM_MAX, Math.round(Number(nextBpm) || 82)));
 
             const editorBpm = document.getElementById('editor-score-bpm');
-            if (editorBpm && editorBpm.value !== String(currentBpm)) editorBpm.value = String(currentBpm);
+            if (editorBpm) editorBpm.value = String(currentBpm);
 
             const practiceDisplay = document.getElementById('practice-bpm-display');
             if (practiceDisplay) practiceDisplay.textContent = String(currentBpm);
 
             const practiceSlider = document.getElementById('practice-bpm-slider');
-            if (practiceSlider && practiceSlider.value !== String(currentBpm)) practiceSlider.value = String(currentBpm);
+            if (practiceSlider) practiceSlider.value = String(currentBpm);
 
             const legacySlider = document.getElementById('score-bpm-range');
-            if (legacySlider && legacySlider.value !== String(currentBpm)) legacySlider.value = String(currentBpm);
+            if (legacySlider) legacySlider.value = String(currentBpm);
 
             const legacyVal = document.getElementById('score-bpm-val');
             if (legacyVal) legacyVal.innerText = currentBpm;
@@ -3221,17 +3261,19 @@
         // --- 內建樂譜庫 (scores/ 資料夾清單) ---
         const BUILTIN_SCORES = [
             {
-                id: 'invisible_wings',
-                title: '隱形的翅膀',
+                id: 'invisible_wings_part1',
+                alias: ['invisible_wings', '隱形的翅膀_第一部', '隱形的翅膀'],
+                title: '隱形的翅膀 (第一部)',
                 key: 'Eb',
                 mode: 'major',
                 timeSignature: '4/4',
-                bpm: 90,
-                file: 'scores/invisible_wings.json',
-                desc: '3♭ E♭ 大調 · 4/4 拍 · 經典抒情勵志練唱曲 (附完整歌詞)'
+                bpm: 75,
+                file: 'scores/隱形的翅膀_第一部.json',
+                desc: '3♭ E♭ 大調 · 4/4 拍 · ♩=75 · 經典合唱第一聲部 (附完整歌詞)'
             },
             {
                 id: 'twinkle_star',
+                alias: ['twinkle_star', '小星星'],
                 title: '小星星 (Twinkle Star)',
                 key: 'C',
                 mode: 'major',
@@ -3242,6 +3284,7 @@
             },
             {
                 id: 'canon_in_d',
+                alias: ['canon_in_d', '卡農'],
                 title: '卡農 (Canon in D)',
                 key: 'D',
                 mode: 'major',
@@ -3254,1746 +3297,9 @@
 
         // 離線備用快取（確保即使在 file:// 協定下 fetch 受限時依然 100% 能瞬間載入）
         const PRESET_SONGS_CACHE = {
-            'invisible_wings': {
-          "title": "隱形的翅膀 (第一聲部)",
-          "key": "Eb",
-          "mode": "major",
-          "timeSignature": "4/4",
-          "bpm": 82,
-          "arranger": "HC Chao",
-          "description": "《隱形的翅膀》三部合唱版 · 第一聲部 (Voice I) 完整 64 小節全曲樂譜 · 3♭ E♭ 大調 · ♩=82",
-          "notes": [
-                    {
-                              "degree": 0,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 4,
-                              "lyric": ""
-                    },
-                    {
-                              "degree": 0,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 4,
-                              "lyric": ""
-                    },
-                    {
-                              "degree": 0,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 4,
-                              "lyric": ""
-                    },
-                    {
-                              "degree": 0,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 4,
-                              "lyric": ""
-                    },
-                    {
-                              "degree": 0,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 4,
-                              "lyric": ""
-                    },
-                    {
-                              "degree": 0,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 4,
-                              "lyric": ""
-                    },
-                    {
-                              "degree": 0,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 4,
-                              "lyric": ""
-                    },
-                    {
-                              "degree": 0,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 3,
-                              "lyric": ""
-                    },
-                    {
-                              "degree": 5,
-                              "octave": -1,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "每"
-                    },
-                    {
-                              "degree": 6,
-                              "octave": -1,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "一"
-                    },
-                    {
-                              "degree": 1,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 1,
-                              "lyric": "次"
-                    },
-                    {
-                              "degree": 3,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "都"
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "在"
-                    },
-                    {
-                              "degree": 6,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 1,
-                              "lyric": "徘"
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 1,
-                              "lyric": "徊"
-                    },
-                    {
-                              "degree": 3,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "孤"
-                    },
-                    {
-                              "degree": 2,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "單"
-                    },
-                    {
-                              "degree": 1,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "中"
-                    },
-                    {
-                              "degree": 2,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "堅"
-                    },
-                    {
-                              "degree": 3,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 1,
-                              "lyric": "強"
-                    },
-                    {
-                              "degree": 5,
-                              "octave": -1,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "每"
-                    },
-                    {
-                              "degree": 6,
-                              "octave": -1,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "一"
-                    },
-                    {
-                              "degree": 1,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 1,
-                              "lyric": "次"
-                    },
-                    {
-                              "degree": 3,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "就"
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "算"
-                    },
-                    {
-                              "degree": 6,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "很"
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "受"
-                    },
-                    {
-                              "degree": 3,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "傷"
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "也"
-                    },
-                    {
-                              "degree": 3,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "不"
-                    },
-                    {
-                              "degree": 2,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "閃"
-                    },
-                    {
-                              "degree": 1,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "淚"
-                    },
-                    {
-                              "degree": 2,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "光"
-                    },
-                    {
-                              "degree": 3,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "我"
-                    },
-                    {
-                              "degree": 2,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "知"
-                    },
-                    {
-                              "degree": 1,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 1,
-                              "lyric": "道"
-                    },
-                    {
-                              "degree": 1,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "我"
-                    },
-                    {
-                              "degree": 3,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "一"
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "直"
-                    },
-                    {
-                              "degree": 6,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "有"
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "雙"
-                    },
-                    {
-                              "degree": 3,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "隱"
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "形"
-                    },
-                    {
-                              "degree": 6,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "的"
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "翅"
-                    },
-                    {
-                              "degree": 3,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "膀"
-                    },
-                    {
-                              "degree": 2,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "帶"
-                    },
-                    {
-                              "degree": 3,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "我"
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 2,
-                              "lyric": ""
-                    },
-                    {
-                              "degree": 6,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 1,
-                              "lyric": "飛"
-                    },
-                    {
-                              "degree": 0,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 1,
-                              "lyric": ""
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "飛"
-                    },
-                    {
-                              "degree": 6,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "過"
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "絕"
-                    },
-                    {
-                              "degree": 3,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "望"
-                    },
-                    {
-                              "degree": 2,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 2,
-                              "lyric": "_"
-                    },
-                    {
-                              "degree": 0,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 1,
-                              "lyric": ""
-                    },
-                    {
-                              "degree": 5,
-                              "octave": -1,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "不"
-                    },
-                    {
-                              "degree": 6,
-                              "octave": -1,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "去"
-                    },
-                    {
-                              "degree": 1,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 1,
-                              "lyric": "想"
-                    },
-                    {
-                              "degree": 3,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "他"
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "們"
-                    },
-                    {
-                              "degree": 6,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 1,
-                              "lyric": "擁"
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 1,
-                              "lyric": "有"
-                    },
-                    {
-                              "degree": 3,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "美"
-                    },
-                    {
-                              "degree": 2,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "麗"
-                    },
-                    {
-                              "degree": 1,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "的"
-                    },
-                    {
-                              "degree": 2,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "太"
-                    },
-                    {
-                              "degree": 3,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 1,
-                              "lyric": "陽"
-                    },
-                    {
-                              "degree": 5,
-                              "octave": -1,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "我"
-                    },
-                    {
-                              "degree": 6,
-                              "octave": -1,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "看"
-                    },
-                    {
-                              "degree": 1,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 1,
-                              "lyric": "見"
-                    },
-                    {
-                              "degree": 3,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "每"
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "天"
-                    },
-                    {
-                              "degree": 6,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "的"
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "夕"
-                    },
-                    {
-                              "degree": 3,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "陽"
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "也"
-                    },
-                    {
-                              "degree": 3,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "會"
-                    },
-                    {
-                              "degree": 2,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "有"
-                    },
-                    {
-                              "degree": 1,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "變"
-                    },
-                    {
-                              "degree": 2,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "化"
-                    },
-                    {
-                              "degree": 3,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "我"
-                    },
-                    {
-                              "degree": 2,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "知"
-                    },
-                    {
-                              "degree": 1,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 1,
-                              "lyric": "道"
-                    },
-                    {
-                              "degree": 1,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "我"
-                    },
-                    {
-                              "degree": 3,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "一"
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "直"
-                    },
-                    {
-                              "degree": 6,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "有"
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "雙"
-                    },
-                    {
-                              "degree": 3,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "隱"
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "形"
-                    },
-                    {
-                              "degree": 6,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "的"
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "翅"
-                    },
-                    {
-                              "degree": 3,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "膀"
-                    },
-                    {
-                              "degree": 2,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "帶"
-                    },
-                    {
-                              "degree": 3,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "我"
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 2,
-                              "lyric": ""
-                    },
-                    {
-                              "degree": 6,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 1,
-                              "lyric": "飛"
-                    },
-                    {
-                              "degree": 0,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 1,
-                              "lyric": ""
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "給"
-                    },
-                    {
-                              "degree": 6,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "我"
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "希"
-                    },
-                    {
-                              "degree": 3,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "望"
-                    },
-                    {
-                              "degree": 2,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 2,
-                              "lyric": "_"
-                    },
-                    {
-                              "degree": 0,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 1,
-                              "lyric": ""
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "我"
-                    },
-                    {
-                              "degree": 6,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "終"
-                    },
-                    {
-                              "degree": 1,
-                              "octave": 1,
-                              "accidental": 0,
-                              "duration": 1.5,
-                              "lyric": "於"
-                    },
-                    {
-                              "degree": 7,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "看"
-                    },
-                    {
-                              "degree": 6,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "到"
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "所"
-                    },
-                    {
-                              "degree": 6,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "有"
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "夢"
-                    },
-                    {
-                              "degree": 3,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "想"
-                    },
-                    {
-                              "degree": 2,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "都"
-                    },
-                    {
-                              "degree": 3,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "開"
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "花"
-                    },
-                    {
-                              "degree": 6,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 1,
-                              "lyric": "追"
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "逐"
-                    },
-                    {
-                              "degree": 3,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "的"
-                    },
-                    {
-                              "degree": 3,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "年"
-                    },
-                    {
-                              "degree": 2,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "輕"
-                    },
-                    {
-                              "degree": 1,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "歌"
-                    },
-                    {
-                              "degree": 2,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "聲"
-                    },
-                    {
-                              "degree": 3,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "多"
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "嘹"
-                    },
-                    {
-                              "degree": 6,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "亮"
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": ""
-                    },
-                    {
-                              "degree": 2,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 1.5,
-                              "lyric": "_"
-                    },
-                    {
-                              "degree": 0,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": ""
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "我"
-                    },
-                    {
-                              "degree": 6,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "終"
-                    },
-                    {
-                              "degree": 7,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "於"
-                    },
-                    {
-                              "degree": 1,
-                              "octave": 1,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "翱"
-                    },
-                    {
-                              "degree": 1,
-                              "octave": 1,
-                              "accidental": 0,
-                              "duration": 1.5,
-                              "lyric": "翔"
-                    },
-                    {
-                              "degree": 7,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "用"
-                    },
-                    {
-                              "degree": 6,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "心"
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "凝"
-                    },
-                    {
-                              "degree": 6,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "望"
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "不"
-                    },
-                    {
-                              "degree": 3,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "害"
-                    },
-                    {
-                              "degree": 2,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "怕"
-                    },
-                    {
-                              "degree": 3,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "哪"
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "裡"
-                    },
-                    {
-                              "degree": 6,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 1,
-                              "lyric": "會"
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "有"
-                    },
-                    {
-                              "degree": 3,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "風"
-                    },
-                    {
-                              "degree": 3,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "就"
-                    },
-                    {
-                              "degree": 2,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "飛"
-                    },
-                    {
-                              "degree": 1,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "多"
-                    },
-                    {
-                              "degree": 2,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "遠"
-                    },
-                    {
-                              "degree": 3,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "吧"
-                    },
-                    {
-                              "degree": 2,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": ""
-                    },
-                    {
-                              "degree": 1,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 1,
-                              "lyric": "_"
-                    },
-                    {
-                              "degree": 0,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 4,
-                              "lyric": ""
-                    },
-                    {
-                              "degree": 0,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 4,
-                              "lyric": ""
-                    },
-                    {
-                              "degree": 0,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 4,
-                              "lyric": ""
-                    },
-                    {
-                              "degree": 0,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 4,
-                              "lyric": ""
-                    },
-                    {
-                              "degree": 0,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 4,
-                              "lyric": ""
-                    },
-                    {
-                              "degree": 0,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 4,
-                              "lyric": ""
-                    },
-                    {
-                              "degree": 0,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 4,
-                              "lyric": ""
-                    },
-                    {
-                              "degree": 0,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 3,
-                              "lyric": ""
-                    },
-                    {
-                              "degree": 5,
-                              "octave": -1,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "不"
-                    },
-                    {
-                              "degree": 6,
-                              "octave": -1,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "去"
-                    },
-                    {
-                              "degree": 1,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 1,
-                              "lyric": "想"
-                    },
-                    {
-                              "degree": 3,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "他"
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "們"
-                    },
-                    {
-                              "degree": 6,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 1,
-                              "lyric": "擁"
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 1,
-                              "lyric": "有"
-                    },
-                    {
-                              "degree": 3,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "美"
-                    },
-                    {
-                              "degree": 2,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "麗"
-                    },
-                    {
-                              "degree": 1,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "的"
-                    },
-                    {
-                              "degree": 2,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "太"
-                    },
-                    {
-                              "degree": 3,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 1,
-                              "lyric": "陽"
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "我"
-                    },
-                    {
-                              "degree": 6,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "看"
-                    },
-                    {
-                              "degree": 1,
-                              "octave": 1,
-                              "accidental": 0,
-                              "duration": 1,
-                              "lyric": "見"
-                    },
-                    {
-                              "degree": 7,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "每"
-                    },
-                    {
-                              "degree": 6,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "天"
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "的"
-                    },
-                    {
-                              "degree": 6,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "夕"
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "陽"
-                    },
-                    {
-                              "degree": 3,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "也"
-                    },
-                    {
-                              "degree": 3,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "會"
-                    },
-                    {
-                              "degree": 2,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "有"
-                    },
-                    {
-                              "degree": 1,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "變"
-                    },
-                    {
-                              "degree": 2,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "化"
-                    },
-                    {
-                              "degree": 3,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "我"
-                    },
-                    {
-                              "degree": 2,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "知"
-                    },
-                    {
-                              "degree": 1,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 1,
-                              "lyric": "道"
-                    },
-                    {
-                              "degree": 1,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "我"
-                    },
-                    {
-                              "degree": 3,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "一"
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "直"
-                    },
-                    {
-                              "degree": 6,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "有"
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "雙"
-                    },
-                    {
-                              "degree": 3,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "隱"
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "形"
-                    },
-                    {
-                              "degree": 6,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "的"
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "翅"
-                    },
-                    {
-                              "degree": 3,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "膀"
-                    },
-                    {
-                              "degree": 2,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "帶"
-                    },
-                    {
-                              "degree": 3,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "我"
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 1,
-                              "lyric": "飛"
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "給"
-                    },
-                    {
-                              "degree": 6,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "我"
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "希"
-                    },
-                    {
-                              "degree": 3,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "望"
-                    },
-                    {
-                              "degree": 2,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 2,
-                              "lyric": "_"
-                    },
-                    {
-                              "degree": 0,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 1,
-                              "lyric": ""
-                    },
-                    {
-                              "degree": 0,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 4,
-                              "lyric": ""
-                    },
-                    {
-                              "degree": 0,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 4,
-                              "lyric": ""
-                    },
-                    {
-                              "degree": 1,
-                              "octave": 1,
-                              "accidental": 0,
-                              "duration": 2,
-                              "lyric": "嗚"
-                    },
-                    {
-                              "degree": 3,
-                              "octave": 1,
-                              "accidental": 0,
-                              "duration": 2,
-                              "lyric": "_"
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 1,
-                              "accidental": 0,
-                              "duration": 4,
-                              "lyric": "_"
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 2,
-                              "lyric": "嗚"
-                    },
-                    {
-                              "degree": 6,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 2,
-                              "lyric": "_"
-                    },
-                    {
-                              "degree": 7,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 1,
-                              "lyric": "嗚"
-                    },
-                    {
-                              "degree": 1,
-                              "octave": 1,
-                              "accidental": 0,
-                              "duration": 1,
-                              "lyric": "_"
-                    },
-                    {
-                              "degree": 2,
-                              "octave": 1,
-                              "accidental": 0,
-                              "duration": 1,
-                              "lyric": "_"
-                    },
-                    {
-                              "degree": 3,
-                              "octave": 1,
-                              "accidental": 0,
-                              "duration": 1,
-                              "lyric": "_"
-                    },
-                    {
-                              "degree": 3,
-                              "octave": 1,
-                              "accidental": 0,
-                              "duration": 2,
-                              "lyric": "嗚"
-                    },
-                    {
-                              "degree": 2,
-                              "octave": 1,
-                              "accidental": 0,
-                              "duration": 2,
-                              "lyric": "_"
-                    },
-                    {
-                              "degree": 1,
-                              "octave": 1,
-                              "accidental": 0,
-                              "duration": 2,
-                              "lyric": "_"
-                    },
-                    {
-                              "degree": 7,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 2,
-                              "lyric": "_"
-                    },
-                    {
-                              "degree": 6,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 2,
-                              "lyric": "嗚"
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 2,
-                              "lyric": "_"
-                    },
-                    {
-                              "degree": 6,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 3,
-                              "lyric": "_"
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 1,
-                              "lyric": "_"
-                    },
-                    {
-                              "degree": 3,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 4,
-                              "lyric": "嗚"
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 4,
-                              "lyric": "_"
-                    },
-                    {
-                              "degree": 6,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 4,
-                              "lyric": "嗚"
-                    },
-                    {
-                              "degree": 7,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 3,
-                              "lyric": "嗚"
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "留"
-                    },
-                    {
-                              "degree": 6,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "一"
-                    },
-                    {
-                              "degree": 1,
-                              "octave": 1,
-                              "accidental": 0,
-                              "duration": 1,
-                              "lyric": "個"
-                    },
-                    {
-                              "degree": 7,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "願"
-                    },
-                    {
-                              "degree": 6,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "望"
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "讓"
-                    },
-                    {
-                              "degree": 6,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "自"
-                    },
-                    {
-                              "degree": 5,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "己"
-                    },
-                    {
-                              "degree": 3,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 0.5,
-                              "lyric": "想"
-                    },
-                    {
-                              "degree": 1,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 1,
-                              "lyric": "像"
-                    },
-                    {
-                              "degree": 0,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 1,
-                              "lyric": ""
-                    },
-                    {
-                              "degree": 0,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 2,
-                              "lyric": ""
-                    },
-                    {
-                              "degree": 0,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 4,
-                              "lyric": ""
-                    },
-                    {
-                              "degree": 0,
-                              "octave": 0,
-                              "accidental": 0,
-                              "duration": 4,
-                              "lyric": ""
-                    }
-          ]
-},
+            'invisible_wings_part1': {"schemaVersion":2,"title":"隱形的翅膀 (第一部)","key":"Eb","mode":"major","timeSignature":"4/4","bpm":75,"notes":[{"degree":0,"octave":0,"accidental":0,"duration":3,"lyric":""},{"degree":5,"octave":-1,"accidental":0,"duration":0.5,"lyric":"每"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":"一"},{"degree":3,"octave":0,"accidental":0,"duration":1.5,"lyric":"次"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"都"},{"degree":3,"octave":0,"accidental":0,"duration":1,"lyric":"在"},{"degree":2,"octave":0,"accidental":0,"duration":0.5,"lyric":"排"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":"徊"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":"孤"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":"單"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":"中"},{"degree":6,"octave":-1,"accidental":0,"duration":0.5,"lyric":"堅"},{"degree":5,"octave":-1,"accidental":0,"duration":1,"lyric":"強"},{"degree":5,"octave":-1,"accidental":0,"duration":0.5,"lyric":"每"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":"一"},{"degree":3,"octave":0,"accidental":0,"duration":1.5,"lyric":"次"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"就"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"算"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"很"},{"degree":6,"octave":0,"accidental":0,"duration":0.5,"lyric":"受"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"傷"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"也"},{"degree":3,"octave":0,"accidental":0,"duration":0.5,"lyric":"不"},{"degree":2,"octave":0,"accidental":0,"duration":0.5,"lyric":"閃"},{"degree":1,"octave":0,"accidental":0,"duration":0.25,"lyric":"淚"},{"degree":2,"octave":0,"accidental":0,"duration":0.25,"lyric":""},{"degree":2,"octave":0,"accidental":0,"duration":1,"lyric":"光"},{"degree":6,"octave":0,"accidental":0,"duration":0.5,"lyric":"我"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"知"},{"degree":3,"octave":0,"accidental":0,"duration":1.5,"lyric":"道"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"我"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"一"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"直"},{"degree":6,"octave":0,"accidental":0,"duration":0.5,"lyric":"有"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"雙"},{"degree":3,"octave":0,"accidental":0,"duration":0.5,"lyric":"隱"},{"degree":2,"octave":0,"accidental":0,"duration":0.5,"lyric":"形"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":"的"},{"degree":1,"octave":0,"accidental":0,"duration":0.25,"lyric":"翅"},{"degree":2,"octave":0,"accidental":0,"duration":0.25,"lyric":""},{"degree":6,"octave":-1,"accidental":0,"duration":1,"lyric":"膀"},{"degree":5,"octave":-1,"accidental":0,"duration":0.5,"lyric":"帶"},{"degree":6,"octave":-1,"accidental":0,"duration":0.5,"lyric":"我"},{"degree":1,"octave":0,"accidental":0,"duration":1.5,"lyric":"飛"},{"degree":2,"octave":0,"accidental":0,"duration":0.25,"lyric":"飛"},{"degree":3,"octave":0,"accidental":0,"duration":0.25,"lyric":""},{"degree":2,"octave":0,"accidental":0,"duration":1,"lyric":"過"},{"degree":3,"octave":0,"accidental":0,"duration":0.5,"lyric":"絕"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":""},{"degree":1,"octave":0,"accidental":0,"duration":3,"lyric":"望"},{"degree":5,"octave":-1,"accidental":0,"duration":0.5,"lyric":"不"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":"去"},{"degree":3,"octave":0,"accidental":0,"duration":1.5,"lyric":"想"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"他"},{"degree":3,"octave":0,"accidental":0,"duration":1,"lyric":"們"},{"degree":2,"octave":0,"accidental":0,"duration":0.5,"lyric":"擁"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":"有"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":"美"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":"麗"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":"的"},{"degree":1,"octave":0,"accidental":0,"duration":0.25,"lyric":"太"},{"degree":6,"octave":-1,"accidental":0,"duration":0.25,"lyric":""},{"degree":5,"octave":-1,"accidental":0,"duration":1,"lyric":"陽"},{"degree":5,"octave":-1,"accidental":0,"duration":0.5,"lyric":"我"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":"看"},{"degree":3,"octave":0,"accidental":0,"duration":1.5,"lyric":"見"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"每"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"天"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"的"},{"degree":6,"octave":0,"accidental":0,"duration":0.5,"lyric":"夕"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"陽"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"也"},{"degree":3,"octave":0,"accidental":0,"duration":0.5,"lyric":"會"},{"degree":2,"octave":0,"accidental":0,"duration":0.5,"lyric":"有"},{"degree":1,"octave":0,"accidental":0,"duration":0.25,"lyric":"變"},{"degree":2,"octave":0,"accidental":0,"duration":0.25,"lyric":""},{"degree":2,"octave":0,"accidental":0,"duration":1,"lyric":"化"},{"degree":6,"octave":0,"accidental":0,"duration":0.5,"lyric":"我"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"知"},{"degree":3,"octave":0,"accidental":0,"duration":1.5,"lyric":"道"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"我"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"一"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"直"},{"degree":6,"octave":0,"accidental":0,"duration":0.5,"lyric":"有"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"雙"},{"degree":3,"octave":0,"accidental":0,"duration":0.5,"lyric":"隱"},{"degree":2,"octave":0,"accidental":0,"duration":0.5,"lyric":"形"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":"的"},{"degree":1,"octave":0,"accidental":0,"duration":0.25,"lyric":"翅"},{"degree":2,"octave":0,"accidental":0,"duration":0.25,"lyric":""},{"degree":6,"octave":-1,"accidental":0,"duration":1,"lyric":"膀"},{"degree":5,"octave":-1,"accidental":0,"duration":0.5,"lyric":"帶"},{"degree":6,"octave":-1,"accidental":0,"duration":0.5,"lyric":"我"},{"degree":1,"octave":0,"accidental":0,"duration":1.5,"lyric":"飛"},{"degree":2,"octave":0,"accidental":0,"duration":0.25,"lyric":"給"},{"degree":3,"octave":0,"accidental":0,"duration":0.25,"lyric":""},{"degree":2,"octave":0,"accidental":0,"duration":1,"lyric":"我"},{"degree":3,"octave":0,"accidental":0,"duration":0.5,"lyric":"希"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":""},{"degree":1,"octave":0,"accidental":0,"duration":3,"lyric":"望"},{"degree":0,"octave":0,"accidental":0,"duration":1,"lyric":""},{"degree":6,"octave":-1,"accidental":0,"duration":2,"lyric":"嗚"},{"degree":5,"octave":-1,"accidental":0,"duration":2,"lyric":"嗚"},{"degree":4,"octave":-1,"accidental":0,"duration":2,"lyric":"嗚"},{"degree":6,"octave":-1,"accidental":0,"duration":2,"lyric":"嗚"},{"degree":6,"octave":-1,"accidental":0,"duration":2,"lyric":"嗚"},{"degree":1,"octave":0,"accidental":0,"duration":2,"lyric":"嗚"},{"degree":7,"octave":-1,"accidental":0,"duration":1,"lyric":"嗚"},{"degree":5,"octave":-1,"accidental":0,"duration":1,"lyric":"嗚"},{"degree":6,"octave":-1,"accidental":0,"duration":1,"lyric":"嗚"},{"degree":7,"octave":-1,"accidental":0,"duration":1,"lyric":"嗚"},{"degree":6,"octave":-1,"accidental":0,"duration":2,"lyric":"嗚"},{"degree":5,"octave":-1,"accidental":0,"duration":2,"lyric":"嗚"},{"degree":4,"octave":-1,"accidental":0,"duration":2,"lyric":"嗚"},{"degree":6,"octave":-1,"accidental":0,"duration":2,"lyric":"嗚"},{"degree":1,"octave":0,"accidental":0,"duration":2,"lyric":"嗚"},{"degree":7,"octave":-1,"accidental":0,"duration":2,"lyric":"嗚"},{"degree":1,"octave":0,"accidental":0,"duration":3,"lyric":"嗚"},{"degree":0,"octave":0,"accidental":0,"duration":1,"lyric":""},{"degree":1,"octave":0,"accidental":0,"duration":1,"lyric":"嗚"},{"degree":6,"octave":-1,"accidental":0,"duration":1,"lyric":"嗚"},{"degree":7,"octave":-1,"accidental":0,"duration":2,"lyric":"嗚"},{"degree":6,"octave":-1,"accidental":0,"duration":2,"lyric":"嗚"},{"degree":3,"octave":-1,"accidental":0,"duration":2,"lyric":"嗚"},{"degree":4,"octave":-1,"accidental":0,"duration":2,"lyric":"嗚"},{"degree":5,"octave":-1,"accidental":0,"duration":2,"lyric":"嗚"},{"degree":3,"octave":-1,"accidental":0,"duration":3,"lyric":"嗚"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":"留"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":"一"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":"個"},{"degree":1,"octave":1,"accidental":0,"duration":1,"lyric":"願"},{"degree":6,"octave":0,"accidental":0,"duration":0.5,"lyric":"望"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"讓"},{"degree":3,"octave":0,"accidental":0,"duration":0.5,"lyric":"自"},{"degree":2,"octave":0,"accidental":0,"duration":0.5,"lyric":"己"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":"想"},{"degree":1,"octave":0,"accidental":0,"duration":3,"lyric":"像"},{"degree":0,"octave":0,"accidental":0,"duration":1,"lyric":""}]},
+            'invisible_wings': {"schemaVersion":2,"title":"隱形的翅膀 (第一部)","key":"Eb","mode":"major","timeSignature":"4/4","bpm":75,"notes":[{"degree":0,"octave":0,"accidental":0,"duration":3,"lyric":""},{"degree":5,"octave":-1,"accidental":0,"duration":0.5,"lyric":"每"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":"一"},{"degree":3,"octave":0,"accidental":0,"duration":1.5,"lyric":"次"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"都"},{"degree":3,"octave":0,"accidental":0,"duration":1,"lyric":"在"},{"degree":2,"octave":0,"accidental":0,"duration":0.5,"lyric":"排"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":"徊"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":"孤"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":"單"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":"中"},{"degree":6,"octave":-1,"accidental":0,"duration":0.5,"lyric":"堅"},{"degree":5,"octave":-1,"accidental":0,"duration":1,"lyric":"強"},{"degree":5,"octave":-1,"accidental":0,"duration":0.5,"lyric":"每"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":"一"},{"degree":3,"octave":0,"accidental":0,"duration":1.5,"lyric":"次"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"就"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"算"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"很"},{"degree":6,"octave":0,"accidental":0,"duration":0.5,"lyric":"受"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"傷"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"也"},{"degree":3,"octave":0,"accidental":0,"duration":0.5,"lyric":"不"},{"degree":2,"octave":0,"accidental":0,"duration":0.5,"lyric":"閃"},{"degree":1,"octave":0,"accidental":0,"duration":0.25,"lyric":"淚"},{"degree":2,"octave":0,"accidental":0,"duration":0.25,"lyric":""},{"degree":2,"octave":0,"accidental":0,"duration":1,"lyric":"光"},{"degree":6,"octave":0,"accidental":0,"duration":0.5,"lyric":"我"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"知"},{"degree":3,"octave":0,"accidental":0,"duration":1.5,"lyric":"道"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"我"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"一"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"直"},{"degree":6,"octave":0,"accidental":0,"duration":0.5,"lyric":"有"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"雙"},{"degree":3,"octave":0,"accidental":0,"duration":0.5,"lyric":"隱"},{"degree":2,"octave":0,"accidental":0,"duration":0.5,"lyric":"形"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":"的"},{"degree":1,"octave":0,"accidental":0,"duration":0.25,"lyric":"翅"},{"degree":2,"octave":0,"accidental":0,"duration":0.25,"lyric":""},{"degree":6,"octave":-1,"accidental":0,"duration":1,"lyric":"膀"},{"degree":5,"octave":-1,"accidental":0,"duration":0.5,"lyric":"帶"},{"degree":6,"octave":-1,"accidental":0,"duration":0.5,"lyric":"我"},{"degree":1,"octave":0,"accidental":0,"duration":1.5,"lyric":"飛"},{"degree":2,"octave":0,"accidental":0,"duration":0.25,"lyric":"飛"},{"degree":3,"octave":0,"accidental":0,"duration":0.25,"lyric":""},{"degree":2,"octave":0,"accidental":0,"duration":1,"lyric":"過"},{"degree":3,"octave":0,"accidental":0,"duration":0.5,"lyric":"絕"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":""},{"degree":1,"octave":0,"accidental":0,"duration":3,"lyric":"望"},{"degree":5,"octave":-1,"accidental":0,"duration":0.5,"lyric":"不"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":"去"},{"degree":3,"octave":0,"accidental":0,"duration":1.5,"lyric":"想"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"他"},{"degree":3,"octave":0,"accidental":0,"duration":1,"lyric":"們"},{"degree":2,"octave":0,"accidental":0,"duration":0.5,"lyric":"擁"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":"有"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":"美"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":"麗"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":"的"},{"degree":1,"octave":0,"accidental":0,"duration":0.25,"lyric":"太"},{"degree":6,"octave":-1,"accidental":0,"duration":0.25,"lyric":""},{"degree":5,"octave":-1,"accidental":0,"duration":1,"lyric":"陽"},{"degree":5,"octave":-1,"accidental":0,"duration":0.5,"lyric":"我"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":"看"},{"degree":3,"octave":0,"accidental":0,"duration":1.5,"lyric":"見"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"每"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"天"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"的"},{"degree":6,"octave":0,"accidental":0,"duration":0.5,"lyric":"夕"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"陽"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"也"},{"degree":3,"octave":0,"accidental":0,"duration":0.5,"lyric":"會"},{"degree":2,"octave":0,"accidental":0,"duration":0.5,"lyric":"有"},{"degree":1,"octave":0,"accidental":0,"duration":0.25,"lyric":"變"},{"degree":2,"octave":0,"accidental":0,"duration":0.25,"lyric":""},{"degree":2,"octave":0,"accidental":0,"duration":1,"lyric":"化"},{"degree":6,"octave":0,"accidental":0,"duration":0.5,"lyric":"我"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"知"},{"degree":3,"octave":0,"accidental":0,"duration":1.5,"lyric":"道"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"我"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"一"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"直"},{"degree":6,"octave":0,"accidental":0,"duration":0.5,"lyric":"有"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"雙"},{"degree":3,"octave":0,"accidental":0,"duration":0.5,"lyric":"隱"},{"degree":2,"octave":0,"accidental":0,"duration":0.5,"lyric":"形"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":"的"},{"degree":1,"octave":0,"accidental":0,"duration":0.25,"lyric":"翅"},{"degree":2,"octave":0,"accidental":0,"duration":0.25,"lyric":""},{"degree":6,"octave":-1,"accidental":0,"duration":1,"lyric":"膀"},{"degree":5,"octave":-1,"accidental":0,"duration":0.5,"lyric":"帶"},{"degree":6,"octave":-1,"accidental":0,"duration":0.5,"lyric":"我"},{"degree":1,"octave":0,"accidental":0,"duration":1.5,"lyric":"飛"},{"degree":2,"octave":0,"accidental":0,"duration":0.25,"lyric":"給"},{"degree":3,"octave":0,"accidental":0,"duration":0.25,"lyric":""},{"degree":2,"octave":0,"accidental":0,"duration":1,"lyric":"我"},{"degree":3,"octave":0,"accidental":0,"duration":0.5,"lyric":"希"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":""},{"degree":1,"octave":0,"accidental":0,"duration":3,"lyric":"望"},{"degree":0,"octave":0,"accidental":0,"duration":1,"lyric":""},{"degree":6,"octave":-1,"accidental":0,"duration":2,"lyric":"嗚"},{"degree":5,"octave":-1,"accidental":0,"duration":2,"lyric":"嗚"},{"degree":4,"octave":-1,"accidental":0,"duration":2,"lyric":"嗚"},{"degree":6,"octave":-1,"accidental":0,"duration":2,"lyric":"嗚"},{"degree":6,"octave":-1,"accidental":0,"duration":2,"lyric":"嗚"},{"degree":1,"octave":0,"accidental":0,"duration":2,"lyric":"嗚"},{"degree":7,"octave":-1,"accidental":0,"duration":1,"lyric":"嗚"},{"degree":5,"octave":-1,"accidental":0,"duration":1,"lyric":"嗚"},{"degree":6,"octave":-1,"accidental":0,"duration":1,"lyric":"嗚"},{"degree":7,"octave":-1,"accidental":0,"duration":1,"lyric":"嗚"},{"degree":6,"octave":-1,"accidental":0,"duration":2,"lyric":"嗚"},{"degree":5,"octave":-1,"accidental":0,"duration":2,"lyric":"嗚"},{"degree":4,"octave":-1,"accidental":0,"duration":2,"lyric":"嗚"},{"degree":6,"octave":-1,"accidental":0,"duration":2,"lyric":"嗚"},{"degree":1,"octave":0,"accidental":0,"duration":2,"lyric":"嗚"},{"degree":7,"octave":-1,"accidental":0,"duration":2,"lyric":"嗚"},{"degree":1,"octave":0,"accidental":0,"duration":3,"lyric":"嗚"},{"degree":0,"octave":0,"accidental":0,"duration":1,"lyric":""},{"degree":1,"octave":0,"accidental":0,"duration":1,"lyric":"嗚"},{"degree":6,"octave":-1,"accidental":0,"duration":1,"lyric":"嗚"},{"degree":7,"octave":-1,"accidental":0,"duration":2,"lyric":"嗚"},{"degree":6,"octave":-1,"accidental":0,"duration":2,"lyric":"嗚"},{"degree":3,"octave":-1,"accidental":0,"duration":2,"lyric":"嗚"},{"degree":4,"octave":-1,"accidental":0,"duration":2,"lyric":"嗚"},{"degree":5,"octave":-1,"accidental":0,"duration":2,"lyric":"嗚"},{"degree":3,"octave":-1,"accidental":0,"duration":3,"lyric":"嗚"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":"留"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":"一"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":"個"},{"degree":1,"octave":1,"accidental":0,"duration":1,"lyric":"願"},{"degree":6,"octave":0,"accidental":0,"duration":0.5,"lyric":"望"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"讓"},{"degree":3,"octave":0,"accidental":0,"duration":0.5,"lyric":"自"},{"degree":2,"octave":0,"accidental":0,"duration":0.5,"lyric":"己"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":"想"},{"degree":1,"octave":0,"accidental":0,"duration":3,"lyric":"像"},{"degree":0,"octave":0,"accidental":0,"duration":1,"lyric":""}]},
+            '隱形的翅膀_第一部': {"schemaVersion":2,"title":"隱形的翅膀 (第一部)","key":"Eb","mode":"major","timeSignature":"4/4","bpm":75,"notes":[{"degree":0,"octave":0,"accidental":0,"duration":3,"lyric":""},{"degree":5,"octave":-1,"accidental":0,"duration":0.5,"lyric":"每"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":"一"},{"degree":3,"octave":0,"accidental":0,"duration":1.5,"lyric":"次"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"都"},{"degree":3,"octave":0,"accidental":0,"duration":1,"lyric":"在"},{"degree":2,"octave":0,"accidental":0,"duration":0.5,"lyric":"排"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":"徊"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":"孤"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":"單"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":"中"},{"degree":6,"octave":-1,"accidental":0,"duration":0.5,"lyric":"堅"},{"degree":5,"octave":-1,"accidental":0,"duration":1,"lyric":"強"},{"degree":5,"octave":-1,"accidental":0,"duration":0.5,"lyric":"每"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":"一"},{"degree":3,"octave":0,"accidental":0,"duration":1.5,"lyric":"次"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"就"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"算"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"很"},{"degree":6,"octave":0,"accidental":0,"duration":0.5,"lyric":"受"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"傷"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"也"},{"degree":3,"octave":0,"accidental":0,"duration":0.5,"lyric":"不"},{"degree":2,"octave":0,"accidental":0,"duration":0.5,"lyric":"閃"},{"degree":1,"octave":0,"accidental":0,"duration":0.25,"lyric":"淚"},{"degree":2,"octave":0,"accidental":0,"duration":0.25,"lyric":""},{"degree":2,"octave":0,"accidental":0,"duration":1,"lyric":"光"},{"degree":6,"octave":0,"accidental":0,"duration":0.5,"lyric":"我"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"知"},{"degree":3,"octave":0,"accidental":0,"duration":1.5,"lyric":"道"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"我"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"一"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"直"},{"degree":6,"octave":0,"accidental":0,"duration":0.5,"lyric":"有"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"雙"},{"degree":3,"octave":0,"accidental":0,"duration":0.5,"lyric":"隱"},{"degree":2,"octave":0,"accidental":0,"duration":0.5,"lyric":"形"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":"的"},{"degree":1,"octave":0,"accidental":0,"duration":0.25,"lyric":"翅"},{"degree":2,"octave":0,"accidental":0,"duration":0.25,"lyric":""},{"degree":6,"octave":-1,"accidental":0,"duration":1,"lyric":"膀"},{"degree":5,"octave":-1,"accidental":0,"duration":0.5,"lyric":"帶"},{"degree":6,"octave":-1,"accidental":0,"duration":0.5,"lyric":"我"},{"degree":1,"octave":0,"accidental":0,"duration":1.5,"lyric":"飛"},{"degree":2,"octave":0,"accidental":0,"duration":0.25,"lyric":"飛"},{"degree":3,"octave":0,"accidental":0,"duration":0.25,"lyric":""},{"degree":2,"octave":0,"accidental":0,"duration":1,"lyric":"過"},{"degree":3,"octave":0,"accidental":0,"duration":0.5,"lyric":"絕"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":""},{"degree":1,"octave":0,"accidental":0,"duration":3,"lyric":"望"},{"degree":5,"octave":-1,"accidental":0,"duration":0.5,"lyric":"不"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":"去"},{"degree":3,"octave":0,"accidental":0,"duration":1.5,"lyric":"想"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"他"},{"degree":3,"octave":0,"accidental":0,"duration":1,"lyric":"們"},{"degree":2,"octave":0,"accidental":0,"duration":0.5,"lyric":"擁"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":"有"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":"美"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":"麗"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":"的"},{"degree":1,"octave":0,"accidental":0,"duration":0.25,"lyric":"太"},{"degree":6,"octave":-1,"accidental":0,"duration":0.25,"lyric":""},{"degree":5,"octave":-1,"accidental":0,"duration":1,"lyric":"陽"},{"degree":5,"octave":-1,"accidental":0,"duration":0.5,"lyric":"我"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":"看"},{"degree":3,"octave":0,"accidental":0,"duration":1.5,"lyric":"見"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"每"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"天"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"的"},{"degree":6,"octave":0,"accidental":0,"duration":0.5,"lyric":"夕"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"陽"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"也"},{"degree":3,"octave":0,"accidental":0,"duration":0.5,"lyric":"會"},{"degree":2,"octave":0,"accidental":0,"duration":0.5,"lyric":"有"},{"degree":1,"octave":0,"accidental":0,"duration":0.25,"lyric":"變"},{"degree":2,"octave":0,"accidental":0,"duration":0.25,"lyric":""},{"degree":2,"octave":0,"accidental":0,"duration":1,"lyric":"化"},{"degree":6,"octave":0,"accidental":0,"duration":0.5,"lyric":"我"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"知"},{"degree":3,"octave":0,"accidental":0,"duration":1.5,"lyric":"道"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"我"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"一"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"直"},{"degree":6,"octave":0,"accidental":0,"duration":0.5,"lyric":"有"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"雙"},{"degree":3,"octave":0,"accidental":0,"duration":0.5,"lyric":"隱"},{"degree":2,"octave":0,"accidental":0,"duration":0.5,"lyric":"形"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":"的"},{"degree":1,"octave":0,"accidental":0,"duration":0.25,"lyric":"翅"},{"degree":2,"octave":0,"accidental":0,"duration":0.25,"lyric":""},{"degree":6,"octave":-1,"accidental":0,"duration":1,"lyric":"膀"},{"degree":5,"octave":-1,"accidental":0,"duration":0.5,"lyric":"帶"},{"degree":6,"octave":-1,"accidental":0,"duration":0.5,"lyric":"我"},{"degree":1,"octave":0,"accidental":0,"duration":1.5,"lyric":"飛"},{"degree":2,"octave":0,"accidental":0,"duration":0.25,"lyric":"給"},{"degree":3,"octave":0,"accidental":0,"duration":0.25,"lyric":""},{"degree":2,"octave":0,"accidental":0,"duration":1,"lyric":"我"},{"degree":3,"octave":0,"accidental":0,"duration":0.5,"lyric":"希"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":""},{"degree":1,"octave":0,"accidental":0,"duration":3,"lyric":"望"},{"degree":0,"octave":0,"accidental":0,"duration":1,"lyric":""},{"degree":6,"octave":-1,"accidental":0,"duration":2,"lyric":"嗚"},{"degree":5,"octave":-1,"accidental":0,"duration":2,"lyric":"嗚"},{"degree":4,"octave":-1,"accidental":0,"duration":2,"lyric":"嗚"},{"degree":6,"octave":-1,"accidental":0,"duration":2,"lyric":"嗚"},{"degree":6,"octave":-1,"accidental":0,"duration":2,"lyric":"嗚"},{"degree":1,"octave":0,"accidental":0,"duration":2,"lyric":"嗚"},{"degree":7,"octave":-1,"accidental":0,"duration":1,"lyric":"嗚"},{"degree":5,"octave":-1,"accidental":0,"duration":1,"lyric":"嗚"},{"degree":6,"octave":-1,"accidental":0,"duration":1,"lyric":"嗚"},{"degree":7,"octave":-1,"accidental":0,"duration":1,"lyric":"嗚"},{"degree":6,"octave":-1,"accidental":0,"duration":2,"lyric":"嗚"},{"degree":5,"octave":-1,"accidental":0,"duration":2,"lyric":"嗚"},{"degree":4,"octave":-1,"accidental":0,"duration":2,"lyric":"嗚"},{"degree":6,"octave":-1,"accidental":0,"duration":2,"lyric":"嗚"},{"degree":1,"octave":0,"accidental":0,"duration":2,"lyric":"嗚"},{"degree":7,"octave":-1,"accidental":0,"duration":2,"lyric":"嗚"},{"degree":1,"octave":0,"accidental":0,"duration":3,"lyric":"嗚"},{"degree":0,"octave":0,"accidental":0,"duration":1,"lyric":""},{"degree":1,"octave":0,"accidental":0,"duration":1,"lyric":"嗚"},{"degree":6,"octave":-1,"accidental":0,"duration":1,"lyric":"嗚"},{"degree":7,"octave":-1,"accidental":0,"duration":2,"lyric":"嗚"},{"degree":6,"octave":-1,"accidental":0,"duration":2,"lyric":"嗚"},{"degree":3,"octave":-1,"accidental":0,"duration":2,"lyric":"嗚"},{"degree":4,"octave":-1,"accidental":0,"duration":2,"lyric":"嗚"},{"degree":5,"octave":-1,"accidental":0,"duration":2,"lyric":"嗚"},{"degree":3,"octave":-1,"accidental":0,"duration":3,"lyric":"嗚"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":"留"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":"一"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":"個"},{"degree":1,"octave":1,"accidental":0,"duration":1,"lyric":"願"},{"degree":6,"octave":0,"accidental":0,"duration":0.5,"lyric":"望"},{"degree":5,"octave":0,"accidental":0,"duration":0.5,"lyric":"讓"},{"degree":3,"octave":0,"accidental":0,"duration":0.5,"lyric":"自"},{"degree":2,"octave":0,"accidental":0,"duration":0.5,"lyric":"己"},{"degree":1,"octave":0,"accidental":0,"duration":0.5,"lyric":"想"},{"degree":1,"octave":0,"accidental":0,"duration":3,"lyric":"像"},{"degree":0,"octave":0,"accidental":0,"duration":1,"lyric":""}]},
             'twinkle_star': {
                 title: "小星星", key: "C", mode: "major", timeSignature: "4/4", bpm: 100,
                 notes: [
@@ -5028,16 +3334,6 @@
             }
         };
 
-        // --- 載入樂譜中心邏輯 ---
-        function openLoadScoreModal() {
-            renderBuiltinScoresList();
-            document.getElementById('load-score-modal').classList.add('is-open');
-        }
-
-        function closeLoadScoreModal() {
-            document.getElementById('load-score-modal').classList.remove('is-open');
-        }
-
         function renderBuiltinScoresList() {
             const listEl = document.getElementById('builtin-scores-list');
             if (!listEl) return;
@@ -5057,29 +3353,154 @@
             });
         }
 
+        function openLoadScoreModal() {
+            renderBuiltinScoresList();
+            const modal = document.getElementById('load-score-modal');
+            if (modal) modal.classList.add('is-open');
+        }
+
+        function closeLoadScoreModal() {
+            const modal = document.getElementById('load-score-modal');
+            if (modal) modal.classList.remove('is-open');
+        }
+
+        let currentLoadedScoreFile = 'scores/隱形的翅膀_第一部.json';
+
         async function loadBuiltinScore(scoreInfo) {
             try {
                 let scoreData = null;
+                const filePath = typeof scoreInfo === 'string' ? scoreInfo : scoreInfo.file;
+                const scoreId = typeof scoreInfo === 'string' ? scoreInfo : scoreInfo.id;
+                const scoreTitle = typeof scoreInfo === 'string' ? scoreInfo : scoreInfo.title;
+
                 try {
-                    const resp = await fetch(scoreInfo.file);
+                    const resp = await fetch(filePath);
                     if (resp.ok) {
                         scoreData = await resp.json();
                     }
                 } catch (_) {}
 
-                if (!scoreData && PRESET_SONGS_CACHE[scoreInfo.id]) {
-                    scoreData = PRESET_SONGS_CACHE[scoreInfo.id];
+                if (!scoreData && PRESET_SONGS_CACHE[scoreId]) {
+                    scoreData = PRESET_SONGS_CACHE[scoreId];
+                }
+                if (!scoreData && typeof scoreInfo === 'object' && scoreInfo.alias) {
+                    for (const al of scoreInfo.alias) {
+                        if (PRESET_SONGS_CACHE[al]) { scoreData = PRESET_SONGS_CACHE[al]; break; }
+                    }
                 }
 
                 if (scoreData) {
+                    currentLoadedScoreFile = filePath || `${scoreData.title || scoreId}.json`;
                     applyScoreData(scoreData);
                     closeLoadScoreModal();
-                    showWorkbenchToast(`已載入樂譜《${scoreData.title || scoreInfo.title}》`);
+                    showWorkbenchToast(`已載入樂譜《${scoreData.title || scoreTitle}》`);
+                    return true;
                 } else {
                     showWorkbenchToast('載入失敗，請確認 scores/ 目錄下的樂譜檔案');
+                    return false;
                 }
             } catch (e) {
                 showWorkbenchToast('載入樂譜時發生錯誤');
+                return false;
+            }
+        }
+
+        /**
+         * 處理網址 URL 查詢參數 (例如 ?score=隱形的翅膀_第一部.json&view=practice&mode=practice)
+         * 讓學員打開網址直接載入指定樂譜並切換至練唱模式
+         */
+        async function handleUrlParameters() {
+            try {
+                const urlParams = new URLSearchParams(window.location.search);
+                const rawScoreParam = urlParams.get('score') || urlParams.get('song') || urlParams.get('music');
+                const viewParam = urlParams.get('view') || urlParams.get('tab') || urlParams.get('page');
+                const modeParam = urlParams.get('mode') || urlParams.get('practiceMode');
+
+                if (rawScoreParam) {
+                    const scoreParam = decodeURIComponent(rawScoreParam).trim();
+                    let matchedScore = BUILTIN_SCORES.find(item => {
+                        const baseFile = item.file.replace('scores/', '').replace('.json', '');
+                        return item.id === scoreParam ||
+                               item.file === scoreParam ||
+                               item.file === `scores/${scoreParam}` ||
+                               item.file === `scores/${scoreParam}.json` ||
+                               baseFile === scoreParam ||
+                               baseFile === scoreParam.replace('.json', '') ||
+                               (item.alias && item.alias.includes(scoreParam));
+                    });
+
+                    if (matchedScore) {
+                        await loadBuiltinScore(matchedScore);
+                    } else {
+                        let targetFile = scoreParam;
+                        if (!targetFile.startsWith('scores/') && !targetFile.startsWith('./') && !targetFile.startsWith('/')) {
+                            targetFile = `scores/${targetFile}`;
+                        }
+                        if (!targetFile.endsWith('.json')) {
+                            targetFile += '.json';
+                        }
+                        try {
+                            const res = await fetch(targetFile);
+                            if (res.ok) {
+                                const data = await res.json();
+                                currentLoadedScoreFile = targetFile;
+                                applyScoreData(data);
+                                showWorkbenchToast(`已載入樂譜《${data.title || scoreParam}》`);
+                            }
+                        } catch (_) {}
+                    }
+                }
+
+                // 依參數切換至練唱或指定分頁
+                if (viewParam === 'practice' || viewParam === 'learn' || modeParam) {
+                    setWorkspaceView('practice');
+                    if (modeParam && ['learn', 'practice', 'play_audio', 'play_practice'].includes(modeParam)) {
+                        switchAppMode(modeParam);
+                    } else {
+                        switchAppMode('practice');
+                    }
+                } else if (viewParam === 'editor') {
+                    setWorkspaceView('editor');
+                }
+            } catch (err) {
+                console.warn('URL parameter parsing skipped', err);
+            }
+        }
+
+        /**
+         * 複製學員練唱專屬分享連結 (包含 ?score=...&view=practice&mode=practice)
+         */
+        function copyStudentShareUrl() {
+            try {
+                const url = new URL(window.location.href);
+                let scoreName = currentLoadedScoreFile || (currentScoreTitle ? `${currentScoreTitle}.json` : '隱形的翅膀_第一部.json');
+                if (scoreName.startsWith('scores/')) scoreName = scoreName.replace('scores/', '');
+                url.searchParams.set('score', scoreName);
+                url.searchParams.set('view', 'practice');
+                url.searchParams.set('mode', activeAppMode === 'learn' ? 'learn' : 'practice');
+                const finalUrl = url.toString();
+
+                const copyFallback = (text) => {
+                    const ta = document.createElement('textarea');
+                    ta.value = text;
+                    ta.style.position = 'fixed';
+                    ta.style.opacity = '0';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(ta);
+                    showWorkbenchToast('已複製學員專屬練唱連結！');
+                };
+
+                if (navigator.clipboard && window.isSecureContext) {
+                    navigator.clipboard.writeText(finalUrl)
+                        .then(() => showWorkbenchToast('已複製學員專屬練唱連結！'))
+                        .catch(() => copyFallback(finalUrl));
+                } else {
+                    copyFallback(finalUrl);
+                }
+            } catch (_) {
+                showWorkbenchToast('無法自動複製，請手動複製網址');
             }
         }
 
@@ -5425,9 +3846,13 @@
             initializePanelResizers();
             initializeCollapsiblePanels();
             initializeReferenceStageInteractions();
+            const shareBtn = document.getElementById('app-share-link-btn');
+            if (shareBtn) shareBtn.addEventListener('click', copyStudentShareUrl);
+
             setWorkspaceView('editor');
             syncWorkbenchControls();
             updateLyricQueueStatus();
+            handleUrlParameters();
         }
 
         const melodyContainer = document.getElementById('melody-container');

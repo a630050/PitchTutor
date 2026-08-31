@@ -223,8 +223,27 @@ const server = http.createServer((request, response) => {
     });
     assert.ok(yinTestResult.error < 0.5, `YIN should accurately detect 130.81Hz fundamental even with strong 2nd/3rd harmonics, got ${yinTestResult.detectedFreq}`);
 
+    // 驗證網址帶參數直接載入樂譜並切換至練唱模式
+    const paramPage = await browser.newPage({ viewport: { width: 390, height: 844 } }); // 模擬手機直式
+    await paramPage.goto(`http://127.0.0.1:${port}?score=隱形的翅膀_第一部.json&view=practice&mode=practice`);
+    await paramPage.waitForSelector('#practice-page.is-active');
+    const loadedScoreTitle = await paramPage.evaluate(() => currentScoreTitle);
+    assert.equal(loadedScoreTitle, '隱形的翅膀 (第一部)');
+    const loadedNotesCount = await paramPage.evaluate(() => scoreNotes.length);
+    assert.equal(loadedNotesCount, 138);
+    const activeAppModeOnLoad = await paramPage.evaluate(() => activeAppMode);
+    assert.equal(activeAppModeOnLoad, 'practice');
+    assert.equal(await paramPage.locator('#tuner-panel').isVisible(), true);
+
+    // 驗證手機橫式 RWD 佈局
+    await paramPage.setViewportSize({ width: 844, height: 390 });
+    assert.equal(await paramPage.locator('.workbench-header').isVisible(), true);
+    assert.equal(await paramPage.locator('.practice-toolbar').isVisible(), true);
+    assert.equal(await paramPage.locator('#tuner-panel').isVisible(), true);
+    await paramPage.close();
+
     assert.deepEqual(pageErrors, []);
-    console.log('PASS integration: BPM, triplet atomicity, range paste, insertion, notation, playback highlight, collapsible panels, studio scrolling, reference slider & drag, practice note tone playback, YIN pitch detection, export');
+    console.log('PASS integration: BPM, triplet atomicity, range paste, insertion, notation, playback highlight, collapsible panels, studio scrolling, reference slider & drag, practice note tone playback, YIN pitch detection, URL params & Mobile RWD, export');
   } finally {
     if (browser) await browser.close();
     server.close();
