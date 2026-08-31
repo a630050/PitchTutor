@@ -108,88 +108,115 @@
         #editor-page { display: none; background: var(--desk-950); }
         #editor-page.is-active {
             display: grid;
-            grid-template-columns: minmax(260px, var(--reference-pane-width, 34%)) 10px minmax(560px, 1fr);
+            grid-template-columns: minmax(240px, var(--left-pane-width, 280px)) 8px minmax(360px, 1fr) 8px minmax(320px, var(--right-pane-width, 360px));
+            height: calc(100vh - 56px);
+            overflow: hidden;
         }
         #practice-page { display: none; background: var(--desk-950); }
         #practice-page.is-active { display: flex; flex-direction: column; }
         #practice-page > aside { display: none !important; }
         #practice-page > main { width: 100%; min-height: 0; }
 
+        /* 【左欄】樂譜照片參照 ＋ 批次歌詞 */
         .reference-panel {
-            min-width: 0; min-height: 0; padding: 14px;
-            display: flex; flex-direction: column; gap: 10px;
-            background: #0c161f;
+            min-width: 0; min-height: 0; padding: 10px;
+            display: flex; flex-direction: column; gap: 8px;
+            background: #0b151d; border-right: 1px solid #1f2f3c;
+            overflow-y: auto;
         }
-        .panel-heading { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+        .reference-photo-section {
+            display: flex; flex-direction: column; gap: 6px; flex: 1 1 54%; min-height: 200px;
+        }
+        .panel-heading { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
         .eyebrow { color: var(--baton); font-size: 9px; font-weight: 900; letter-spacing: .18em; text-transform: uppercase; }
-        .panel-title { color: #f7f2e9; font-size: 14px; font-weight: 900; margin-top: 2px; }
+        .panel-title { color: #f7f2e9; font-size: 13px; font-weight: 900; margin-top: 1px; }
         .quiet-button {
-            padding: 7px 10px; border-radius: 9px; border: 1px solid #334653;
-            color: #c4d0d8; background: #14222d; font-size: 11px; font-weight: 800;
+            padding: 5px 8px; border-radius: 7px; border: 1px solid #334653;
+            color: #c4d0d8; background: #14222d; font-size: 10px; font-weight: 800;
         }
         .quiet-button:hover { border-color: var(--baton); color: #fff; }
 
         .reference-stage {
-            flex: 1; min-height: 180px; overflow: auto; position: relative;
+            flex: 1; min-height: 140px; overflow: auto; position: relative;
             display: grid; place-items: center;
-            border-radius: 14px; border: 1px dashed #435563;
-            background-color: #111e28;
+            border-radius: 12px; border: 1px dashed #3c4e5c;
+            background-color: #101c25;
             background-image: linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
             background-size: 20px 20px;
         }
-        .reference-empty { max-width: 230px; text-align: center; color: #748793; font-size: 12px; line-height: 1.7; padding: 24px; }
-        .reference-empty strong { color: #dce5e9; display: block; font-size: 13px; }
+        .reference-empty { max-width: 220px; text-align: center; color: #748793; font-size: 11px; line-height: 1.6; padding: 18px; }
+        .reference-empty strong { color: #dce5e9; display: block; font-size: 12px; margin-bottom: 2px; }
         #reference-image { display: none; max-width: none; transform-origin: top left; transition: width .12s ease; }
-        .reference-controls { display: flex; align-items: center; gap: 6px; }
-        .reference-controls button { width: 34px; height: 30px; border-radius: 8px; background: #152631; color: #d9e3e7; border: 1px solid #314550; }
-        #reference-zoom-label { color: #91a1aa; font: 700 10px/1 'Inter', sans-serif; min-width: 42px; text-align: center; }
+        .reference-controls { display: flex; align-items: center; gap: 4px; }
+        .reference-controls button { width: 28px; height: 26px; border-radius: 6px; background: #152631; color: #d9e3e7; border: 1px solid #314550; font-size: 11px; font-weight: bold; }
+        #reference-zoom-label { color: #91a1aa; font: 700 9px/1 'Inter', sans-serif; min-width: 36px; text-align: center; }
+
+        /* 左側下方的批次歌詞面板 */
+        .reference-lyric-section {
+            display: flex; flex-direction: column; gap: 6px; flex: 1 1 46%; min-height: 170px;
+            padding: 8px 10px; border-radius: 12px; border: 1px solid #233745; background: #081219;
+        }
+        .lyric-queue {
+            flex: 1; min-height: 52px; resize: none; border-radius: 7px; border: 1px solid #2d424f;
+            background: #050d12; color: #f2eee5; padding: 6px 8px; font-size: 11px; line-height: 1.45; outline: none;
+        }
+        .lyric-status { display: flex; justify-content: space-between; color: #738792; font-size: 8px; }
+        .primary-small { padding: 4px 8px; border-radius: 6px; background: var(--baton); color: #24130c; font-size: 9px; font-weight: 900; }
+        .primary-small:hover { filter: brightness(1.08); }
 
         .panel-resizer {
             position: relative; z-index: 8; border: 0; padding: 0; background: #0a131b;
             touch-action: none; user-select: none;
         }
         .panel-resizer::before, .panel-resizer::after { content: ''; position: absolute; border-radius: 99px; transition: background .15s ease, transform .15s ease; }
-        .panel-resizer-horizontal { width: 10px; cursor: col-resize; border-left: 1px solid #22313d; border-right: 1px solid #22313d; }
-        .panel-resizer-horizontal::before { width: 3px; height: 44px; left: 3px; top: 50%; transform: translateY(-50%); background: #40535f; }
-        .panel-resizer-horizontal::after { width: 3px; height: 8px; left: 3px; top: 50%; transform: translateY(-50%); background: var(--baton); }
-        .panel-resizer-vertical { height: 10px; min-height: 10px; cursor: row-resize; border-top: 1px solid #22313d; border-bottom: 1px solid #22313d; }
-        .panel-resizer-vertical::before { width: 44px; height: 3px; left: 50%; top: 3px; transform: translateX(-50%); background: #40535f; }
-        .panel-resizer-vertical::after { width: 8px; height: 3px; left: 50%; top: 3px; transform: translateX(-50%); background: var(--baton); }
+        .panel-resizer-horizontal { width: 8px; cursor: col-resize; border-left: 1px solid #1c2b36; border-right: 1px solid #1c2b36; }
+        .panel-resizer-horizontal::before { width: 2px; height: 40px; left: 2px; top: 50%; transform: translateY(-50%); background: #374a56; }
+        .panel-resizer-horizontal::after { width: 2px; height: 8px; left: 2px; top: 50%; transform: translateY(-50%); background: var(--baton); }
         .panel-resizer:hover::before, .panel-resizer:focus-visible::before, body.is-resizing .panel-resizer::before { background: #8196a1; }
         .panel-resizer-horizontal:hover::after, .panel-resizer-horizontal:focus-visible::after { transform: translateY(-50%) scale(1.35); }
-        .panel-resizer-vertical:hover::after, .panel-resizer-vertical:focus-visible::after { transform: translateX(-50%) scale(1.35); }
         body.is-resizing { cursor: grabbing; user-select: none; }
 
-        .editor-workbench {
-            --console-height: 148px;
-            min-width: 0; min-height: 0; padding: 10px 14px; display: flex; flex-direction: column; gap: 8px; overflow: auto;
+        /* 【中欄】我的練唱樂譜大畫布 */
+        .editor-center-panel {
+            min-width: 0; min-height: 0; padding: 10px;
+            display: flex; flex-direction: column; gap: 8px;
+            overflow: hidden; height: 100%;
         }
-        .editor-meta {
-            display: grid; grid-template-columns: minmax(170px, 1.25fr) minmax(180px, 1fr) minmax(150px, .85fr) minmax(90px, .55fr) minmax(90px, .55fr);
-            gap: 8px; padding: 8px 12px; border: 1px solid #273a47; border-radius: 12px; background: #101d27;
+
+        /* 【右欄】樂譜設定 ＋ 輸入控制台 */
+        .editor-studio-panel {
+            min-width: 0; min-height: 0; padding: 10px;
+            display: flex; flex-direction: column; gap: 8px;
+            overflow-y: auto; background: #0c1822; border-left: 1px solid #1f2f3c;
         }
-        .field-label { display: block; color: #738894; font-size: 9px; font-weight: 800; letter-spacing: .08em; margin-bottom: 3px; }
+        .editor-studio-panel .editor-meta {
+            display: grid; grid-template-columns: 1fr 1fr;
+            gap: 6px; padding: 8px 10px; border: 1px solid #273a47; border-radius: 12px; background: #101d27;
+        }
+        .editor-studio-panel .editor-meta > label:first-child { grid-column: 1 / -1; }
+        .editor-studio-panel .editor-meta > label:nth-child(2) { grid-column: 1 / -1; }
+        .field-label { display: block; color: #738894; font-size: 9px; font-weight: 800; letter-spacing: .08em; margin-bottom: 2px; }
         .editor-input, .editor-select {
-            width: 100%; height: 30px; border-radius: 7px; border: 1px solid #304653;
-            background: #0a141c; color: #edf3f4; padding: 0 8px; font-size: 11px; font-weight: 700; outline: none;
+            width: 100%; height: 28px; border-radius: 6px; border: 1px solid #304653;
+            background: #0a141c; color: #edf3f4; padding: 0 7px; font-size: 11px; font-weight: 700; outline: none;
         }
         .editor-input:focus, .editor-select:focus, .lyric-queue:focus { border-color: var(--baton); box-shadow: 0 0 0 3px rgba(244,123,69,.14); }
         .key-signature-help {
-            grid-column: 1 / -1; display: grid; grid-template-columns: minmax(260px, 1fr) auto;
-            gap: 6px; align-items: start; padding: 6px 10px; border-radius: 8px;
-            background: #0a151d; border: 1px solid #273b47; color: #a9bac3; font-size: 10px; line-height: 1.5;
+            grid-column: 1 / -1; display: flex; flex-direction: column;
+            gap: 4px; padding: 6px 8px; border-radius: 7px;
+            background: #09131a; border: 1px solid #233642; color: #a9bac3; font-size: 10px; line-height: 1.45;
         }
         #key-signature-summary strong { color: #f2eee5; }
-        .key-help-details { min-width: 260px; color: #91a6b0; }
-        .key-help-details summary { color: var(--baton); font-weight: 900; cursor: pointer; text-align: right; }
-        .key-help-details p { max-width: 430px; margin-top: 4px; }
+        .key-help-details { color: #91a6b0; }
+        .key-help-details summary { color: var(--baton); font-weight: 900; cursor: pointer; }
+        .key-help-details p { margin-top: 3px; }
 
         .step-console {
-            display: grid; grid-template-columns: minmax(440px, 1.55fr) minmax(220px, .75fr);
-            flex: 0 0 var(--console-height); min-height: 130px;
+            display: flex; flex-direction: column; gap: 5px;
             border: 1px solid #2a3c48; border-radius: 12px; overflow: hidden; background: #111f29;
+            padding: 8px 10px;
         }
-        .step-controls { padding: 8px 10px; display: flex; flex-direction: column; gap: 5px; overflow-y: auto; }
+        .step-controls { display: flex; flex-direction: column; gap: 5px; }
         .tool-row { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
         .tool-label { width: 44px; color: #7f929d; font-size: 9px; font-weight: 900; }
         .choice-button {
@@ -400,14 +427,13 @@
             .workspace-tabs { grid-row: 2; grid-column: 1 / -1; justify-self: stretch; }
             .workspace-tab { flex: 1; }
             .brand-subtitle { display: none; }
-            #editor-page.is-active { display: block; min-height: auto; flex: none; overflow: visible; }
+            #editor-page.is-active { display: flex; flex-direction: column; height: auto; min-height: auto; flex: none; overflow: visible; }
             .panel-resizer { display: none; }
             .reference-panel { min-height: 300px; border-right: 0; border-bottom: 1px solid #22313d; }
-            .reference-stage { min-height: 230px; }
-            .editor-workbench { min-height: auto; overflow: visible; }
-            .step-console { grid-template-columns: 1fr; flex: none; min-height: 0; }
-            .lyric-panel { border-left: 0; border-top: 1px solid #2b3d48; }
-            .score-paper { flex: none; }
+            .reference-stage { min-height: 200px; }
+            .editor-center-panel { min-height: auto; overflow: visible; }
+            .editor-studio-panel { border-left: 0; border-top: 1px solid #22313d; }
+            .score-paper { min-height: 360px; flex: none; }
         }
         @media (max-width: 680px) {
             .workbench-header { position: sticky; top: 0; padding: 8px 10px; grid-template-columns: 1fr auto; }
@@ -522,40 +548,89 @@
         </div>
     </header>
 
-    <!-- 輸譜頁：左側看紙本，右側以鍵盤步進輸入 -->
+    <!-- 輸譜頁：左側看紙本與歌詞，中間我的樂譜大畫布，右側設定與輸入控制台 -->
     <section id="editor-page" class="workspace-page is-active" role="tabpanel" aria-labelledby="workspace-tab-editor">
+        <!-- 【左欄】樂譜照片參照 ＋ 批次歌詞隊列 -->
         <aside class="reference-panel">
-            <div class="panel-heading">
-                <div>
-                    <div class="eyebrow">Reference score</div>
-                    <h2 class="panel-title">樂譜照片參照</h2>
+            <div class="reference-photo-section">
+                <div class="panel-heading">
+                    <div>
+                        <div class="eyebrow">Reference score</div>
+                        <h2 class="panel-title">樂譜照片參照</h2>
+                    </div>
+                    <button id="reference-upload-btn" class="quiet-button" type="button">選擇圖片</button>
+                    <input id="reference-image-input" type="file" accept="image/*" hidden>
                 </div>
-                <button id="reference-upload-btn" class="quiet-button" type="button">選擇圖片</button>
-                <input id="reference-image-input" type="file" accept="image/*" hidden>
+
+                <div id="reference-stage" class="reference-stage">
+                    <div id="reference-empty" class="reference-empty">
+                        <strong>把紙本樂譜放在手邊</strong>
+                        上傳照片後可以在這裡縮放查看；圖片只在目前瀏覽器中顯示。
+                    </div>
+                    <img id="reference-image" alt="使用者上傳的樂譜參照">
+                </div>
+
+                <div class="panel-heading">
+                    <div class="reference-controls" aria-label="圖片縮放">
+                        <button id="reference-zoom-out" type="button" aria-label="縮小圖片">−</button>
+                        <span id="reference-zoom-label">100%</span>
+                        <button id="reference-zoom-in" type="button" aria-label="放大圖片">＋</button>
+                        <button id="reference-zoom-reset" type="button" aria-label="重設圖片大小">↺</button>
+                    </div>
+                    <span class="text-[9px] text-slate-500">可捲動查看</span>
+                </div>
             </div>
 
-            <div id="reference-stage" class="reference-stage">
-                <div id="reference-empty" class="reference-empty">
-                    <strong>把紙本樂譜放在手邊</strong>
-                    上傳照片後可以在這裡縮放查看；圖片只在目前瀏覽器中顯示，不會包含在匯出的樂譜資料裡。
+            <!-- 批次歌詞板塊 (移至左側下方) -->
+            <div class="reference-lyric-section">
+                <div class="panel-heading">
+                    <div>
+                        <div class="eyebrow">Lyric queue</div>
+                        <h3 class="panel-title">批次歌詞</h3>
+                    </div>
+                    <div class="flex gap-1">
+                        <button id="apply-lyrics-btn" class="primary-small text-[10px]" type="button">從游標套用</button>
+                        <button id="clear-lyrics-btn" class="quiet-button text-[10px]" type="button">清空</button>
+                    </div>
                 </div>
-                <img id="reference-image" alt="使用者上傳的樂譜參照">
-            </div>
-
-            <div class="panel-heading">
-                <div class="reference-controls" aria-label="圖片縮放">
-                    <button id="reference-zoom-out" type="button" aria-label="縮小圖片">−</button>
-                    <span id="reference-zoom-label">100%</span>
-                    <button id="reference-zoom-in" type="button" aria-label="放大圖片">＋</button>
-                    <button id="reference-zoom-reset" type="button" aria-label="重設圖片大小">↺</button>
+                <textarea id="lyric-queue" class="lyric-queue" placeholder="貼上整句歌詞；新增每個音符時會依序取出一個字。空白與直線 | 會略過，底線 _ 代表延續前一字。"></textarea>
+                <div class="lyric-status">
+                    <span id="lyric-queue-status">尚未排入歌詞</span>
+                    <span>休止符不消耗歌詞</span>
                 </div>
-                <span class="text-[9px] text-slate-500">可捲動查看細節</span>
             </div>
         </aside>
 
-        <button id="reference-pane-resizer" class="panel-resizer panel-resizer-horizontal" type="button" role="separator" aria-orientation="vertical" aria-label="拖曳調整樂譜照片與輸譜區的寬度" title="拖曳調整左右寬度；方向鍵也可微調"></button>
+        <button id="reference-pane-resizer" class="panel-resizer panel-resizer-horizontal" type="button" role="separator" aria-orientation="vertical" aria-label="拖曳調整左側寬度" title="拖曳調整左側寬度"></button>
 
-        <main class="editor-workbench">
+        <!-- 【中欄】我的練唱樂譜大畫布 -->
+        <main class="editor-center-panel">
+            <section class="score-paper" aria-label="可編輯樂譜軌">
+                <div class="score-paper-header">
+                    <div>
+                        <h2 id="editor-score-heading" class="score-paper-title">我的練唱樂譜</h2>
+                        <div id="editor-score-meta" class="score-paper-meta">C 大調 · 4/4 · 90 BPM · 0 個音符</div>
+                    </div>
+                    <div class="paper-actions">
+                        <button id="editor-undo-btn" class="paper-button" type="button">↶ 上一步</button>
+                        <button id="editor-redo-btn" class="paper-button" type="button">↷ 下一步</button>
+                        <button id="editor-delete-btn" class="paper-button" type="button">⌫ 刪除</button>
+                        <button id="editor-clear-btn" class="paper-button" type="button">清空</button>
+                    </div>
+                </div>
+                <div id="editor-score-container" tabindex="0" aria-label="音符與小節，按左右方向鍵移動插入游標"></div>
+            </section>
+
+            <div class="shortcut-legend">
+                <span><kbd>1–7</kbd> 立即輸入　<kbd>0</kbd> 休止符　<kbd>←</kbd><kbd>→</kbd> 移動游標　<kbd>Backspace</kbd> 刪除　右鍵就地填詞</span>
+                <span><kbd>Q</kbd> 四分　<kbd>E</kbd> 八分　<kbd>S</kbd> 十六分　<kbd>.</kbd> 附點　<kbd>[</kbd><kbd>]</kbd> 八度　<kbd>Tab</kbd> 跳下一音</span>
+            </div>
+        </main>
+
+        <button id="studio-pane-resizer" class="panel-resizer panel-resizer-horizontal" type="button" role="separator" aria-orientation="vertical" aria-label="拖曳調整右側設定寬度" title="拖曳調整右側寬度"></button>
+
+        <!-- 【右欄】樂譜設定 ＋ 步進輸入控制台 -->
+        <aside class="editor-studio-panel">
             <section class="editor-meta" aria-label="樂譜設定">
                 <label>
                     <span class="field-label">曲名</span>
@@ -596,7 +671,7 @@
                         <option value="6/8">6 / 8</option>
                     </select>
                 </label>
-                <label>
+                <label class="col-span-2">
                     <span class="field-label">速度 BPM</span>
                     <input id="editor-score-bpm" class="editor-input" type="number" min="40" max="200" value="90" inputmode="numeric">
                 </label>
@@ -604,102 +679,64 @@
                     <div id="key-signature-summary"><strong>無升降號</strong>：可能是 C 大調，也可能是 A 小調。</div>
                     <details class="key-help-details">
                         <summary>怎麼判斷大調或小調？</summary>
-                        <p id="key-detection-tip">調號本身不能單獨決定。請看旋律最後停在哪個音，以及哪個音最有「回到家」的感覺；常回到 C 多半是 C 大調，常回到 A 多半是 A 小調。</p>
+                        <p id="key-detection-tip">調號本身不能單獨決定。請看旋律最後停在哪個音，常回到 C 多半是 C 大調，常回到 A 多半是 A 小調。</p>
                     </details>
                 </div>
             </section>
 
             <section class="step-console" aria-label="步進輸入控制台">
-                <div class="step-controls">
-                    <div class="tool-row" id="input-mode-toolbar">
-                        <span class="tool-label">模式</span>
-                        <button class="choice-button input-mode-btn input-mode-choice is-active" type="button" data-input-mode="fixed" title="看五線譜抄譜：按 1=C, 2=D, 3=E, 4=F, 5=G, 6=A, 7=B（或鍵盤 C–B），自動套用調號升降">🎼 五線譜看譜 (C D E F G A B)</button>
-                        <button class="choice-button input-mode-btn input-mode-choice" type="button" data-input-mode="movable" title="看簡譜抄譜：數字即為首調唱名 (1=do)">🎹 首調簡譜 (1 2 3 4 5 6 7)</button>
-                    </div>
-
-                    <div class="tool-row" id="instrument-toolbar">
-                        <span class="tool-label">音色</span>
-                        <button class="choice-button instrument-choice is-active" type="button" data-instrument="piano" title="鋼琴：溫暖自然的觸鍵與延音">🎹 鋼琴</button>
-                        <button class="choice-button instrument-choice" type="button" data-instrument="flute" title="長笛管樂：純淨連音，最適合視唱練唱">🪈 長笛</button>
-                        <button class="choice-button instrument-choice" type="button" data-instrument="strings" title="溫暖弦樂：醇厚悠揚的平滑長音">🎻 弦樂</button>
-                        <button class="choice-button instrument-choice" type="button" data-instrument="vocal" title="人聲導唱：模擬 Ahh 人聲共鳴">🎤 人聲</button>
-                    </div>
-
-                    <div class="tool-row" id="duration-toolbar">
-                        <span class="tool-label">時值</span>
-                        <button class="choice-button duration-choice" type="button" data-duration="4">全音符</button>
-                        <button class="choice-button duration-choice" type="button" data-duration="2">二分</button>
-                        <button class="choice-button duration-choice" type="button" data-duration="1.5">附點四分</button>
-                        <button class="choice-button duration-choice is-active" type="button" data-duration="1">四分 <span class="opacity-50">Q</span></button>
-                        <button class="choice-button duration-choice" type="button" data-duration="0.75">附點八分</button>
-                        <button class="choice-button duration-choice" type="button" data-duration="0.5">八分 <span class="opacity-50">E</span></button>
-                        <button class="choice-button duration-choice" type="button" data-duration="0.25">十六分 <span class="opacity-50">S</span></button>
-                    </div>
-
-                    <div class="tool-row" id="accidental-toolbar">
-                        <span class="tool-label">記號</span>
-                        <button class="choice-button accidental accidental-choice is-active" type="button" data-accidental="auto">調號自動</button>
-                        <button class="choice-button accidental accidental-choice" type="button" data-accidental="0">♮ 還原</button>
-                        <button class="choice-button accidental accidental-choice" type="button" data-accidental="1">♯ 升</button>
-                        <button class="choice-button accidental accidental-choice" type="button" data-accidental="-1">♭ 降</button>
-                        <span class="tool-label ml-2">八度</span>
-                        <button id="octave-down-btn" class="choice-button" type="button" aria-label="降低八度">−</button>
-                        <span id="octave-display" class="choice-button is-active min-w-[58px] text-center">中央</span>
-                        <button id="octave-up-btn" class="choice-button" type="button" aria-label="提高八度">＋</button>
-                    </div>
-
-                    <div class="pitch-pad" id="editor-pitch-pad" aria-label="快速音符輸入">
-                        <button class="pitch-key quick-pitch-key" type="button" data-degree="1" data-hint="1"><span class="key-main">1</span><span class="key-sub">C</span></button>
-                        <button class="pitch-key quick-pitch-key" type="button" data-degree="2" data-hint="2"><span class="key-main">2</span><span class="key-sub">D</span></button>
-                        <button class="pitch-key quick-pitch-key" type="button" data-degree="3" data-hint="3"><span class="key-main">3</span><span class="key-sub">E</span></button>
-                        <button class="pitch-key quick-pitch-key" type="button" data-degree="4" data-hint="4"><span class="key-main">4</span><span class="key-sub">F</span></button>
-                        <button class="pitch-key quick-pitch-key" type="button" data-degree="5" data-hint="5"><span class="key-main">5</span><span class="key-sub">G</span></button>
-                        <button class="pitch-key quick-pitch-key" type="button" data-degree="6" data-hint="6"><span class="key-main">6</span><span class="key-sub">A</span></button>
-                        <button class="pitch-key quick-pitch-key" type="button" data-degree="7" data-hint="7"><span class="key-main">7</span><span class="key-sub">B</span></button>
-                        <button class="pitch-key quick-pitch-key rest-key" type="button" data-degree="0" data-hint="0"><span class="key-main">休</span><span class="key-sub">0</span></button>
-                    </div>
+                <div class="tool-row" id="input-mode-toolbar">
+                    <span class="tool-label">模式</span>
+                    <button class="choice-button input-mode-btn input-mode-choice is-active" type="button" data-input-mode="fixed" title="看五線譜抄譜：按 1=C, 2=D, 3=E, 4=F, 5=G, 6=A, 7=B">🎼 五線譜看譜 (C D E F G A B)</button>
+                    <button class="choice-button input-mode-btn input-mode-choice" type="button" data-input-mode="movable" title="看簡譜抄譜：數字即為首調唱名 (1=do)">🎹 首調簡譜 (1 2 3 4 5 6 7)</button>
                 </div>
 
-                <div class="lyric-panel">
-                    <div>
-                        <div class="eyebrow">Lyric queue</div>
-                        <h3 class="panel-title">批次歌詞</h3>
-                    </div>
-                    <textarea id="lyric-queue" class="lyric-queue" placeholder="貼上整句歌詞；新增每個音符時會依序取出一個字。空白與直線 | 會略過，底線 _ 代表延續前一字。"></textarea>
-                    <div class="lyric-status">
-                        <span id="lyric-queue-status">尚未排入歌詞</span>
-                        <span>休止符不消耗歌詞</span>
-                    </div>
-                    <div class="flex gap-2">
-                        <button id="apply-lyrics-btn" class="primary-small flex-1" type="button">從游標向後套用</button>
-                        <button id="clear-lyrics-btn" class="quiet-button" type="button">清空</button>
-                    </div>
+                <div class="tool-row" id="instrument-toolbar">
+                    <span class="tool-label">音色</span>
+                    <button class="choice-button instrument-choice is-active" type="button" data-instrument="piano" title="鋼琴：溫暖自然的觸鍵與延音">🎹 鋼琴</button>
+                    <button class="choice-button instrument-choice" type="button" data-instrument="flute" title="長笛管樂：純淨連音，最適合視唱練唱">🪈 長笛</button>
+                    <button class="choice-button instrument-choice" type="button" data-instrument="strings" title="溫暖弦樂：醇厚悠揚的平滑長音">🎻 弦樂</button>
+                    <button class="choice-button instrument-choice" type="button" data-instrument="vocal" title="人聲導唱：模擬 Ahh 人聲共鳴">🎤 人聲</button>
+                </div>
+
+                <div class="tool-row" id="duration-toolbar">
+                    <span class="tool-label">時值</span>
+                    <button class="choice-button duration-choice" type="button" data-duration="4">全音符</button>
+                    <button class="choice-button duration-choice" type="button" data-duration="2">二分</button>
+                    <button class="choice-button duration-choice" type="button" data-duration="1.5">附點四分</button>
+                    <button class="choice-button duration-choice is-active" type="button" data-duration="1">四分 <span class="opacity-50">Q</span></button>
+                    <button class="choice-button duration-choice" type="button" data-duration="0.75">附點八分</button>
+                    <button class="choice-button duration-choice" type="button" data-duration="0.5">八分 <span class="opacity-50">E</span></button>
+                    <button class="choice-button duration-choice" type="button" data-duration="0.25">十六分 <span class="opacity-50">S</span></button>
+                </div>
+
+                <div class="tool-row" id="accidental-toolbar">
+                    <span class="tool-label">記號</span>
+                    <button class="choice-button accidental accidental-choice is-active" type="button" data-accidental="auto">調號自動</button>
+                    <button class="choice-button accidental accidental-choice" type="button" data-accidental="0">♮ 還原</button>
+                    <button class="choice-button accidental accidental-choice" type="button" data-accidental="1">♯ 升</button>
+                    <button class="choice-button accidental accidental-choice" type="button" data-accidental="-1">♭ 降</button>
+                </div>
+
+                <div class="tool-row items-center">
+                    <span class="tool-label">八度</span>
+                    <button id="octave-down-btn" class="choice-button" type="button" aria-label="降低八度">−</button>
+                    <span id="octave-display" class="choice-button is-active min-w-[58px] text-center">中央</span>
+                    <button id="octave-up-btn" class="choice-button" type="button" aria-label="提高八度">＋</button>
+                </div>
+
+                <div class="pitch-pad" id="editor-pitch-pad" aria-label="快速音符輸入">
+                    <button class="pitch-key quick-pitch-key" type="button" data-degree="1" data-hint="1"><span class="key-main">1</span><span class="key-sub">C</span></button>
+                    <button class="pitch-key quick-pitch-key" type="button" data-degree="2" data-hint="2"><span class="key-main">2</span><span class="key-sub">D</span></button>
+                    <button class="pitch-key quick-pitch-key" type="button" data-degree="3" data-hint="3"><span class="key-main">3</span><span class="key-sub">E</span></button>
+                    <button class="pitch-key quick-pitch-key" type="button" data-degree="4" data-hint="4"><span class="key-main">4</span><span class="key-sub">F</span></button>
+                    <button class="pitch-key quick-pitch-key" type="button" data-degree="5" data-hint="5"><span class="key-main">5</span><span class="key-sub">G</span></button>
+                    <button class="pitch-key quick-pitch-key" type="button" data-degree="6" data-hint="6"><span class="key-main">6</span><span class="key-sub">A</span></button>
+                    <button class="pitch-key quick-pitch-key" type="button" data-degree="7" data-hint="7"><span class="key-main">7</span><span class="key-sub">B</span></button>
+                    <button class="pitch-key quick-pitch-key rest-key" type="button" data-degree="0" data-hint="0"><span class="key-main">休</span><span class="key-sub">0</span></button>
                 </div>
             </section>
-
-            <button id="score-pane-resizer" class="panel-resizer panel-resizer-vertical" type="button" role="separator" aria-orientation="horizontal" aria-label="拖曳調整輸入控制台與樂譜區的高度" title="拖曳調整上下高度；方向鍵也可微調"></button>
-
-            <section class="score-paper" aria-label="可編輯樂譜軌">
-                <div class="score-paper-header">
-                    <div>
-                        <h2 id="editor-score-heading" class="score-paper-title">我的練唱樂譜</h2>
-                        <div id="editor-score-meta" class="score-paper-meta">C 大調 · 4/4 · 90 BPM · 0 個音符</div>
-                    </div>
-                    <div class="paper-actions">
-                        <button id="editor-undo-btn" class="paper-button" type="button">↶ 上一步</button>
-                        <button id="editor-redo-btn" class="paper-button" type="button">↷ 下一步</button>
-                        <button id="editor-delete-btn" class="paper-button" type="button">⌫ 刪除</button>
-                        <button id="editor-clear-btn" class="paper-button" type="button">清空</button>
-                    </div>
-                </div>
-                <div id="editor-score-container" tabindex="0" aria-label="音符與小節，按左右方向鍵移動插入游標"></div>
-            </section>
-
-            <div class="shortcut-legend">
-                <span><kbd>1–7</kbd> 或 <kbd>C–B</kbd> 立即輸入　<kbd>0</kbd> 休止符　<kbd>←</kbd><kbd>→</kbd> 移動游標　<kbd>Backspace</kbd> 刪除　雙擊音符編輯</span>
-                <span><kbd>Q</kbd> 四分　<kbd>E</kbd> 八分　<kbd>S</kbd> 十六分　<kbd>.</kbd> 附點　<kbd>[</kbd><kbd>]</kbd> 八度</span>
-            </div>
-        </main>
+        </aside>
     </section>
 
     <!-- 2. 主區域 (左右分欄: 左欄設置聲音 / 右欄聽好的聲音與練唱) -->
@@ -2242,78 +2279,88 @@
 
         function initializePanelResizers() {
             const editorPage = document.getElementById('editor-page');
-            const workbench = document.querySelector('.editor-workbench');
             const referencePanel = document.querySelector('.reference-panel');
-            const stepConsole = document.querySelector('.step-console');
-            const horizontalHandle = document.getElementById('reference-pane-resizer');
-            const verticalHandle = document.getElementById('score-pane-resizer');
+            const studioPanel = document.querySelector('.editor-studio-panel');
+            const leftHandle = document.getElementById('reference-pane-resizer');
+            const rightHandle = document.getElementById('studio-pane-resizer');
 
-            const setReferenceWidth = width => {
+            const setLeftWidth = width => {
                 const pageWidth = editorPage.getBoundingClientRect().width;
-                const maxWidth = Math.max(260, pageWidth - 570);
-                const nextWidth = Math.max(260, Math.min(maxWidth, Number(width)));
-                editorPage.style.setProperty('--reference-pane-width', `${nextWidth}px`);
-                horizontalHandle.setAttribute('aria-valuenow', String(Math.round(nextWidth)));
-                horizontalHandle.setAttribute('aria-valuemin', '260');
-                horizontalHandle.setAttribute('aria-valuemax', String(Math.round(maxWidth)));
+                const maxWidth = Math.max(220, pageWidth - 650);
+                const nextWidth = Math.max(220, Math.min(maxWidth, Number(width)));
+                editorPage.style.setProperty('--left-pane-width', `${nextWidth}px`);
+                if (leftHandle) {
+                    leftHandle.setAttribute('aria-valuenow', String(Math.round(nextWidth)));
+                    leftHandle.setAttribute('aria-valuemin', '220');
+                    leftHandle.setAttribute('aria-valuemax', String(Math.round(maxWidth)));
+                }
             };
 
-            const setConsoleHeight = height => {
-                const workbenchHeight = workbench.getBoundingClientRect().height;
-                const maxHeight = Math.max(180, workbenchHeight - 270);
-                const nextHeight = Math.max(150, Math.min(maxHeight, Number(height)));
-                workbench.style.setProperty('--console-height', `${nextHeight}px`);
-                verticalHandle.setAttribute('aria-valuenow', String(Math.round(nextHeight)));
-                verticalHandle.setAttribute('aria-valuemin', '150');
-                verticalHandle.setAttribute('aria-valuemax', String(Math.round(maxHeight)));
+            const setRightWidth = width => {
+                const pageWidth = editorPage.getBoundingClientRect().width;
+                const maxWidth = Math.max(280, pageWidth - 600);
+                const nextWidth = Math.max(280, Math.min(maxWidth, Number(width)));
+                editorPage.style.setProperty('--right-pane-width', `${nextWidth}px`);
+                if (rightHandle) {
+                    rightHandle.setAttribute('aria-valuenow', String(Math.round(nextWidth)));
+                    rightHandle.setAttribute('aria-valuemin', '280');
+                    rightHandle.setAttribute('aria-valuemax', String(Math.round(maxWidth)));
+                }
             };
 
-            horizontalHandle.addEventListener('pointerdown', event => {
-                if (window.innerWidth <= 980) return;
-                event.preventDefault();
-                document.body.classList.add('is-resizing');
-                const pageRect = editorPage.getBoundingClientRect();
-                const onMove = moveEvent => setReferenceWidth(moveEvent.clientX - pageRect.left);
-                const onEnd = () => {
-                    document.body.classList.remove('is-resizing');
-                    window.removeEventListener('pointermove', onMove);
-                    window.removeEventListener('pointerup', onEnd);
-                    window.removeEventListener('pointercancel', onEnd);
-                };
-                window.addEventListener('pointermove', onMove);
-                window.addEventListener('pointerup', onEnd);
-                window.addEventListener('pointercancel', onEnd);
-            });
+            if (leftHandle) {
+                leftHandle.addEventListener('pointerdown', event => {
+                    if (window.innerWidth <= 980) return;
+                    event.preventDefault();
+                    document.body.classList.add('is-resizing');
+                    const pageRect = editorPage.getBoundingClientRect();
+                    const onMove = moveEvent => setLeftWidth(moveEvent.clientX - pageRect.left);
+                    const onEnd = () => {
+                        document.body.classList.remove('is-resizing');
+                        window.removeEventListener('pointermove', onMove);
+                        window.removeEventListener('pointerup', onEnd);
+                        window.removeEventListener('pointercancel', onEnd);
+                    };
+                    window.addEventListener('pointermove', onMove);
+                    window.addEventListener('pointerup', onEnd);
+                    window.addEventListener('pointercancel', onEnd);
+                });
 
-            verticalHandle.addEventListener('pointerdown', event => {
-                if (window.innerWidth <= 980) return;
-                event.preventDefault();
-                document.body.classList.add('is-resizing');
-                const consoleTop = stepConsole.getBoundingClientRect().top;
-                const onMove = moveEvent => setConsoleHeight(moveEvent.clientY - consoleTop);
-                const onEnd = () => {
-                    document.body.classList.remove('is-resizing');
-                    window.removeEventListener('pointermove', onMove);
-                    window.removeEventListener('pointerup', onEnd);
-                    window.removeEventListener('pointercancel', onEnd);
-                };
-                window.addEventListener('pointermove', onMove);
-                window.addEventListener('pointerup', onEnd);
-                window.addEventListener('pointercancel', onEnd);
-            });
+                leftHandle.addEventListener('keydown', event => {
+                    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+                    event.preventDefault();
+                    const curW = referencePanel ? referencePanel.getBoundingClientRect().width : 280;
+                    setLeftWidth(curW + (event.key === 'ArrowRight' ? 24 : -24));
+                });
+                leftHandle.addEventListener('dblclick', () => editorPage.style.removeProperty('--left-pane-width'));
+            }
 
-            horizontalHandle.addEventListener('keydown', event => {
-                if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
-                event.preventDefault();
-                setReferenceWidth(referencePanel.getBoundingClientRect().width + (event.key === 'ArrowRight' ? 24 : -24));
-            });
-            verticalHandle.addEventListener('keydown', event => {
-                if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
-                event.preventDefault();
-                setConsoleHeight(stepConsole.getBoundingClientRect().height + (event.key === 'ArrowDown' ? 20 : -20));
-            });
-            horizontalHandle.addEventListener('dblclick', () => editorPage.style.removeProperty('--reference-pane-width'));
-            verticalHandle.addEventListener('dblclick', () => workbench.style.removeProperty('--console-height'));
+            if (rightHandle) {
+                rightHandle.addEventListener('pointerdown', event => {
+                    if (window.innerWidth <= 980) return;
+                    event.preventDefault();
+                    document.body.classList.add('is-resizing');
+                    const pageRect = editorPage.getBoundingClientRect();
+                    const onMove = moveEvent => setRightWidth(pageRect.right - moveEvent.clientX);
+                    const onEnd = () => {
+                        document.body.classList.remove('is-resizing');
+                        window.removeEventListener('pointermove', onMove);
+                        window.removeEventListener('pointerup', onEnd);
+                        window.removeEventListener('pointercancel', onEnd);
+                    };
+                    window.addEventListener('pointermove', onMove);
+                    window.addEventListener('pointerup', onEnd);
+                    window.addEventListener('pointercancel', onEnd);
+                });
+
+                rightHandle.addEventListener('keydown', event => {
+                    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+                    event.preventDefault();
+                    const curW = studioPanel ? studioPanel.getBoundingClientRect().width : 360;
+                    setRightWidth(curW + (event.key === 'ArrowLeft' ? 24 : -24));
+                });
+                rightHandle.addEventListener('dblclick', () => editorPage.style.removeProperty('--right-pane-width'));
+            }
         }
 
         function setGlobalBpm(nextBpm) {
