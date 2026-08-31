@@ -433,7 +433,7 @@
         .practice-score-tab.is-active { background: #2563eb; border-color: #60a5fa; color: #fff; }
         .notation-panel { min-height: 260px; height: 100%; overflow-y: auto; border-radius: 9px; background: #fff; color: #111827; padding: 12px; position: relative; }
         .notation-panel.is-hidden { display: none; }
-        .notation-stage { min-width: 680px; }
+        .notation-stage { width: 100%; min-width: 0; }
         .notation-empty { min-height: 220px; display: grid; place-items: center; text-align: center; color: #64748b; font-size: 13px; line-height: 1.7; }
         .notation-error { margin: 8px; padding: 12px; border: 1px solid #f59e0b; border-radius: 8px; color: #7c2d12; background: #fff7ed; font-size: 12px; font-weight: 700; }
         .notation-follow-label { display: inline-flex; align-items: center; gap: 4px; color: #94a3b8; font-size: 10px; font-weight: 700; white-space: nowrap; }
@@ -605,8 +605,9 @@
             #tuner-panel > div { flex-direction: column; align-items: stretch; gap: 10px; }
             #tuner-hear-sound { width: 100%; justify-content: center; padding: 8px; }
             .practice-score-tabs { flex-wrap: wrap; }
-            .notation-panel { padding: 8px; overflow-x: auto; width: 100%; -webkit-overflow-scrolling: touch; }
-            .notation-stage { min-width: 520px; }
+            .notation-panel { padding: 6px; overflow-x: hidden; width: 100%; -webkit-overflow-scrolling: touch; }
+            .notation-stage { width: 100%; min-width: 0; }
+            .notation-heading { font-size: 11px; margin: 0 0 4px 6px; }
             .note-tile { width: 44px; height: 68px; }
         }
 
@@ -621,11 +622,13 @@
             .practice-toolbar { padding: 4px 10px 0; flex-direction: row; flex-wrap: wrap; gap: 4px; }
             .practice-mode-group { display: flex; width: auto; }
             .practice-mode-button { padding: 4px 8px; font-size: 10px; }
-            #practice-page > main { padding: 6px 10px; gap: 6px; overflow-y: auto; }
+            #practice-page > main { padding: 4px 8px; gap: 4px; overflow-y: auto; }
             #tuner-panel { padding: 6px 10px; }
             #tuner-panel > div { flex-direction: row; align-items: center; justify-content: space-between; }
             .note-tile { width: 42px; height: 64px; }
-            .notation-panel { min-height: 180px; }
+            .notation-panel { padding: 6px 8px; min-height: 150px; }
+            .notation-stage { width: 100%; min-width: 0; }
+            .notation-heading { font-size: 10px; margin: 0 0 2px 4px; }
         }
     </style>
 </head>
@@ -3841,6 +3844,16 @@
                 renderNotationScore();
             });
             window.addEventListener('keydown', handleEditorShortcut, true);
+            let resizeNotationTimer = null;
+            window.addEventListener('resize', () => {
+                if (practiceScoreView === 'notation') {
+                    if (resizeNotationTimer) clearTimeout(resizeNotationTimer);
+                    resizeNotationTimer = setTimeout(() => {
+                        notationDirty = true;
+                        renderNotationScore();
+                    }, 150);
+                }
+            });
 
             initializeTextSizeControls();
             initializePanelResizers();
@@ -4023,17 +4036,30 @@
                 const host = document.createElement('div');
                 stage.append(heading, host);
 
-                const panelWidth = document.getElementById('notation-panel')?.clientWidth || 760;
-                const canvasWidth = Math.max(680, panelWidth - 24);
-                const measuresPerLine = canvasWidth >= 1120 ? 3 : (canvasWidth >= 720 ? 2 : 1);
+                const panel = document.getElementById('notation-panel');
+                const panelWidth = panel?.clientWidth || 360;
+                const isMobileScreen = window.innerWidth <= 680;
+                const isLandscapeMobile = window.innerHeight <= 520 && window.innerWidth > window.innerHeight;
+
+                // 完全貼合容器寬度，直式手機不強制 680px
+                const sidePadding = isMobileScreen ? 8 : 20;
+                const canvasWidth = Math.max(260, panelWidth - sidePadding);
+
+                let measuresPerLine = 1;
+                if (canvasWidth >= 1050) measuresPerLine = 3;
+                else if (canvasWidth >= 560) measuresPerLine = 2;
+                else measuresPerLine = 1;
+
                 const rowCount = Math.ceil(measures.length / measuresPerLine);
-                const rowHeight = 175;
-                const canvasHeight = Math.max(190, rowCount * rowHeight + 15);
+                // 橫式手機緊湊排版 (122px)，直式手機 (140px)，桌機 (165px)
+                const rowHeight = isLandscapeMobile ? 122 : (isMobileScreen ? 140 : 165);
+                const canvasHeight = Math.max(150, rowCount * rowHeight + (isMobileScreen ? 10 : 20));
+
                 const renderer = new VF.Renderer(host, VF.Renderer.Backends.SVG);
                 renderer.resize(canvasWidth, canvasHeight);
                 const context = renderer.getContext();
                 const [numBeats, beatValue] = currentTimeSignature.split('/').map(Number);
-                const leftMargin = 12;
+                const leftMargin = isMobileScreen ? 4 : 10;
                 const usableWidth = canvasWidth - leftMargin * 2;
                 const staveWidth = Math.floor(usableWidth / measuresPerLine);
 
@@ -4041,7 +4067,7 @@
                     const column = measureIndex % measuresPerLine;
                     const row = Math.floor(measureIndex / measuresPerLine);
                     const x = leftMargin + column * staveWidth;
-                    const y = 18 + row * rowHeight;
+                    const y = (isLandscapeMobile ? 6 : 14) + row * rowHeight;
                     const stave = new VF.Stave(x, y, staveWidth);
                     if (column === 0) {
                         stave.addClef('treble').addKeySignature(currentKey);
@@ -4215,7 +4241,12 @@
 
         // 单音卡片交互逻辑 (根据四大模式)
         function onNoteTileInteraction(index, eventType) {
-            if (activeAppMode === 'play_audio' || activeAppMode === 'play_practice') return;
+            if (activeAppMode === 'play_audio' || activeAppMode === 'play_practice') {
+                if (eventType === 'click' || eventType === 'press') {
+                    jumpPlaybackTo(index);
+                }
+                return;
+            }
             activeSingleNoteIndex = index;
             const note = scoreNotes[index];
             const midi = noteToMidi(note, currentKey, currentMode);
@@ -4531,6 +4562,51 @@
         btnModePractice.addEventListener('click', () => switchAppMode('practice'));
         btnModePlayAudio.addEventListener('click', () => activeAppMode === 'play_audio' ? togglePlaybackPause() : switchAppMode('play_audio'));
         btnModePlayPractice.addEventListener('click', () => activeAppMode === 'play_practice' ? togglePlaybackPause() : switchAppMode('play_practice'));
+
+        /**
+         * 播放過程中點擊任一音符/音格時，立即跳轉至該位置繼續播放
+         * @param {number} targetIndex 目標音符索引
+         */
+        function jumpPlaybackTo(targetIndex) {
+            if (targetIndex < 0 || targetIndex >= scoreNotes.length) return;
+            if (activeAppMode !== 'play_audio' && activeAppMode !== 'play_practice') return;
+
+            ensureAudioContextReady();
+            if (playbackTimer) {
+                clearTimeout(playbackTimer);
+                playbackTimer = null;
+            }
+            stopCurrentVoice(0.01);
+
+            // 確保 timeline 存在
+            if (!playbackTimeline || playbackTimeline.length !== scoreNotes.length) {
+                let elapsedMs = 0;
+                playbackTimeline = scoreNotes.map((note, index) => {
+                    const durationMs = getNoteDurationSeconds(note) * 1000;
+                    const entry = { index, startMs: elapsedMs, endMs: elapsedMs + durationMs, durationMs };
+                    elapsedMs += durationMs;
+                    return entry;
+                });
+            }
+
+            currentPlaybackIndex = targetIndex;
+            const targetEntry = playbackTimeline[targetIndex];
+            const targetStartMs = targetEntry ? targetEntry.startMs : 0;
+            playbackStartedAtMs = performance.now() - targetStartMs;
+            playbackPausedElapsedMs = 0;
+            isPlaybackPaused = false;
+
+            btnStop.classList.remove('hidden');
+            if (activeAppMode === 'play_practice') {
+                startMicListening();
+                playbackStatus.innerText = "🎤 播放全曲 (練聲) 中...";
+            } else {
+                stopMicListening();
+                playbackStatus.innerText = "▶️ 播放全曲 (有聲) 中...";
+            }
+            syncPracticeModeButtons();
+            processNextPlaybackStep();
+        }
 
         function startFullPlayback(mode) {
             if (scoreNotes.length === 0) return;

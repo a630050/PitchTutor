@@ -235,6 +235,26 @@ const server = http.createServer((request, response) => {
     assert.equal(activeAppModeOnLoad, 'practice');
     assert.equal(await paramPage.locator('#tuner-panel').isVisible(), true);
 
+    // 驗證播放中點擊音符/音格跳轉播放 (jumpPlaybackTo)
+    await paramPage.click('.practice-mode-button[data-practice-mode="play_audio"]');
+    await paramPage.waitForTimeout(100);
+    // 點擊第 8 個音格
+    const tile8 = paramPage.locator('#melody-container .note-tile[data-index="8"]');
+    await tile8.click();
+    let currentPlayIdx = await paramPage.evaluate(() => currentPlaybackIndex);
+    assert.equal(currentPlayIdx, 8, 'Clicking note cell 8 during playback should jump playback to note 8');
+
+    // 驗證五線譜模式下點擊五線譜音符跳轉
+    await paramPage.click('#practice-notation-tab');
+    await paramPage.waitForTimeout(200);
+    const vfNote4 = paramPage.locator('.vf-source-note[data-source-index="4"]').first();
+    if (await vfNote4.count() > 0) {
+      await vfNote4.click();
+      currentPlayIdx = await paramPage.evaluate(() => currentPlaybackIndex);
+      assert.equal(currentPlayIdx, 4, 'Clicking score notation note 4 should jump playback to note 4');
+    }
+    await paramPage.click('#practice-stop-btn');
+
     // 驗證手機橫式 RWD 佈局
     await paramPage.setViewportSize({ width: 844, height: 390 });
     assert.equal(await paramPage.locator('.workbench-header').isVisible(), true);
@@ -243,7 +263,7 @@ const server = http.createServer((request, response) => {
     await paramPage.close();
 
     assert.deepEqual(pageErrors, []);
-    console.log('PASS integration: BPM, triplet atomicity, range paste, insertion, notation, playback highlight, collapsible panels, studio scrolling, reference slider & drag, practice note tone playback, YIN pitch detection, URL params & Mobile RWD, export');
+    console.log('PASS integration: BPM, triplet atomicity, range paste, insertion, notation, playback highlight, collapsible panels, studio scrolling, reference slider & drag, practice note tone playback, YIN pitch detection, URL params, Playback Click-to-Jump & Mobile RWD, export');
   } finally {
     if (browser) await browser.close();
     server.close();
