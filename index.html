@@ -5204,7 +5204,10 @@
                 const target = mappedElements.find(element => element.dataset.notationRole !== 'lyric');
                 const follow = document.getElementById('notation-follow-checkbox');
                 if (follow?.checked && target && isElementOutsideContainer(target, panel)) {
-                    target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+                    const targetRect = target.getBoundingClientRect();
+                    const panelRect = panel.getBoundingClientRect();
+                    const targetTop = panel.scrollTop + targetRect.top - panelRect.top - panel.clientHeight * 0.3;
+                    panel.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
                 }
             } else {
                 const activeCard = melodyContainer.querySelector(`[data-index="${index}"]`);
@@ -5356,7 +5359,10 @@
                             sourceEntries.push({ index: item.startIndex + offset, vexNote, annotation });
                         });
                         if (item.notes.length === 3 && isTripletNote(item.notes[0])) {
-                            tuplets.push(new VF.Tuplet(groupNotes, { num_notes: 3, notes_occupied: 2 }));
+                            tuplets.push({
+                                tuplet: new VF.Tuplet(groupNotes, { num_notes: 3, notes_occupied: 2 }),
+                                indices: [item.startIndex, item.startIndex + 1, item.endIndex]
+                            });
                         }
                     });
 
@@ -5365,12 +5371,21 @@
                         .addTickables(vexNotes);
                     new VF.Formatter().joinVoices([voice]).formatToStave([voice], stave, { align_rests: true });
                     voice.draw(context, stave);
-                    tuplets.forEach(tuplet => tuplet.setContext(context).draw());
+                    tuplets.forEach(entry => entry.tuplet.setContext(context).draw());
                     sourceEntries.forEach(entry => {
                         const noteElement = entry.vexNote.getSVGElement?.() || entry.vexNote.attrs?.el;
                         registerNotationElement(entry.index, noteElement, 'note');
                         const lyricElement = entry.annotation?.getSVGElement?.() || entry.annotation?.attrs?.el;
                         registerNotationElement(entry.index, lyricElement, 'lyric');
+                    });
+                    tuplets.forEach(entry => {
+                        const tupletElement = entry.tuplet.getSVGElement?.() || entry.tuplet.attrs?.el;
+                        if (!tupletElement) return;
+                        tupletElement.dataset.notationRole = 'tuplet';
+                        entry.indices.forEach(index => {
+                            if (!notationSourceMap.has(index)) notationSourceMap.set(index, []);
+                            notationSourceMap.get(index).push(tupletElement);
+                        });
                     });
                 });
 
@@ -6183,6 +6198,8 @@
                     redo(); e.preventDefault(); return;
                 }
             }
+
+            if (activeWorkspaceView !== 'editor') return;
 
             if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'SELECT') {
                 if (e.key === 'Enter' && document.activeElement.id === 'global-lyric') addNoteFromInputs();

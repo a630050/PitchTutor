@@ -73,6 +73,8 @@ const server = http.createServer((request, response) => {
     await page.waitForSelector('#notation-stage svg, #notation-stage .notation-error', { timeout: 15000 });
     assert.equal(await page.locator('#notation-stage .notation-error').count(), 0);
     assert.equal(await page.locator('#notation-stage .vf-source-note[data-notation-role="note"]').count(), 6);
+    await page.keyboard.press('Backspace');
+    assert.equal(await page.locator('#notation-stage .vf-source-note[data-notation-role="note"]').count(), 6, 'Practice shortcuts must not edit the score');
     await page.click('#workspace-tab-editor');
 
     await page.click('#cancel-edit-mode-btn');
@@ -99,18 +101,22 @@ const server = http.createServer((request, response) => {
 
     await page.click('.practice-mode-button[data-practice-mode="play_audio"]');
     await page.waitForSelector('#notation-stage .vf-note-playing', { timeout: 3000 });
-    assert.equal(await page.locator('#notation-stage .vf-note-playing').count(), 1);
-    const pausedSourceIndex = await page.locator('#notation-stage .vf-note-playing').getAttribute('data-source-index');
+    assert.equal(await page.locator('#notation-stage .vf-source-note.vf-note-playing').count(), 1);
+    const pausedSourceIndex = await page.locator('#notation-stage .vf-source-note.vf-note-playing').getAttribute('data-source-index');
     await page.click('#practice-pause-btn');
     await page.waitForTimeout(700);
-    assert.equal(await page.locator('#notation-stage .vf-note-playing').getAttribute('data-source-index'), pausedSourceIndex);
+    assert.equal(await page.locator('#notation-stage .vf-source-note.vf-note-playing').getAttribute('data-source-index'), pausedSourceIndex);
     assert.equal(await page.textContent('#practice-pause-btn'), '繼續');
     await page.click('#practice-pause-btn');
     await page.waitForFunction(index => {
-      const active = document.querySelector('#notation-stage .vf-note-playing');
+      const active = document.querySelector('#notation-stage .vf-source-note.vf-note-playing');
       return active && active.dataset.sourceIndex !== index;
     }, pausedSourceIndex, { timeout: 2000 });
     await page.click('#practice-stop-btn');
+
+    if (process.env.SCREENSHOT_PATH) {
+      await page.screenshot({ path: process.env.SCREENSHOT_PATH, fullPage: true });
+    }
 
     const downloadPromise = page.waitForEvent('download');
     await page.$eval('#export-btn', button => button.click());
