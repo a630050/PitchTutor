@@ -5845,16 +5845,43 @@
             lyricEl.innerText = note.lyric || '—';
         }
 
-        // --- 麦克风与实时测音 ---
+        // --- 麥克風與專業音高偵測引擎 (YIN Algorithm + Biquad Filter) ---
+        let micStreamSource = null;
+        let micHighPassFilter = null;
+        let micLowPassFilter = null;
+
         async function startMicListening() {
             await ensureAudioContextReady();
             if (!micStream) {
                 try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-                    micStream = audioCtx.createMediaStreamSource(stream);
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        audio: {
+                            echoCancellation: false,
+                            noiseSuppression: false,
+                            autoGainControl: true
+                        },
+                        video: false
+                    });
+                    micStream = stream;
+                    micStreamSource = audioCtx.createMediaStreamSource(stream);
+
+                    // 1. 高通濾波器 (65Hz)：濾除桌面震動與超低頻噪聲
+                    micHighPassFilter = audioCtx.createBiquadFilter();
+                    micHighPassFilter.type = 'highpass';
+                    micHighPassFilter.frequency.value = 65;
+
+                    // 2. 低通濾波器 (1000Hz)：抑制高階泛音與氣音齒音，突顯人聲基頻
+                    micLowPassFilter = audioCtx.createBiquadFilter();
+                    micLowPassFilter.type = 'lowpass';
+                    micLowPassFilter.frequency.value = 1000;
+                    micLowPassFilter.Q.value = 0.707;
+
                     analyser = audioCtx.createAnalyser();
                     analyser.fftSize = 2048;
-                    micStream.connect(analyser);
+
+                    micStreamSource.connect(micHighPassFilter);
+                    micHighPassFilter.connect(micLowPassFilter);
+                    micLowPassFilter.connect(analyser);
                 } catch (err) {
                     document.getElementById('tuner-feedback').innerText = "⚠️ 無法開啟麥克風";
                     return;
@@ -5869,30 +5896,91 @@
             animFrameId = null;
         }
 
-        function autoCorrelate(buf, sampleRate) {
+        /**
+         * YIN 音高偵測演算法 (Fundamental Frequency Estimation)
+         * 包含：
+         * 1. 差分函數 (Difference Function)
+         * 2. 累積平均歸一化差分函數 (CMNDF)
+         * 3. 絕對閾值法 (Absolute Thresholding - 尋找首個低於閾值的局部極小值，防止倍頻/八度跳躍)
+         * 4. 拋物線次取樣插值 (Parabolic Interpolation)
+         */
+        function detectPitchYIN(buf, sampleRate, threshold = 0.12) {
+            const bufferSize = buf.length;
             let rms = 0;
-            for (let i = 0; i < buf.length; i++) rms += buf[i] * buf[i];
-            rms = Math.sqrt(rms / buf.length);
-            if (rms < 0.015) return -1;
-            let r1 = 0, r2 = buf.length - 1, thres = 0.2;
-            for (let i = 0; i < buf.length / 2; i++) if (Math.abs(buf[i]) < thres) { r1 = i; break; }
-            for (let i = 1; i < buf.length / 2; i++) if (Math.abs(buf[buf.length - i]) < thres) { r2 = buf.length - i; break; }
-            buf = buf.slice(r1, r2);
-            let c = new Array(buf.length).fill(0);
-            for (let i = 0; i < buf.length; i++)
-                for (let j = 0; j < buf.length - i; j++)
-                    c[i] = c[i] + buf[j] * buf[j + i];
-            let d = 0; while (c[d] > c[d + 1]) d++;
-            let maxval = -1, maxpos = -1;
-            for (let i = d; i < buf.length; i++) {
-                if (c[i] > maxval) { maxval = c[i]; maxpos = i; }
+            for (let i = 0; i < bufferSize; i++) {
+                rms += buf[i] * buf[i];
             }
-            let T0 = maxpos;
-            let x1 = c[T0 - 1], x2 = c[T0], x3 = c[T0 + 1];
-            let a = (x1 + x3 - 2 * x2) / 2;
-            let b = (x3 - x1) / 2;
-            if (a) T0 = T0 - b / (2 * a);
-            return sampleRate / T0;
+            rms = Math.sqrt(rms / bufferSize);
+            if (rms < 0.012) return -1; // 能量過低（靜音或環境底噪）
+
+            // 人聲頻率範圍限制 (約 65Hz ~ 1100Hz)
+            const minPeriod = Math.max(2, Math.floor(sampleRate / 1100));
+            const maxPeriod = Math.min(Math.floor(bufferSize / 2), Math.floor(sampleRate / 65));
+            const yinBuffer = new Float32Array(maxPeriod);
+
+            // 步驟 1: 差分函數 d(tau)
+            yinBuffer[0] = 0;
+            for (let tau = 1; tau < maxPeriod; tau++) {
+                let deltaSum = 0;
+                for (let i = 0; i < maxPeriod; i++) {
+                    const diff = buf[i] - buf[i + tau];
+                    deltaSum += diff * diff;
+                }
+                yinBuffer[tau] = deltaSum;
+            }
+
+            // 步驟 2: 累積平均歸一化差分函數 (CMNDF)
+            yinBuffer[0] = 1;
+            let runningSum = 0;
+            for (let tau = 1; tau < maxPeriod; tau++) {
+                runningSum += yinBuffer[tau];
+                yinBuffer[tau] = runningSum > 0 ? (yinBuffer[tau] * tau) / runningSum : 1;
+            }
+
+            // 步驟 3: 絕對閾值法尋找第一個局部極小值 (抑制泛音倍頻陷阱)
+            let tau = minPeriod;
+            let foundPeriod = -1;
+            while (tau < maxPeriod) {
+                if (yinBuffer[tau] < threshold) {
+                    while (tau + 1 < maxPeriod && yinBuffer[tau + 1] < yinBuffer[tau]) {
+                        tau++;
+                    }
+                    foundPeriod = tau;
+                    break;
+                }
+                tau++;
+            }
+
+            // 若無低於閾值的點，則尋找全局最小值
+            if (foundPeriod === -1) {
+                let minVal = Infinity;
+                for (let t = minPeriod; t < maxPeriod; t++) {
+                    if (yinBuffer[t] < minVal) {
+                        minVal = yinBuffer[t];
+                        foundPeriod = t;
+                    }
+                }
+                // 若全局最小值仍然過高，代表信號非週期性/噪聲
+                if (minVal > 0.45) return -1;
+            }
+
+            // 步驟 4: 拋物線插值精確計算週期 (Parabolic Interpolation)
+            let refinedPeriod = foundPeriod;
+            if (foundPeriod > 0 && foundPeriod < maxPeriod - 1) {
+                const s0 = yinBuffer[foundPeriod - 1];
+                const s1 = yinBuffer[foundPeriod];
+                const s2 = yinBuffer[foundPeriod + 1];
+                const denom = 2 * (2 * s1 - s0 - s2);
+                if (denom !== 0) {
+                    const delta = (s2 - s0) / denom;
+                    refinedPeriod = foundPeriod + delta;
+                }
+            }
+
+            if (refinedPeriod <= 0) return -1;
+            const fundamentalFreq = sampleRate / refinedPeriod;
+            if (fundamentalFreq < 60 || fundamentalFreq > 1200) return -1;
+            return fundamentalFreq;
         }
 
         let smoothedNeedlePos = 0;
@@ -5901,7 +5989,7 @@
             if (!analyser || !audioCtx) return;
             const buffer = new Float32Array(analyser.fftSize);
             analyser.getFloatTimeDomainData(buffer);
-            const freq = autoCorrelate(buffer, audioCtx.sampleRate);
+            const freq = detectPitchYIN(buffer, audioCtx.sampleRate);
             const feedbackEl = document.getElementById('tuner-feedback');
             const freqTextEl = document.getElementById('tuner-freq-text');
 
@@ -5915,14 +6003,18 @@
             if (freq !== -1 && targetMidi > 0) {
                 const detectedMidi = freqToMidi(freq);
                 freqTextEl.innerText = `實測: ${freq.toFixed(1)} Hz (${midiToPitchName(Math.round(detectedMidi))})`;
-                let diff = detectedMidi - targetMidi;
-                while (diff < -6) diff += 12;
-                while (diff > 6) diff -= 12;
-                const diffCents = diff * 100;
+                
+                // 找出最貼近歌手當前音區的八度目標音 (支持男聲/女聲跨八度跟唱，避免半音翻轉)
+                const octaveShift = Math.round((detectedMidi - targetMidi) / 12);
+                const alignedTargetMidi = targetMidi + octaveShift * 12;
+                const semitoneDiff = detectedMidi - alignedTargetMidi;
+                const diffCents = semitoneDiff * 100;
 
                 if (activeAppMode === 'play_practice') livePitchSamples.push(diffCents);
 
-                smoothedNeedlePos = smoothedNeedlePos * 0.75 + diffCents * 0.25;
+                // 限制在 -100 ~ +100 音分顯示範圍內平滑過渡
+                const clampedCents = Math.max(-100, Math.min(100, diffCents));
+                smoothedNeedlePos = smoothedNeedlePos * 0.65 + clampedCents * 0.35;
                 updateNeedle(smoothedNeedlePos);
 
                 if (Math.abs(diffCents) <= 30) {
@@ -5940,7 +6032,7 @@
                 smoothedNeedlePos = smoothedNeedlePos * 0.85;
                 updateNeedle(smoothedNeedlePos);
                 if (Math.abs(smoothedNeedlePos) < 5) {
-                    if (activeAppMode === 'practice') feedbackEl.innerText = "🎤 練習模式: 請對著麥克風唱出音高...";
+                    if (activeAppMode === 'practice') feedbackEl.innerText = "🎤 練習模式: 點擊/長按可聽標準音，請對著麥克風唱...";
                     else feedbackEl.innerText = "📖 學習模式: 點擊/長按卡片聽標準音";
                     feedbackEl.className = "text-center text-xs font-bold text-slate-400";
                 }

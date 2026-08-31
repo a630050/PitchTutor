@@ -208,8 +208,23 @@ const server = http.createServer((request, response) => {
     const isStopped = await page.evaluate(() => typeof activeSustainedOsc === 'undefined' || activeSustainedOsc === null);
     assert.equal(isStopped, true, 'Releasing note tile should stop sustained tone');
 
+    // 驗證 YIN 音高偵測演算法（抗泛音干擾與低音準確度）
+    const yinTestResult = await page.evaluate(() => {
+      const sampleRate = 44100;
+      const buf = new Float32Array(2048);
+      // 測試 C3 (130.81Hz) 伴隨強大高次泛音 (基頻0.35, 二次諧波0.75, 三次諧波0.5)
+      for (let i = 0; i < 2048; i++) {
+        buf[i] = 0.35 * Math.sin(2 * Math.PI * 130.81 * i / sampleRate)
+               + 0.75 * Math.sin(2 * Math.PI * 261.63 * i / sampleRate)
+               + 0.50 * Math.sin(2 * Math.PI * 392.43 * i / sampleRate);
+      }
+      const detectedFreq = detectPitchYIN(buf, sampleRate);
+      return { detectedFreq, error: Math.abs(detectedFreq - 130.81) };
+    });
+    assert.ok(yinTestResult.error < 0.5, `YIN should accurately detect 130.81Hz fundamental even with strong 2nd/3rd harmonics, got ${yinTestResult.detectedFreq}`);
+
     assert.deepEqual(pageErrors, []);
-    console.log('PASS integration: BPM, triplet atomicity, range paste, insertion, notation, playback highlight, collapsible panels, studio scrolling, reference slider & drag, practice note tone playback, export');
+    console.log('PASS integration: BPM, triplet atomicity, range paste, insertion, notation, playback highlight, collapsible panels, studio scrolling, reference slider & drag, practice note tone playback, YIN pitch detection, export');
   } finally {
     if (browser) await browser.close();
     server.close();
