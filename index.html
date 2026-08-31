@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>排練桌｜快速輸譜與音準練唱</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="vendor/vexflow.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Noto Sans TC', 'Inter', sans-serif; background-color: #090d16; color: #f8fafc; }
@@ -285,11 +286,13 @@
             min-height: 82px; height: 82px; padding: 6px 8px; display: flex; align-items: stretch; gap: 4px;
             overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; box-sizing: border-box;
         }
-        .insert-marker { width: 8px; min-width: 8px; border-radius: 4px; position: relative; outline: none; flex-shrink: 0; }
-        .insert-marker::after { content: ''; position: absolute; left: 3px; top: 4px; bottom: 4px; width: 2px; background: transparent; }
-        .insert-marker:hover::after { background: #bb9f85; }
-        .insert-marker.is-cursor { width: 11px; min-width: 11px; }
-        .insert-marker.is-cursor::after { left: 4px; width: 3px; background: var(--baton); border-radius: 3px; box-shadow: 0 0 0 3px var(--baton-soft); }
+        .insert-marker { width: 24px; min-width: 24px; min-height: 44px; border-radius: 4px; position: relative; outline: none; flex-shrink: 0; }
+        .insert-marker::before { content: '+'; position: absolute; inset: 50% auto auto 50%; transform: translate(-50%, -50%); color: #8b6d51; font: 900 15px/1 'Inter', sans-serif; opacity: 0; }
+        .insert-marker::after { content: ''; position: absolute; left: 11px; top: 4px; bottom: 4px; width: 2px; background: transparent; }
+        .insert-marker:hover::before, .insert-marker:focus-visible::before { opacity: 1; }
+        .insert-marker:hover::after, .insert-marker:focus-visible::after { background: #bb9f85; }
+        .insert-marker.is-cursor { width: 24px; min-width: 24px; }
+        .insert-marker.is-cursor::after { left: 10px; width: 3px; background: var(--baton); border-radius: 3px; box-shadow: 0 0 0 3px var(--baton-soft); }
         .editor-note {
             min-width: 48px; max-width: 140px; height: 100%; flex-grow: var(--note-grow, 1); flex-basis: calc(40px * var(--note-grow, 1));
             border: 1px solid #c8bda7; border-radius: 7px; background: #fffaf0; color: var(--ink);
@@ -299,11 +302,23 @@
         .editor-note:hover { border-color: var(--baton); }
         .editor-note.is-selected { border-color: var(--baton); box-shadow: 0 0 0 3px var(--baton-soft); }
         .editor-note.is-rest { background: #eee8dc; color: #856a46; }
+        .editor-note.is-range-selected { border-color: #2563eb; background: #e7efff; box-shadow: 0 0 0 2px rgba(37,99,235,.2); }
         .editor-note-name { font-size: 8px; color: #847d72; font-weight: 800; line-height: 1; letter-spacing: -0.02em; }
         .editor-note-pitch { font: 900 17px/1.1 'Inter', sans-serif; margin: 2px 0; }
         .editor-note-pitch sup, .editor-note-pitch sub { font-size: 7px; }
         .editor-note-lyric { height: 16px; margin-top: 2px; padding-top: 2px; border-top: 1px solid #e5dccb; font-size: 10px; font-weight: 800; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
         .editor-note-duration { margin-top: 2px; color: #8b857a; font: 700 7px/1 'Inter', sans-serif; }
+        .score-edit-bar {
+            min-height: 38px; padding: 5px 10px; display: flex; align-items: center; gap: 6px;
+            border-bottom: 1px solid #d7cdb9; background: #f3ead9; color: #655f56; flex-shrink: 0;
+        }
+        .score-edit-status { min-width: 0; margin-right: auto; font-size: 9px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .score-edit-bar .paper-button.is-active { background: var(--baton); color: #27160e; }
+        .triplet-unit { position: relative; display: flex; align-items: stretch; gap: 3px; padding: 9px 4px 2px; border: 1px solid #b69a78; border-radius: 8px; background: #fff6e8; flex-shrink: 0; }
+        .triplet-unit::before { content: '3'; position: absolute; top: -2px; left: 50%; transform: translateX(-50%); padding: 0 5px; background: #fff6e8; color: #9b572f; font: 900 9px/1.1 'Inter', sans-serif; }
+        .triplet-unit.is-range-selected { border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37,99,235,.18); }
+        .triplet-unit .editor-note { min-width: 44px; flex-basis: 44px; }
+        .triplet-unit .editor-note-duration { font-size: 6px; }
         .score-empty { align-self: center; justify-self: center; text-align: center; color: #857f74; font-size: 12px; line-height: 1.7; padding: 34px; }
         .score-empty strong { display: block; color: var(--ink); font-size: 14px; }
         .shortcut-legend { color: #71838d; font-size: 9px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
@@ -314,6 +329,26 @@
         .practice-mode-button { padding: 8px 11px; border-radius: 9px; background: #14232e; color: #8fa0aa; border: 1px solid #2b3f4b; font-size: 10px; font-weight: 900; }
         .practice-mode-button.is-active { color: #09211d; background: #a7e2d7; border-color: #a7e2d7; }
         .practice-stop { padding: 8px 11px; border-radius: 9px; color: #ffd4c5; background: #592d23; font-size: 10px; font-weight: 900; }
+        .practice-pause { padding: 8px 11px; border-radius: 9px; color: #fde68a; background: #4b3a16; border: 1px solid #765b1c; font-size: 10px; font-weight: 900; }
+        .practice-score-tabs { display: flex; gap: 4px; align-items: center; }
+        .practice-score-tab { padding: 4px 8px; border-radius: 7px; border: 1px solid #334155; background: #111c2a; color: #94a3b8; font-size: 10px; font-weight: 800; }
+        .practice-score-tab.is-active { background: #2563eb; border-color: #60a5fa; color: #fff; }
+        .notation-panel { min-height: 260px; height: 100%; overflow-y: auto; border-radius: 9px; background: #fff; color: #111827; padding: 12px; position: relative; }
+        .notation-panel.is-hidden { display: none; }
+        .notation-stage { min-width: 680px; }
+        .notation-empty { min-height: 220px; display: grid; place-items: center; text-align: center; color: #64748b; font-size: 13px; line-height: 1.7; }
+        .notation-error { margin: 8px; padding: 12px; border: 1px solid #f59e0b; border-radius: 8px; color: #7c2d12; background: #fff7ed; font-size: 12px; font-weight: 700; }
+        .notation-follow-label { display: inline-flex; align-items: center; gap: 4px; color: #94a3b8; font-size: 10px; font-weight: 700; white-space: nowrap; }
+        .vf-source-note { cursor: pointer; transition: filter .12s ease, opacity .12s ease; }
+        .vf-source-note:focus { outline: none; filter: drop-shadow(0 0 4px #2563eb); }
+        .vf-note-playing * { fill: #059669 !important; stroke: #059669 !important; }
+        .vf-note-playing { filter: drop-shadow(0 0 5px rgba(5,150,105,.8)); }
+        .vf-rest-playing * { fill: #d97706 !important; stroke: #d97706 !important; }
+        .vf-rest-playing { filter: drop-shadow(0 0 5px rgba(217,119,6,.8)); }
+        .notation-lyric-playing { fill: #047857 !important; font-weight: 900 !important; }
+        .note-tile.is-playback-active { background: rgba(37,99,235,.42) !important; border-color: #60a5fa !important; color: #fff !important; box-shadow: 0 0 0 2px rgba(96,165,250,.35), 0 8px 18px rgba(15,23,42,.35); transform: scale(1.05); z-index: 10; }
+        .note-tile.is-single-active { background: rgba(79,70,229,.3) !important; border-color: #818cf8 !important; color: #fff !important; }
+        .notation-heading { margin: 0 0 6px 10px; color: #334155; font: 800 13px/1.4 'Noto Sans TC', sans-serif; }
 
         .toast {
             position: fixed; left: 50%; bottom: 18px; transform: translate(-50%, 18px);
@@ -420,7 +455,7 @@
             margin: 0;
             z-index: 10;
         }
-        @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; } }
+        @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation: none !important; } }
         @media (max-width: 980px) {
             body { height: auto !important; min-height: 100vh; overflow-y: auto !important; overflow-x: hidden !important; }
             .workbench-header { grid-template-columns: 1fr auto; }
@@ -618,6 +653,16 @@
                         <button id="editor-clear-btn" class="paper-button" type="button">清空</button>
                     </div>
                 </div>
+                <div class="score-edit-bar" aria-label="樂譜結構編輯工具">
+                    <div id="score-edit-status" class="score-edit-status" aria-live="polite">插入位置：樂譜開頭</div>
+                    <button id="range-select-btn" class="paper-button" type="button">框選範圍</button>
+                    <button id="copy-range-btn" class="paper-button" type="button" disabled>複製</button>
+                    <button id="paste-range-btn" class="paper-button" type="button" disabled>貼上</button>
+                    <button id="edit-triplet-btn" class="paper-button" type="button" disabled>編輯三連音</button>
+                    <button id="insert-before-btn" class="paper-button" type="button" disabled>前方插入</button>
+                    <button id="insert-after-btn" class="paper-button" type="button" disabled>後方插入</button>
+                    <button id="cancel-edit-mode-btn" class="paper-button hidden" type="button">完成／取消</button>
+                </div>
                 <div id="editor-score-container" tabindex="0" aria-label="音符與小節，按左右方向鍵移動插入游標"></div>
             </section>
 
@@ -673,7 +718,7 @@
                 </label>
                 <label class="col-span-2">
                     <span class="field-label">速度 BPM</span>
-                    <input id="editor-score-bpm" class="editor-input" type="number" min="40" max="200" value="90" inputmode="numeric">
+                    <input id="editor-score-bpm" class="editor-input" type="number" min="40" max="150" value="90" inputmode="numeric">
                 </label>
                 <div class="key-signature-help">
                     <div id="key-signature-summary"><strong>無升降號</strong>：可能是 C 大調，也可能是 A 小調。</div>
@@ -702,12 +747,18 @@
                 <div class="tool-row" id="duration-toolbar">
                     <span class="tool-label">時值</span>
                     <button class="choice-button duration-choice" type="button" data-duration="4">全音符</button>
+                    <button class="choice-button duration-choice" type="button" data-duration="3">附點二分（3拍）</button>
                     <button class="choice-button duration-choice" type="button" data-duration="2">二分</button>
                     <button class="choice-button duration-choice" type="button" data-duration="1.5">附點四分</button>
                     <button class="choice-button duration-choice is-active" type="button" data-duration="1">四分 <span class="opacity-50">Q</span></button>
                     <button class="choice-button duration-choice" type="button" data-duration="0.75">附點八分</button>
                     <button class="choice-button duration-choice" type="button" data-duration="0.5">八分 <span class="opacity-50">E</span></button>
                     <button class="choice-button duration-choice" type="button" data-duration="0.25">十六分 <span class="opacity-50">S</span></button>
+                </div>
+
+                <div class="tool-row" id="special-rhythm-toolbar">
+                    <span class="tool-label">特殊節奏</span>
+                    <button id="insert-triplet-btn" class="choice-button" type="button" title="在橘色游標插入三個音格，總長一拍">＋ 四分三連音 <span class="opacity-60">3音＝1拍</span></button>
                 </div>
 
                 <div class="tool-row" id="accidental-toolbar">
@@ -756,7 +807,7 @@
             <div class="tool-row items-center gap-1.5 bg-slate-950/80 px-2.5 py-1 rounded-lg border border-slate-800 mr-2" id="practice-bpm-toolbar" title="調整練唱與播放速度 (BPM)">
                 <span class="tool-label text-slate-400">速度</span>
                 <button id="practice-bpm-minus" class="quiet-button px-1.5 py-0.5 text-xs font-bold text-slate-300 hover:text-white" type="button" title="降低 5 BPM">−5</button>
-                <input type="range" id="practice-bpm-slider" min="40" max="200" step="1" value="82" class="w-16 accent-orange-500 cursor-pointer h-1.5 bg-slate-700 rounded-lg">
+                <input type="range" id="practice-bpm-slider" min="40" max="150" step="1" value="82" class="w-16 accent-orange-500 cursor-pointer h-1.5 bg-slate-700 rounded-lg">
                 <button id="practice-bpm-plus" class="quiet-button px-1.5 py-0.5 text-xs font-bold text-slate-300 hover:text-white" type="button" title="增加 5 BPM">+5</button>
                 <div class="flex items-center gap-0.5 text-xs font-mono font-bold text-amber-400">
                     <span id="practice-bpm-display">82</span>
@@ -768,6 +819,7 @@
                 <button class="practice-mode-button" type="button" data-practice-mode="practice">單音跟唱</button>
                 <button class="practice-mode-button" type="button" data-practice-mode="play_audio">播放全曲</button>
                 <button class="practice-mode-button" type="button" data-practice-mode="play_practice">全曲練唱</button>
+                <button id="practice-pause-btn" class="practice-pause hidden" type="button">暫停</button>
                 <button id="practice-stop-btn" class="practice-stop hidden" type="button">停止</button>
             </div>
         </div>
@@ -817,7 +869,7 @@
                         <span>速度 BPM:</span>
                         <span id="score-bpm-val" class="font-mono text-blue-400 font-bold">90</span>
                     </div>
-                    <input type="range" id="score-bpm-range" min="40" max="200" value="90" class="w-full mt-2 accent-blue-500 cursor-pointer">
+                    <input type="range" id="score-bpm-range" min="40" max="150" value="90" class="w-full mt-2 accent-blue-500 cursor-pointer">
                 </div>
             </div>
 
@@ -840,6 +892,7 @@
                         <span class="text-[10px] font-bold text-slate-400 block">音長 (拍數):</span>
                         <select id="global-duration" class="w-full mt-1 bg-slate-800 border border-slate-700 text-blue-400 font-bold rounded-lg px-2 py-1 focus:outline-none text-xs">
                             <option value="4.0">4 拍</option>
+                            <option value="3.0">3 拍（附點二分）</option>
                             <option value="2.0">2 拍</option>
                             <option value="1.5">1.5 拍</option>
                             <option value="1.0" selected>1 拍</option>
@@ -978,16 +1031,25 @@
 
             <!-- 右下区: 聽好的聲音 - 高容量迷你樂譜卡片軌道 (Score Card Track) -->
             <section class="flex-1 glass-panel p-3 rounded-xl shadow-xl flex flex-col space-y-2 min-h-[260px]">
-                <div class="flex justify-between items-center px-1">
+                <div class="flex justify-between items-center gap-3 px-1">
                     <h2 id="card-track-header-title" class="text-xs font-bold text-slate-200 flex items-center gap-1">
-                        🎼 聽好的聲音 (📖 學習模式：點擊/長按卡片發聲聽音)
+                        🎼 練唱樂譜 (📖 學習模式：點擊/長按卡片發聲聽音)
                     </h2>
-                    <span class="text-[10px] text-slate-400" id="score-count-badge">共 0 個音符</span>
+                    <div class="practice-score-tabs">
+                        <button id="practice-cells-tab" class="practice-score-tab is-active" type="button">▦ 音格</button>
+                        <button id="practice-notation-tab" class="practice-score-tab" type="button">🎼 五線譜</button>
+                        <label id="notation-follow-wrap" class="notation-follow-label hidden"><input id="notation-follow-checkbox" type="checkbox" checked> 跟隨播放</label>
+                        <button id="notation-rerender-btn" class="practice-score-tab hidden" type="button">重新排版</button>
+                        <span class="text-[10px] text-slate-400" id="score-count-badge">共 0 個音符</span>
+                    </div>
                 </div>
 
                 <!-- 高容量迷你卡片容器 -->
                 <div id="melody-container" class="flex-1 flex flex-wrap gap-1.5 overflow-y-auto hide-scrollbar p-1 items-start content-start">
                     <!-- 动态卡片 -->
+                </div>
+                <div id="notation-panel" class="notation-panel is-hidden" aria-label="五線譜練唱視圖">
+                    <div id="notation-stage" class="notation-stage"></div>
                 </div>
             </section>
 
@@ -1099,6 +1161,7 @@
                     <span class="field-label">音長 / 時值 (自動調整板塊寬度)</span>
                     <div class="grid grid-cols-4 gap-1.5" id="inspect-dur-group">
                         <button type="button" class="choice-button inspect-dur-btn" data-dur="4">全音符 (4拍)</button>
+                        <button type="button" class="choice-button inspect-dur-btn" data-dur="3">附點二分 (3拍)</button>
                         <button type="button" class="choice-button inspect-dur-btn" data-dur="2">二分 (2拍)</button>
                         <button type="button" class="choice-button inspect-dur-btn" data-dur="1.5">附點四分 (1.5)</button>
                         <button type="button" class="choice-button inspect-dur-btn" data-dur="1">四分 (1拍)</button>
@@ -1255,6 +1318,11 @@
             }
         };
 
+        const BPM_MIN = 40;
+        const BPM_MAX = 150;
+        const SCORE_SCHEMA_VERSION = 2;
+        const TRIPLET_KIND = 'quarter-triplet';
+
         let currentKey = 'C';
         let currentMode = 'major';
         let currentBpm = 90;
@@ -1267,6 +1335,11 @@
         let editorInputMode = 'fixed'; // 'fixed' (五線譜看譜模式 / 固定音名 C-D-E-F-G-A-B) | 'movable' (首調簡譜模式 1-2-3-4-5-6-7)
         let editorCursorIndex = scoreNotes.length;
         let selectedEditorIndex = null;
+        let selectionAnchorIndex = null;
+        let selectedRange = null;
+        let rangeSelectionMode = 'idle'; // idle | awaiting-start | awaiting-end | selected
+        let scoreClipboard = null;
+        let tripletEditState = null; // { groupId, indices, position }
         let editorOctave = 0;
         let stickyDuration = 1;
         let referenceZoom = 1;
@@ -1310,7 +1383,10 @@
             if (undoStack.length === 0) return;
             redoStack.push(JSON.stringify(scoreNotes));
             const previousState = undoStack.pop();
-            scoreNotes = JSON.parse(previousState);
+            scoreNotes = normalizeAndValidateScoreNotes(JSON.parse(previousState));
+            editorCursorIndex = normalizeInsertBoundary(Math.min(editorCursorIndex, scoreNotes.length));
+            clearEditorSelection();
+            markNotationDirty();
             renderMelodyTrack();
             updateUndoRedoBtnState();
         }
@@ -1319,7 +1395,10 @@
             if (redoStack.length === 0) return;
             undoStack.push(JSON.stringify(scoreNotes));
             const nextState = redoStack.pop();
-            scoreNotes = JSON.parse(nextState);
+            scoreNotes = normalizeAndValidateScoreNotes(JSON.parse(nextState));
+            editorCursorIndex = normalizeInsertBoundary(Math.min(editorCursorIndex, scoreNotes.length));
+            clearEditorSelection();
+            markNotationDirty();
             renderMelodyTrack();
             updateUndoRedoBtnState();
         }
@@ -1338,6 +1417,14 @@
         let activeSingleNoteIndex = null;
         let currentPlaybackIndex = -1;
         let playbackTimer = null;
+        let playbackStartedAtMs = 0;
+        let playbackTimeline = [];
+        let playbackPausedElapsedMs = 0;
+        let isPlaybackPaused = false;
+        let practiceScoreView = 'cells';
+        let notationDirty = true;
+        let notationSourceMap = new Map();
+        let highlightedNotationElements = [];
 
         let audioCtx = null;
         let micStream = null;
@@ -1423,7 +1510,7 @@
         function getNoteDurationSeconds(note) {
             const bpm = Number(currentBpm) || 90;
             const dur = Number(note?.duration) || 1;
-            return Math.max(0.18, dur * (60 / bpm));
+            return dur * (60 / bpm);
         }
 
         function stopCurrentVoice(fadeOutTime = 0.03) {
@@ -1459,7 +1546,8 @@
             masterGain.connect(audioCtx.destination);
 
             const oscList = [];
-            const dur = Math.max(0.2, Number(durationSeconds) || 0.5);
+            // 音樂事件時長不可被最短包絡拉長；極短音僅保留 35ms 防爆音。
+            const dur = Math.max(0.035, Number(durationSeconds) || 0.5);
 
             if (currentInstrument === 'flute') {
                 // 🪈 長笛管樂：純淨 Sine + Triangle 泛音 + 柔和低通濾波
@@ -1692,13 +1780,120 @@
             const rawOctave = Number(rawNote?.octave);
             const rawAccidental = Number(rawNote?.accidental);
             const rawDuration = Number(rawNote?.duration);
-            return {
+            const note = {
                 degree: Number.isInteger(rawDegree) && rawDegree >= 0 && rawDegree <= 7 ? rawDegree : 0,
                 octave: Number.isInteger(rawOctave) ? Math.max(-2, Math.min(2, rawOctave)) : 0,
                 accidental: [-1, 0, 1].includes(rawAccidental) ? rawAccidental : 0,
                 duration: Number.isFinite(rawDuration) && rawDuration > 0 && rawDuration <= 16 ? rawDuration : 1,
                 lyric: String(rawNote?.lyric ?? '').slice(0, 24)
             };
+            const tuplet = rawNote?.tuplet;
+            if (tuplet && typeof tuplet === 'object') {
+                note.tuplet = {
+                    id: String(tuplet.id || '').slice(0, 80),
+                    kind: String(tuplet.kind || ''),
+                    index: Number(tuplet.index),
+                    count: Number(tuplet.count),
+                    totalBeats: Number(tuplet.totalBeats)
+                };
+            }
+            return note;
+        }
+
+        function semanticNoteCopy(note) {
+            const copy = normalizeScoreNote(note);
+            if (!copy.tuplet) delete copy.tuplet;
+            return copy;
+        }
+
+        function createTripletGroupId() {
+            if (window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID();
+            return `triplet-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+        }
+
+        function isTripletNote(note) {
+            return !!(note?.tuplet && note.tuplet.kind === TRIPLET_KIND && note.tuplet.id);
+        }
+
+        function getTripletRangeAt(index, notes = scoreNotes) {
+            const note = notes[index];
+            if (!isTripletNote(note)) return null;
+            const id = note.tuplet.id;
+            let start = index;
+            let end = index;
+            while (start > 0 && notes[start - 1]?.tuplet?.id === id) start--;
+            while (end + 1 < notes.length && notes[end + 1]?.tuplet?.id === id) end++;
+            return { start, end, id };
+        }
+
+        function getAtomicRangeAt(index, notes = scoreNotes) {
+            if (index < 0 || index >= notes.length) return null;
+            return getTripletRangeAt(index, notes) || { start: index, end: index, id: null };
+        }
+
+        function normalizeInsertBoundary(index, prefer = 'after', notes = scoreNotes) {
+            const bounded = Math.max(0, Math.min(notes.length, Number(index) || 0));
+            if (bounded <= 0 || bounded >= notes.length) return bounded;
+            const left = getTripletRangeAt(bounded - 1, notes);
+            const right = getTripletRangeAt(bounded, notes);
+            if (left && right && left.id === right.id) return prefer === 'before' ? left.start : left.end + 1;
+            return bounded;
+        }
+
+        function expandRangeToAtomic(start, end, notes = scoreNotes) {
+            if (notes.length === 0) return null;
+            let rangeStart = Math.max(0, Math.min(notes.length - 1, Math.min(start, end)));
+            let rangeEnd = Math.max(0, Math.min(notes.length - 1, Math.max(start, end)));
+            const startUnit = getAtomicRangeAt(rangeStart, notes);
+            const endUnit = getAtomicRangeAt(rangeEnd, notes);
+            if (startUnit) rangeStart = startUnit.start;
+            if (endUnit) rangeEnd = endUnit.end;
+            return { start: rangeStart, end: rangeEnd };
+        }
+
+        function validateTupletStructure(notes) {
+            const groups = new Map();
+            notes.forEach((note, index) => {
+                if (!note.tuplet) return;
+                const t = note.tuplet;
+                if (!t.id || t.kind !== TRIPLET_KIND || t.count !== 3 || t.totalBeats !== 1 || ![0, 1, 2].includes(t.index)) {
+                    throw new Error(`第 ${index + 1} 個音符的三連音資料不完整`);
+                }
+                if (!groups.has(t.id)) groups.set(t.id, []);
+                groups.get(t.id).push({ index, order: t.index, duration: Number(note.duration) });
+            });
+            groups.forEach((items) => {
+                items.sort((a, b) => a.index - b.index);
+                const contiguous = items.length === 3 && items[1].index === items[0].index + 1 && items[2].index === items[1].index + 1;
+                const ordered = items.map(item => item.order).join(',') === '0,1,2';
+                const durationValid = items.every(item => Math.abs(item.duration - (1 / 3)) < 0.000001);
+                if (!contiguous || !ordered || !durationValid) throw new Error(`三連音群組 ${items[0]?.index + 1 || ''} 結構不完整`);
+            });
+            return true;
+        }
+
+        function normalizeAndValidateScoreNotes(rawNotes) {
+            const notes = (Array.isArray(rawNotes) ? rawNotes : []).map(normalizeScoreNote);
+            validateTupletStructure(notes);
+            return notes;
+        }
+
+        function cloneFragmentWithFreshTuplets(fragment) {
+            const idMap = new Map();
+            return fragment.map(rawNote => {
+                const note = semanticNoteCopy(rawNote);
+                if (note.tuplet) {
+                    if (!idMap.has(note.tuplet.id)) idMap.set(note.tuplet.id, createTripletGroupId());
+                    note.tuplet.id = idMap.get(note.tuplet.id);
+                }
+                return note;
+            });
+        }
+
+        function markNotationDirty() {
+            notationDirty = true;
+            clearNotationHighlight();
+            if (practiceScoreView === 'notation') renderNotationScore();
         }
 
         function setWorkspaceView(view) {
@@ -1883,6 +2078,7 @@
             }
 
             writeLyricUnits(units.slice(unitIndex));
+            markNotationDirty();
             renderMelodyTrack();
             showWorkbenchToast(`已套用 ${appliedCount} 個歌詞單位`);
         }
@@ -1894,7 +2090,154 @@
             });
         }
 
-        function buildNoteFromInput(inputKey) {
+        function clearEditorRangeOnly() {
+            selectionAnchorIndex = null;
+            selectedRange = null;
+            if (!tripletEditState) rangeSelectionMode = 'idle';
+            updateEditorActionBar();
+        }
+
+        function clearEditorSelection() {
+            selectedEditorIndex = null;
+            tripletEditState = null;
+            clearEditorRangeOnly();
+        }
+
+        function startRangeSelection() {
+            tripletEditState = null;
+            selectionAnchorIndex = null;
+            selectedRange = null;
+            rangeSelectionMode = 'awaiting-start';
+            updateEditorActionBar();
+            renderEditorScore();
+        }
+
+        function selectRangeEndpoint(index, useExistingAnchor = false) {
+            if (scoreNotes.length === 0) return;
+            const unit = getAtomicRangeAt(index);
+            const endpoint = unit ? unit.start : index;
+            if (unit && unit.end > unit.start) showWorkbenchToast('已自動包含完整三連音');
+            if (!useExistingAnchor || selectionAnchorIndex === null) {
+                selectionAnchorIndex = endpoint;
+                selectedRange = expandRangeToAtomic(endpoint, endpoint);
+                rangeSelectionMode = 'awaiting-end';
+                selectedEditorIndex = index;
+                showWorkbenchToast('請選擇範圍終點');
+            } else {
+                selectedRange = expandRangeToAtomic(selectionAnchorIndex, index);
+                rangeSelectionMode = 'selected';
+                selectedEditorIndex = index;
+            }
+            updateEditorActionBar();
+            renderEditorScore();
+        }
+
+        function copySelectedRange() {
+            if (!selectedRange) return;
+            scoreClipboard = scoreNotes.slice(selectedRange.start, selectedRange.end + 1).map(semanticNoteCopy);
+            showWorkbenchToast(`已複製 ${scoreClipboard.length} 個音格`);
+            updateEditorActionBar();
+        }
+
+        function pasteScoreClipboard() {
+            if (!Array.isArray(scoreClipboard) || scoreClipboard.length === 0) return;
+            editorCursorIndex = normalizeInsertBoundary(editorCursorIndex);
+            const pasted = cloneFragmentWithFreshTuplets(scoreClipboard);
+            saveHistoryState();
+            const start = editorCursorIndex;
+            scoreNotes.splice(start, 0, ...pasted);
+            selectedRange = { start, end: start + pasted.length - 1 };
+            selectionAnchorIndex = start;
+            rangeSelectionMode = 'selected';
+            selectedEditorIndex = selectedRange.end;
+            editorCursorIndex = selectedRange.end + 1;
+            tripletEditState = null;
+            markNotationDirty();
+            renderMelodyTrack();
+            showWorkbenchToast(`已貼上 ${pasted.length} 個音格`);
+            scrollEditorCursorIntoView();
+        }
+
+        function deleteSelectedRange() {
+            if (!selectedRange) return;
+            const range = expandRangeToAtomic(selectedRange.start, selectedRange.end);
+            if (!range) return;
+            const count = range.end - range.start + 1;
+            saveHistoryState();
+            scoreNotes.splice(range.start, count);
+            editorCursorIndex = normalizeInsertBoundary(range.start);
+            clearEditorSelection();
+            selectedEditorIndex = editorCursorIndex > 0 ? editorCursorIndex - 1 : null;
+            markNotationDirty();
+            renderMelodyTrack();
+            showWorkbenchToast(`已刪除 ${count} 個音格`);
+        }
+
+        function setInsertPositionAroundSelection(side) {
+            const referenceIndex = selectedRange
+                ? (side === 'before' ? selectedRange.start : selectedRange.end)
+                : selectedEditorIndex;
+            const unit = getAtomicRangeAt(referenceIndex);
+            if (!unit) return;
+            editorCursorIndex = side === 'before' ? unit.start : unit.end + 1;
+            tripletEditState = null;
+            clearEditorRangeOnly();
+            renderEditorScore();
+            scrollEditorCursorIntoView();
+        }
+
+        function beginSelectedTripletEdit() {
+            const unit = getTripletRangeAt(selectedEditorIndex);
+            if (!unit || unit.end - unit.start !== 2) return;
+            clearEditorRangeOnly();
+            tripletEditState = {
+                groupId: unit.id,
+                indices: [unit.start, unit.start + 1, unit.end],
+                position: 0
+            };
+            selectedEditorIndex = unit.start;
+            editorCursorIndex = unit.end + 1;
+            renderEditorScore();
+            showWorkbenchToast('請依序重新設定三連音的三格音高');
+        }
+
+        function updateEditorActionBar() {
+            const status = document.getElementById('score-edit-status');
+            const rangeBtn = document.getElementById('range-select-btn');
+            const copyBtn = document.getElementById('copy-range-btn');
+            const pasteBtn = document.getElementById('paste-range-btn');
+            const editTripletBtn = document.getElementById('edit-triplet-btn');
+            const beforeBtn = document.getElementById('insert-before-btn');
+            const afterBtn = document.getElementById('insert-after-btn');
+            const cancelBtn = document.getElementById('cancel-edit-mode-btn');
+            if (!status) return;
+
+            if (tripletEditState) {
+                status.textContent = `三連音第 ${tripletEditState.position + 1} 格設定中（按 1–7／0）`;
+            } else if (rangeSelectionMode === 'awaiting-start') {
+                status.textContent = '請選擇範圍起點';
+            } else if (rangeSelectionMode === 'awaiting-end') {
+                status.textContent = '請選擇範圍終點';
+            } else if (selectedRange) {
+                status.textContent = `已選取第 ${selectedRange.start + 1}–${selectedRange.end + 1} 格，共 ${selectedRange.end - selectedRange.start + 1} 格`;
+            } else {
+                status.textContent = editorCursorIndex === 0 ? '插入位置：樂譜開頭' : editorCursorIndex >= scoreNotes.length ? '插入位置：樂譜結尾' : `插入位置：第 ${editorCursorIndex + 1} 格之前`;
+            }
+
+            rangeBtn?.classList.toggle('is-active', rangeSelectionMode === 'awaiting-start' || rangeSelectionMode === 'awaiting-end');
+            if (copyBtn) copyBtn.disabled = !selectedRange;
+            if (pasteBtn) {
+                pasteBtn.disabled = !scoreClipboard?.length;
+                pasteBtn.textContent = scoreClipboard?.length ? `貼上（${scoreClipboard.length}格）` : '貼上';
+            }
+            const hasSelection = selectedEditorIndex !== null || !!selectedRange;
+            if (editTripletBtn) editTripletBtn.disabled = !getTripletRangeAt(selectedEditorIndex);
+            if (beforeBtn) beforeBtn.disabled = !hasSelection;
+            if (afterBtn) afterBtn.disabled = !hasSelection;
+            if (cancelBtn) cancelBtn.classList.toggle('hidden', rangeSelectionMode === 'idle' && !tripletEditState && !selectedRange);
+        }
+
+        function buildPitchFieldsFromInput(inputKey) {
             let rawDegree = 0;
             if (typeof inputKey === 'string' && LETTER_TO_NATURAL_NUMBER[inputKey]) {
                 rawDegree = LETTER_TO_NATURAL_NUMBER[inputKey];
@@ -1907,9 +2250,7 @@
                 return {
                     degree: 0,
                     octave: 0,
-                    accidental: 0,
-                    duration: stickyDuration,
-                    lyric: ''
+                    accidental: 0
                 };
             }
 
@@ -1931,22 +2272,89 @@
                 return {
                     degree: degreeObj.degree,
                     octave: degreeObj.octave,
-                    accidental: degreeObj.accidental,
-                    duration: stickyDuration,
-                    lyric: takeNextQueuedLyric()
+                    accidental: degreeObj.accidental
                 };
             } else {
                 return {
                     degree: rawDegree,
                     octave: editorOctave,
-                    accidental: tempAccidentalOverride === 'auto' ? 0 : Number(tempAccidentalOverride),
-                    duration: stickyDuration,
-                    lyric: takeNextQueuedLyric()
+                    accidental: tempAccidentalOverride === 'auto' ? 0 : Number(tempAccidentalOverride)
                 };
             }
         }
 
+        function buildNoteFromInput(inputKey) {
+            const pitch = buildPitchFieldsFromInput(inputKey);
+            if (!pitch) return null;
+            return {
+                ...pitch,
+                duration: stickyDuration,
+                lyric: pitch.degree === 0 ? '' : takeNextQueuedLyric()
+            };
+        }
+
+        function insertQuarterTriplet() {
+            editorCursorIndex = normalizeInsertBoundary(editorCursorIndex);
+            let base = null;
+            for (let index = editorCursorIndex - 1; index >= 0; index--) {
+                if (scoreNotes[index].degree !== 0) {
+                    base = semanticNoteCopy(scoreNotes[index]);
+                    break;
+                }
+            }
+            if (!base) base = { degree: 1, octave: editorOctave, accidental: 0, duration: 1, lyric: '' };
+
+            saveHistoryState();
+            clearEditorSelection();
+            const groupId = createTripletGroupId();
+            const start = editorCursorIndex;
+            const tripletNotes = [0, 1, 2].map(position => ({
+                degree: base.degree,
+                octave: base.octave,
+                accidental: base.accidental,
+                duration: 1 / 3,
+                lyric: takeNextQueuedLyric(),
+                tuplet: { id: groupId, kind: TRIPLET_KIND, index: position, count: 3, totalBeats: 1 }
+            }));
+            scoreNotes.splice(start, 0, ...tripletNotes);
+            tripletEditState = { groupId, indices: [start, start + 1, start + 2], position: 0 };
+            selectedEditorIndex = start;
+            editorCursorIndex = start + 3;
+            markNotationDirty();
+            renderMelodyTrack();
+            showWorkbenchToast('三連音已建立，請依序設定三格音高');
+            scrollEditorCursorIntoView();
+        }
+
+        function updateTripletPitch(inputKey) {
+            if (!tripletEditState) return false;
+            const index = tripletEditState.indices[tripletEditState.position];
+            const current = scoreNotes[index];
+            if (!current || current.tuplet?.id !== tripletEditState.groupId) {
+                tripletEditState = null;
+                return false;
+            }
+            const pitch = buildPitchFieldsFromInput(inputKey);
+            if (!pitch) return false;
+            saveHistoryState();
+            scoreNotes[index] = { ...current, ...pitch, duration: 1 / 3 };
+            selectedEditorIndex = index;
+            if (pitch.degree !== 0) playSynthesizedTone(noteToMidi(scoreNotes[index], currentKey, currentMode), getNoteDurationSeconds(scoreNotes[index]), 0.45);
+            tripletEditState.position++;
+            if (tripletEditState.position >= 3) {
+                tripletEditState = null;
+                selectedEditorIndex = index;
+                showWorkbenchToast('三連音音高設定完成');
+            } else {
+                selectedEditorIndex = tripletEditState.indices[tripletEditState.position];
+            }
+            markNotationDirty();
+            renderMelodyTrack();
+            return true;
+        }
+
         function insertStepNote(inputKey) {
+            if (updateTripletPitch(inputKey)) return;
             const note = buildNoteFromInput(inputKey);
             if (!note) return;
             saveHistoryState();
@@ -1954,24 +2362,37 @@
             scoreNotes.splice(editorCursorIndex, 0, note);
             selectedEditorIndex = editorCursorIndex;
             editorCursorIndex++;
+            clearEditorRangeOnly();
+            markNotationDirty();
             renderMelodyTrack();
             if (note.degree !== 0) playSynthesizedTone(noteToMidi(note, currentKey, currentMode), getNoteDurationSeconds(note), 0.45);
             scrollEditorCursorIntoView();
         }
 
         function moveEditorCursor(delta) {
-            editorCursorIndex = Math.max(0, Math.min(scoreNotes.length, editorCursorIndex + Number(delta)));
+            const next = Math.max(0, Math.min(scoreNotes.length, editorCursorIndex + Number(delta)));
+            editorCursorIndex = normalizeInsertBoundary(next, Number(delta) < 0 ? 'before' : 'after');
             selectedEditorIndex = editorCursorIndex > 0 ? editorCursorIndex - 1 : null;
+            clearEditorRangeOnly();
             renderEditorScore();
             scrollEditorCursorIntoView();
         }
 
         function deleteBeforeEditorCursor() {
-            if (editorCursorIndex <= 0 || scoreNotes.length === 0) return;
+            if (scoreNotes.length === 0) return;
+            if (selectedRange) {
+                deleteSelectedRange();
+                return;
+            }
+            if (editorCursorIndex <= 0) return;
+            const unit = getAtomicRangeAt(editorCursorIndex - 1);
+            if (!unit) return;
             saveHistoryState();
-            scoreNotes.splice(editorCursorIndex - 1, 1);
-            editorCursorIndex--;
+            scoreNotes.splice(unit.start, unit.end - unit.start + 1);
+            editorCursorIndex = unit.start;
             selectedEditorIndex = editorCursorIndex > 0 ? editorCursorIndex - 1 : null;
+            tripletEditState = null;
+            markNotationDirty();
             renderMelodyTrack();
             scrollEditorCursorIntoView();
         }
@@ -1982,10 +2403,13 @@
             marker.className = 'insert-marker';
             marker.dataset.cursorIndex = String(index);
             marker.setAttribute('aria-label', `把輸入游標移到第 ${index + 1} 個位置`);
+            marker.title = '在這裡插入音格或片段';
             if (editorCursorIndex === index) marker.classList.add('is-cursor');
             marker.addEventListener('click', () => {
-                editorCursorIndex = index;
+                editorCursorIndex = normalizeInsertBoundary(index);
                 selectedEditorIndex = index > 0 ? index - 1 : null;
+                tripletEditState = null;
+                clearEditorRangeOnly();
                 renderEditorScore();
             });
             return marker;
@@ -1997,6 +2421,7 @@
             card.className = 'editor-note';
             if (note.degree === 0) card.classList.add('is-rest');
             if (selectedEditorIndex === index) card.classList.add('is-selected');
+            if (selectedRange && index >= selectedRange.start && index <= selectedRange.end) card.classList.add('is-range-selected');
             card.style.setProperty('--note-grow', String(Math.max(0.5, Math.min(3.5, Number(note.duration) || 1))));
 
             const midi = noteToMidi(note, currentKey, currentMode);
@@ -2031,12 +2456,24 @@
 
             const duration = document.createElement('div');
             duration.className = 'editor-note-duration';
-            duration.textContent = getDurationLabel(note.duration);
+            duration.textContent = isTripletNote(note) ? '三連音 1/3拍' : getDurationLabel(note.duration);
             card.append(nameEl, pitch, lyric, duration);
 
-            card.addEventListener('click', () => {
+            card.addEventListener('click', (event) => {
+                if (rangeSelectionMode === 'awaiting-start') {
+                    selectRangeEndpoint(index, false);
+                    return;
+                }
+                if (rangeSelectionMode === 'awaiting-end' || event.shiftKey) {
+                    if (selectionAnchorIndex === null) selectionAnchorIndex = selectedEditorIndex ?? index;
+                    selectRangeEndpoint(index, true);
+                    return;
+                }
                 selectedEditorIndex = index;
-                editorCursorIndex = index + 1;
+                const unit = getAtomicRangeAt(index);
+                editorCursorIndex = unit ? unit.end + 1 : index + 1;
+                tripletEditState = null;
+                clearEditorRangeOnly();
                 renderEditorScore();
                 if (note.degree !== 0) playSynthesizedTone(noteToMidi(note, currentKey, currentMode), getNoteDurationSeconds(note), 0.45);
             });
@@ -2156,6 +2593,7 @@
             if (scoreNotes[index].lyric !== text) {
                 saveHistoryState();
                 scoreNotes[index].lyric = text;
+                markNotationDirty();
                 renderMelodyTrack();
             }
         }
@@ -2164,15 +2602,22 @@
             const capacity = getTimeSignatureCapacity();
             const measures = [];
             let currentMeasure = { items: [], beats: 0, startIndex: 0 };
-
-            scoreNotes.forEach((note, index) => {
+            let index = 0;
+            while (index < scoreNotes.length) {
+                const unit = getAtomicRangeAt(index);
+                const endIndex = unit ? unit.end : index;
+                const notes = scoreNotes.slice(index, endIndex + 1);
+                const beats = notes[0] && isTripletNote(notes[0])
+                    ? Number(notes[0].tuplet.totalBeats) || 1
+                    : Number(notes[0]?.duration) || 0;
                 if (currentMeasure.items.length > 0 && currentMeasure.beats >= capacity - 0.0001) {
                     measures.push(currentMeasure);
                     currentMeasure = { items: [], beats: 0, startIndex: index };
                 }
-                currentMeasure.items.push({ note, index });
-                currentMeasure.beats += Number(note.duration) || 0;
-            });
+                currentMeasure.items.push({ notes, startIndex: index, endIndex, beats });
+                currentMeasure.beats += beats;
+                index = endIndex + 1;
+            }
             if (currentMeasure.items.length > 0) measures.push(currentMeasure);
             return measures;
         }
@@ -2180,7 +2625,7 @@
         function renderEditorScore() {
             const container = document.getElementById('editor-score-container');
             if (!container) return;
-            editorCursorIndex = Math.max(0, Math.min(editorCursorIndex, scoreNotes.length));
+            editorCursorIndex = normalizeInsertBoundary(Math.max(0, Math.min(editorCursorIndex, scoreNotes.length)));
             if (selectedEditorIndex !== null && selectedEditorIndex >= scoreNotes.length) selectedEditorIndex = null;
             container.innerHTML = '';
 
@@ -2197,6 +2642,7 @@
                 empty.append(strong, document.createTextNode('選好的時值會持續沿用；橘色指揮棒就是下一個插入位置。'));
                 container.append(empty, createInsertMarker(0));
                 updateUndoRedoBtnState();
+                updateEditorActionBar();
                 return;
             }
 
@@ -2217,14 +2663,25 @@
 
                 const notesRow = document.createElement('div');
                 notesRow.className = 'measure-notes';
-                measure.items.forEach(({ note, index }) => {
-                    notesRow.append(createInsertMarker(index), createEditorNote(note, index));
+                measure.items.forEach((item) => {
+                    notesRow.append(createInsertMarker(item.startIndex));
+                    if (item.notes.length === 3 && isTripletNote(item.notes[0])) {
+                        const triplet = document.createElement('div');
+                        triplet.className = 'triplet-unit';
+                        triplet.dataset.tripletId = item.notes[0].tuplet.id;
+                        if (selectedRange && item.startIndex >= selectedRange.start && item.endIndex <= selectedRange.end) triplet.classList.add('is-range-selected');
+                        item.notes.forEach((note, offset) => triplet.appendChild(createEditorNote(note, item.startIndex + offset)));
+                        notesRow.appendChild(triplet);
+                    } else {
+                        notesRow.appendChild(createEditorNote(item.notes[0], item.startIndex));
+                    }
                 });
                 if (measureIndex === measures.length - 1) notesRow.append(createInsertMarker(scoreNotes.length));
                 measureCard.append(head, notesRow);
                 container.appendChild(measureCard);
             });
             updateUndoRedoBtnState();
+            updateEditorActionBar();
         }
 
         function syncPracticeModeButtons() {
@@ -2232,7 +2689,14 @@
                 button.classList.toggle('is-active', button.dataset.practiceMode === activeAppMode);
             });
             const stopButton = document.getElementById('practice-stop-btn');
-            if (stopButton) stopButton.classList.toggle('hidden', activeAppMode !== 'play_audio' && activeAppMode !== 'play_practice');
+            const pauseButton = document.getElementById('practice-pause-btn');
+            const isFullPlayback = activeAppMode === 'play_audio' || activeAppMode === 'play_practice';
+            if (stopButton) stopButton.classList.toggle('hidden', !isFullPlayback);
+            if (pauseButton) {
+                pauseButton.classList.toggle('hidden', !isFullPlayback);
+                pauseButton.textContent = isPlaybackPaused ? '繼續' : '暫停';
+                pauseButton.setAttribute('aria-pressed', String(isPlaybackPaused));
+            }
         }
 
         function updateKeySignatureGuidance() {
@@ -2364,7 +2828,7 @@
         }
 
         function setGlobalBpm(nextBpm) {
-            currentBpm = Math.max(40, Math.min(200, Math.round(Number(nextBpm) || 82)));
+            currentBpm = Math.max(BPM_MIN, Math.min(BPM_MAX, Math.round(Number(nextBpm) || 82)));
 
             const editorBpm = document.getElementById('editor-score-bpm');
             if (editorBpm && editorBpm.value !== String(currentBpm)) editorBpm.value = String(currentBpm);
@@ -2381,6 +2845,7 @@
             const legacyVal = document.getElementById('score-bpm-val');
             if (legacyVal) legacyVal.innerText = currentBpm;
 
+            markNotationDirty();
             renderEditorScore();
         }
 
@@ -2413,13 +2878,26 @@
         }
 
         function handleEditorShortcut(event) {
-            if (activeWorkspaceView !== 'editor' || event.ctrlKey || event.metaKey || event.altKey) return;
+            if (activeWorkspaceView !== 'editor' || event.altKey) return;
             const activeElement = document.activeElement;
             const tagName = activeElement ? activeElement.tagName : '';
             if (tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT' || activeElement?.isContentEditable) return;
             if (activeElement?.classList?.contains('panel-resizer')) return;
 
             const key = event.key;
+            if ((event.ctrlKey || event.metaKey) && key.toLowerCase() === 'c' && selectedRange) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                copySelectedRange();
+                return;
+            }
+            if ((event.ctrlKey || event.metaKey) && key.toLowerCase() === 'v' && scoreClipboard?.length) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                pasteScoreClipboard();
+                return;
+            }
+            if (event.ctrlKey || event.metaKey) return;
             if (event.repeat && (/^[0-7]$/.test(key) || /^[cdefgabCDEFGAB]$/.test(key))) {
                 event.preventDefault();
                 event.stopImmediatePropagation();
@@ -2435,6 +2913,10 @@
             else if (key.toLowerCase() === 'q') setStickyDuration(1);
             else if (key.toLowerCase() === 'e') setStickyDuration(0.5);
             else if (key.toLowerCase() === 's') setStickyDuration(0.25);
+            else if (key === 'Escape') {
+                clearEditorSelection();
+                renderEditorScore();
+            }
             else if (key === '[') setEditorOctave(editorOctave - 1);
             else if (key === ']') setEditorOctave(editorOctave + 1);
             else if (key === '.') {
@@ -4321,10 +4803,11 @@
             currentKey = data.key || 'C';
             currentMode = data.mode === 'minor' ? 'minor' : 'major';
             currentTimeSignature = data.timeSignature || '4/4';
-            currentBpm = Math.max(40, Math.min(200, Number(data.bpm) || 90));
-            scoreNotes = JSON.parse(JSON.stringify(data.notes));
+            currentBpm = Math.max(BPM_MIN, Math.min(BPM_MAX, Number(data.bpm) || 90));
+            scoreNotes = normalizeAndValidateScoreNotes(data.notes);
             editorCursorIndex = scoreNotes.length;
-            selectedEditorIndex = null;
+            clearEditorSelection();
+            markNotationDirty();
 
             syncWorkbenchControls();
             updateKeySignatureGuidance();
@@ -4342,7 +4825,8 @@
             inspectingNoteIndex = index;
             inspectTempNote = { ...scoreNotes[index] };
 
-            document.getElementById('inspector-badge').textContent = `#${index + 1} · 第 ${calculateMeasureIndex(index)} 小節`;
+            document.getElementById('inspector-badge').textContent = `#${index + 1} · 第 ${calculateMeasureIndex(index)} 小節${isTripletNote(inspectTempNote) ? ' · 三連音' : ''}`;
+            document.getElementById('inspect-delete-btn').textContent = isTripletNote(inspectTempNote) ? '🗑️ 刪除整組三連音' : '🗑️ 刪除此音';
             const lyricInput = document.getElementById('inspect-lyric');
             lyricInput.value = inspectTempNote.lyric || '';
 
@@ -4352,24 +4836,9 @@
         }
 
         function calculateMeasureIndex(noteIndex) {
-            const capacity = getTimeSignatureCapacity();
-            let currentBeats = 0;
-            let measureNum = 1;
-            for (let i = 0; i < noteIndex; i++) {
-                const note = scoreNotes[i];
-                const dur = Number(note.duration) || 1;
-                if (currentBeats + dur > capacity + 0.0001) {
-                    measureNum++;
-                    currentBeats = dur;
-                } else {
-                    currentBeats += dur;
-                    if (Math.abs(currentBeats - capacity) <= 0.0001) {
-                        measureNum++;
-                        currentBeats = 0;
-                    }
-                }
-            }
-            return measureNum;
+            const measures = groupNotesIntoMeasures();
+            const found = measures.findIndex(measure => measure.items.some(item => noteIndex >= item.startIndex && noteIndex <= item.endIndex));
+            return found >= 0 ? found + 1 : Math.max(1, measures.length);
         }
 
         function updateInspectorUI() {
@@ -4386,11 +4855,13 @@
             });
             document.querySelectorAll('.inspect-dur-btn').forEach(btn => {
                 btn.classList.toggle('is-active', Number(btn.dataset.dur) === Number(inspectTempNote.duration));
+                btn.disabled = isTripletNote(inspectTempNote);
+                btn.title = isTripletNote(inspectTempNote) ? '三連音子格固定為 1/3 拍' : '';
             });
 
             const previewEl = document.getElementById('inspect-pitch-preview');
             if (inspectTempNote.degree === 0) {
-                previewEl.textContent = '休止符 (0 拍)';
+                previewEl.textContent = `休止符 (${isTripletNote(inspectTempNote) ? '三連音 1/3' : formatBeatCount(inspectTempNote.duration)} 拍)`;
             } else {
                 const midi = noteToMidi(inspectTempNote, currentKey, currentMode);
                 const pitchName = midiToPitchName(midi);
@@ -4410,7 +4881,12 @@
             if (inspectingNoteIndex === null || !inspectTempNote) return;
             saveHistoryState();
             inspectTempNote.lyric = document.getElementById('inspect-lyric').value.trim();
+            if (isTripletNote(scoreNotes[inspectingNoteIndex])) {
+                inspectTempNote.tuplet = { ...scoreNotes[inspectingNoteIndex].tuplet };
+                inspectTempNote.duration = 1 / 3;
+            }
             scoreNotes[inspectingNoteIndex] = { ...inspectTempNote };
+            markNotationDirty();
             renderMelodyTrack();
             closeNoteInspector();
             showWorkbenchToast(`已更新第 ${inspectingNoteIndex + 1} 個音符`);
@@ -4418,13 +4894,17 @@
 
         function deleteInspectedNote() {
             if (inspectingNoteIndex === null) return;
+            const unit = getAtomicRangeAt(inspectingNoteIndex);
+            if (!unit) return;
             saveHistoryState();
-            scoreNotes.splice(inspectingNoteIndex, 1);
-            if (editorCursorIndex > inspectingNoteIndex) editorCursorIndex--;
-            selectedEditorIndex = null;
+            const count = unit.end - unit.start + 1;
+            scoreNotes.splice(unit.start, count);
+            if (editorCursorIndex > unit.start) editorCursorIndex = Math.max(unit.start, editorCursorIndex - count);
+            clearEditorSelection();
+            markNotationDirty();
             renderMelodyTrack();
             closeNoteInspector();
-            showWorkbenchToast('已刪除音符');
+            showWorkbenchToast(count === 3 ? '已刪除 1 組三連音（3 格）' : '已刪除音符');
         }
 
         function closeNoteInspector() {
@@ -4535,6 +5015,7 @@
             // 輸譜控制項
             document.getElementById('editor-score-title').addEventListener('input', event => {
                 currentScoreTitle = event.target.value;
+                markNotationDirty();
                 renderEditorScore();
             });
             document.getElementById('editor-score-key').addEventListener('change', event => {
@@ -4543,16 +5024,19 @@
                 legacyKey.dispatchEvent(new Event('change'));
                 updateKeySignatureGuidance();
                 updatePitchPadDisplay();
+                markNotationDirty();
             });
             document.getElementById('editor-score-mode').addEventListener('change', event => {
                 currentMode = event.target.value === 'minor' ? 'minor' : 'major';
                 updateKeySignatureGuidance();
                 updatePitchPadDisplay();
                 renderInteractiveStaff();
+                markNotationDirty();
                 renderMelodyTrack();
             });
             document.getElementById('editor-time-signature').addEventListener('change', event => {
                 currentTimeSignature = event.target.value;
+                markNotationDirty();
                 renderEditorScore();
             });
             document.getElementById('editor-score-bpm').addEventListener('input', event => {
@@ -4590,6 +5074,7 @@
             document.querySelectorAll('.duration-choice').forEach(button => button.addEventListener('click', () => setStickyDuration(button.dataset.duration)));
             document.querySelectorAll('.accidental-choice').forEach(button => button.addEventListener('click', () => setAccidentalChoice(button.dataset.accidental)));
             document.querySelectorAll('.quick-pitch-key').forEach(button => button.addEventListener('click', () => insertStepNote(button.dataset.degree)));
+            document.getElementById('insert-triplet-btn').addEventListener('click', insertQuarterTriplet);
             document.getElementById('octave-down-btn').addEventListener('click', () => setEditorOctave(editorOctave - 1));
             document.getElementById('octave-up-btn').addEventListener('click', () => setEditorOctave(editorOctave + 1));
 
@@ -4600,6 +5085,16 @@
             document.getElementById('editor-redo-btn').addEventListener('click', redo);
             document.getElementById('editor-delete-btn').addEventListener('click', deleteBeforeEditorCursor);
             document.getElementById('editor-clear-btn').addEventListener('click', () => document.getElementById('clear-all-btn').click());
+            document.getElementById('range-select-btn').addEventListener('click', startRangeSelection);
+            document.getElementById('copy-range-btn').addEventListener('click', copySelectedRange);
+            document.getElementById('paste-range-btn').addEventListener('click', pasteScoreClipboard);
+            document.getElementById('edit-triplet-btn').addEventListener('click', beginSelectedTripletEdit);
+            document.getElementById('insert-before-btn').addEventListener('click', () => setInsertPositionAroundSelection('before'));
+            document.getElementById('insert-after-btn').addEventListener('click', () => setInsertPositionAroundSelection('after'));
+            document.getElementById('cancel-edit-mode-btn').addEventListener('click', () => {
+                clearEditorSelection();
+                renderEditorScore();
+            });
 
             const referenceInput = document.getElementById('reference-image-input');
             document.getElementById('reference-upload-btn').addEventListener('click', () => referenceInput.click());
@@ -4625,9 +5120,22 @@
             document.getElementById('reference-zoom-reset').addEventListener('click', () => setReferenceZoom(1));
 
             document.querySelectorAll('.practice-mode-button').forEach(button => {
-                button.addEventListener('click', () => switchAppMode(button.dataset.practiceMode));
+                button.addEventListener('click', () => {
+                    if (button.dataset.practiceMode === activeAppMode && (activeAppMode === 'play_audio' || activeAppMode === 'play_practice')) {
+                        togglePlaybackPause();
+                    } else {
+                        switchAppMode(button.dataset.practiceMode);
+                    }
+                });
             });
+            document.getElementById('practice-pause-btn').addEventListener('click', togglePlaybackPause);
             document.getElementById('practice-stop-btn').addEventListener('click', () => switchAppMode('learn'));
+            document.getElementById('practice-cells-tab').addEventListener('click', () => setPracticeScoreView('cells'));
+            document.getElementById('practice-notation-tab').addEventListener('click', () => setPracticeScoreView('notation'));
+            document.getElementById('notation-rerender-btn').addEventListener('click', () => {
+                notationDirty = true;
+                renderNotationScore();
+            });
             window.addEventListener('keydown', handleEditorShortcut, true);
 
             initializeTextSizeControls();
@@ -4638,6 +5146,245 @@
         }
 
         const melodyContainer = document.getElementById('melody-container');
+
+        function setPracticeScoreView(view) {
+            practiceScoreView = view === 'notation' ? 'notation' : 'cells';
+            const notationPanel = document.getElementById('notation-panel');
+            const cellsTab = document.getElementById('practice-cells-tab');
+            const notationTab = document.getElementById('practice-notation-tab');
+            const followWrap = document.getElementById('notation-follow-wrap');
+            const rerender = document.getElementById('notation-rerender-btn');
+            const showNotation = practiceScoreView === 'notation';
+            melodyContainer.classList.toggle('hidden', showNotation);
+            notationPanel.classList.toggle('is-hidden', !showNotation);
+            cellsTab.classList.toggle('is-active', !showNotation);
+            notationTab.classList.toggle('is-active', showNotation);
+            followWrap.classList.toggle('hidden', !showNotation);
+            rerender.classList.toggle('hidden', !showNotation);
+            if (showNotation) renderNotationScore();
+            updatePlaybackFocus(currentPlaybackIndex, false);
+        }
+
+        function clearNotationHighlight() {
+            highlightedNotationElements.forEach(element => {
+                element.classList.remove('vf-note-playing', 'vf-rest-playing', 'notation-lyric-playing');
+                element.removeAttribute('aria-current');
+            });
+            highlightedNotationElements = [];
+        }
+
+        function isElementOutsideContainer(element, container) {
+            if (!element || !container) return false;
+            const elementRect = element.getBoundingClientRect();
+            const containerRect = container.getBoundingClientRect();
+            return elementRect.left < containerRect.left || elementRect.right > containerRect.right ||
+                elementRect.top < containerRect.top || elementRect.bottom > containerRect.bottom;
+        }
+
+        function updatePlaybackFocus(index, allowScroll = true) {
+            melodyContainer.querySelectorAll('.note-tile').forEach(tile => {
+                const isActive = Number(tile.dataset.index) === index;
+                tile.classList.toggle('is-playback-active', isActive);
+                if (isActive) tile.setAttribute('aria-current', 'true');
+                else tile.removeAttribute('aria-current');
+            });
+
+            clearNotationHighlight();
+            const mappedElements = notationSourceMap.get(index) || [];
+            mappedElements.forEach(element => {
+                const isLyric = element.dataset.notationRole === 'lyric';
+                element.classList.add(isLyric ? 'notation-lyric-playing' : (scoreNotes[index]?.degree === 0 ? 'vf-rest-playing' : 'vf-note-playing'));
+                element.setAttribute('aria-current', 'true');
+                highlightedNotationElements.push(element);
+            });
+
+            if (!allowScroll || index < 0) return;
+            if (practiceScoreView === 'notation') {
+                const panel = document.getElementById('notation-panel');
+                const target = mappedElements.find(element => element.dataset.notationRole !== 'lyric');
+                const follow = document.getElementById('notation-follow-checkbox');
+                if (follow?.checked && target && isElementOutsideContainer(target, panel)) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+                }
+            } else {
+                const activeCard = melodyContainer.querySelector(`[data-index="${index}"]`);
+                if (activeCard && isElementOutsideContainer(activeCard, melodyContainer)) {
+                    activeCard.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                }
+            }
+        }
+
+        function getVexDurationSpec(note) {
+            if (isTripletNote(note)) return { duration: '8', dots: 0 };
+            const duration = Number(note.duration);
+            const specs = [
+                [4, 'w', 0], [3, 'h', 1], [2, 'h', 0], [1.5, 'q', 1],
+                [1, 'q', 0], [0.75, '8', 1], [0.5, '8', 0], [0.375, '16', 1], [0.25, '16', 0]
+            ];
+            const match = specs.find(([beats]) => Math.abs(duration - beats) < 0.0001);
+            return match ? { duration: match[1], dots: match[2] } : null;
+        }
+
+        function midiToVexKey(midi) {
+            const preferFlats = currentKey.includes('b') || currentKey === 'F';
+            const pitchClasses = preferFlats
+                ? ['c', 'db', 'd', 'eb', 'e', 'f', 'gb', 'g', 'ab', 'a', 'bb', 'b']
+                : ['c', 'c#', 'd', 'd#', 'e', 'f', 'f#', 'g', 'g#', 'a', 'a#', 'b'];
+            const octave = Math.floor(midi / 12) - 1;
+            return `${pitchClasses[(midi % 12 + 12) % 12]}/${octave}`;
+        }
+
+        function registerNotationElement(index, element, role = 'note') {
+            if (!element) return;
+            element.classList.add('vf-source-note');
+            element.dataset.sourceIndex = String(index);
+            element.dataset.notationRole = role;
+            element.setAttribute('tabindex', '0');
+            element.setAttribute('role', 'button');
+            element.setAttribute('aria-label', `第 ${index + 1} 個音格${scoreNotes[index]?.lyric ? `，歌詞 ${scoreNotes[index].lyric}` : ''}`);
+            const activate = () => onNoteTileInteraction(index, 'click');
+            element.addEventListener('click', activate);
+            element.addEventListener('keydown', event => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    activate();
+                }
+            });
+            if (!notationSourceMap.has(index)) notationSourceMap.set(index, []);
+            notationSourceMap.get(index).push(element);
+        }
+
+        function renderNotationScore() {
+            if (practiceScoreView !== 'notation' && !notationDirty) return;
+            const stage = document.getElementById('notation-stage');
+            if (!stage) return;
+            if (!notationDirty && stage.childElementCount > 0) {
+                updatePlaybackFocus(currentPlaybackIndex, false);
+                return;
+            }
+
+            stage.innerHTML = '';
+            notationSourceMap = new Map();
+            clearNotationHighlight();
+            if (scoreNotes.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'notation-empty';
+                empty.textContent = '尚無音符。回到編輯區輸入旋律後，這裡會自動轉成五線譜。';
+                stage.appendChild(empty);
+                notationDirty = false;
+                return;
+            }
+
+            const measures = groupNotesIntoMeasures();
+            const capacity = getTimeSignatureCapacity();
+            const overfullIndex = measures.findIndex(measure => measure.beats > capacity + 0.0001);
+            if (overfullIndex >= 0) {
+                const error = document.createElement('div');
+                error.className = 'notation-error';
+                error.textContent = `第 ${overfullIndex + 1} 小節超出 ${capacity} 拍，請先調整音符長度再轉譜。`;
+                stage.appendChild(error);
+                notationDirty = false;
+                return;
+            }
+
+            try {
+                const VF = window.Vex?.Flow;
+                if (!VF) throw new Error('五線譜元件尚未載入，請檢查網路後按「重新排版」。');
+                const heading = document.createElement('div');
+                heading.className = 'notation-heading';
+                heading.textContent = `${currentScoreTitle || '未命名樂譜'} · ${getCurrentTonalityLabel()} · ${currentTimeSignature} · ${currentBpm} BPM`;
+                const host = document.createElement('div');
+                stage.append(heading, host);
+
+                const panelWidth = document.getElementById('notation-panel')?.clientWidth || 760;
+                const canvasWidth = Math.max(680, panelWidth - 24);
+                const measuresPerLine = canvasWidth >= 1120 ? 3 : (canvasWidth >= 720 ? 2 : 1);
+                const rowCount = Math.ceil(measures.length / measuresPerLine);
+                const rowHeight = 175;
+                const canvasHeight = Math.max(190, rowCount * rowHeight + 15);
+                const renderer = new VF.Renderer(host, VF.Renderer.Backends.SVG);
+                renderer.resize(canvasWidth, canvasHeight);
+                const context = renderer.getContext();
+                const [numBeats, beatValue] = currentTimeSignature.split('/').map(Number);
+                const leftMargin = 12;
+                const usableWidth = canvasWidth - leftMargin * 2;
+                const staveWidth = Math.floor(usableWidth / measuresPerLine);
+
+                measures.forEach((measure, measureIndex) => {
+                    const column = measureIndex % measuresPerLine;
+                    const row = Math.floor(measureIndex / measuresPerLine);
+                    const x = leftMargin + column * staveWidth;
+                    const y = 18 + row * rowHeight;
+                    const stave = new VF.Stave(x, y, staveWidth);
+                    if (column === 0) {
+                        stave.addClef('treble').addKeySignature(currentKey);
+                        if (measureIndex === 0) stave.addTimeSignature(currentTimeSignature);
+                    }
+                    if (measureIndex === measures.length - 1) stave.setEndBarType(VF.Barline.type.END);
+                    stave.setContext(context).draw();
+
+                    const vexNotes = [];
+                    const sourceEntries = [];
+                    const tuplets = [];
+                    measure.items.forEach(item => {
+                        const groupNotes = [];
+                        item.notes.forEach((sourceNote, offset) => {
+                            const durationSpec = getVexDurationSpec(sourceNote);
+                            if (!durationSpec) throw new Error(`第 ${item.startIndex + offset + 1} 個音格的時值無法轉成五線譜。`);
+                            const isRest = sourceNote.degree === 0;
+                            const key = isRest ? 'b/4' : midiToVexKey(noteToMidi(sourceNote, currentKey, currentMode));
+                            const vexNote = new VF.StaveNote({
+                                clef: 'treble',
+                                keys: [key],
+                                duration: `${durationSpec.duration}${isRest ? 'r' : ''}`
+                            });
+                            if (durationSpec.dots > 0) {
+                                if (typeof vexNote.addDotToAll === 'function') vexNote.addDotToAll();
+                                else if (VF.Dot?.buildAndAttach) VF.Dot.buildAndAttach([vexNote], { all: true });
+                            }
+                            if (!isRest && Number(sourceNote.accidental) !== 0) {
+                                vexNote.addModifier(new VF.Accidental(Number(sourceNote.accidental) > 0 ? '#' : 'b'), 0);
+                            }
+                            let annotation = null;
+                            if (sourceNote.lyric) {
+                                annotation = new VF.Annotation(sourceNote.lyric)
+                                    .setVerticalJustification(VF.Annotation.VerticalJustify.BOTTOM);
+                                vexNote.addModifier(annotation, 0);
+                            }
+                            vexNotes.push(vexNote);
+                            groupNotes.push(vexNote);
+                            sourceEntries.push({ index: item.startIndex + offset, vexNote, annotation });
+                        });
+                        if (item.notes.length === 3 && isTripletNote(item.notes[0])) {
+                            tuplets.push(new VF.Tuplet(groupNotes, { num_notes: 3, notes_occupied: 2 }));
+                        }
+                    });
+
+                    const voice = new VF.Voice({ num_beats: numBeats, beat_value: beatValue })
+                        .setMode(VF.Voice.Mode.SOFT)
+                        .addTickables(vexNotes);
+                    new VF.Formatter().joinVoices([voice]).formatToStave([voice], stave, { align_rests: true });
+                    voice.draw(context, stave);
+                    tuplets.forEach(tuplet => tuplet.setContext(context).draw());
+                    sourceEntries.forEach(entry => {
+                        const noteElement = entry.vexNote.getSVGElement?.() || entry.vexNote.attrs?.el;
+                        registerNotationElement(entry.index, noteElement, 'note');
+                        const lyricElement = entry.annotation?.getSVGElement?.() || entry.annotation?.attrs?.el;
+                        registerNotationElement(entry.index, lyricElement, 'lyric');
+                    });
+                });
+
+                notationDirty = false;
+                updatePlaybackFocus(currentPlaybackIndex, false);
+            } catch (error) {
+                stage.innerHTML = '';
+                const warning = document.createElement('div');
+                warning.className = 'notation-error';
+                warning.textContent = error.message || '五線譜排版失敗。';
+                stage.appendChild(warning);
+                notationDirty = false;
+            }
+        }
 
         // 渲染卡片轨
         function renderMelodyTrack() {
@@ -4652,13 +5399,14 @@
                 tile.dataset.index = index;
 
                 let statusClasses = 'bg-slate-900/90 border-slate-800 text-slate-200';
-                if (currentPlaybackIndex === index) {
-                    statusClasses = 'bg-blue-600/40 border-blue-400 text-white shadow-md scale-105 z-10';
-                } else if (activeSingleNoteIndex === index && (activeAppMode === 'learn' || activeAppMode === 'practice')) {
+                if (activeSingleNoteIndex === index && (activeAppMode === 'learn' || activeAppMode === 'practice')) {
                     statusClasses = 'bg-indigo-600/30 border-indigo-400 text-white shadow-sm';
                 }
 
                 tile.className = `note-tile w-[50px] h-[76px] rounded-lg p-1 border flex flex-col justify-between flex-shrink-0 relative cursor-pointer ${statusClasses}`;
+                tile.classList.toggle('is-playback-active', currentPlaybackIndex === index);
+                tile.classList.toggle('is-single-active', activeSingleNoteIndex === index && (activeAppMode === 'learn' || activeAppMode === 'practice'));
+                if (isTripletNote(note)) tile.title = `四分音符三連音 ${note.tuplet.index + 1}/3`;
 
                 let upperDots = note.octave > 0 ? '•'.repeat(note.octave) : '';
                 let lowerDots = note.octave < 0 ? '•'.repeat(Math.abs(note.octave)) : '';
@@ -4722,6 +5470,8 @@
                 melodyContainer.appendChild(tile);
             });
             renderEditorScore();
+            if (practiceScoreView === 'notation' && notationDirty) renderNotationScore();
+            else updatePlaybackFocus(currentPlaybackIndex, false);
         }
 
         // 单音卡片交互逻辑 (根据四大模式)
@@ -4943,13 +5693,23 @@
 
         btnModeLearn.addEventListener('click', () => switchAppMode('learn'));
         btnModePractice.addEventListener('click', () => switchAppMode('practice'));
-        btnModePlayAudio.addEventListener('click', () => switchAppMode('play_audio'));
-        btnModePlayPractice.addEventListener('click', () => switchAppMode('play_practice'));
+        btnModePlayAudio.addEventListener('click', () => activeAppMode === 'play_audio' ? togglePlaybackPause() : switchAppMode('play_audio'));
+        btnModePlayPractice.addEventListener('click', () => activeAppMode === 'play_practice' ? togglePlaybackPause() : switchAppMode('play_practice'));
 
         function startFullPlayback(mode) {
             if (scoreNotes.length === 0) return;
             ensureAudioContextReady();
             currentPlaybackIndex = 0;
+            let elapsedMs = 0;
+            playbackTimeline = scoreNotes.map((note, index) => {
+                const durationMs = getNoteDurationSeconds(note) * 1000;
+                const entry = { index, startMs: elapsedMs, endMs: elapsedMs + durationMs, durationMs };
+                elapsedMs += durationMs;
+                return entry;
+            });
+            playbackStartedAtMs = performance.now();
+            playbackPausedElapsedMs = 0;
+            isPlaybackPaused = false;
 
             btnStop.classList.remove('hidden');
 
@@ -4966,19 +5726,19 @@
         }
 
         function processNextPlaybackStep() {
+            if (isPlaybackPaused) return;
             if (currentPlaybackIndex >= scoreNotes.length) {
                 finishFullPlayback();
                 return;
             }
             const note = scoreNotes[currentPlaybackIndex];
+            const timelineEntry = playbackTimeline[currentPlaybackIndex];
             const midi = noteToMidi(note, currentKey, currentMode);
-            const durationSec = getNoteDurationSeconds(note);
+            const elapsedMs = Math.max(0, performance.now() - playbackStartedAtMs);
+            const remainingMs = Math.max(0, timelineEntry.endMs - elapsedMs);
+            const durationSec = remainingMs / 1000;
 
-            renderMelodyTrack();
-            const activeCard = melodyContainer.querySelector(`[data-index="${currentPlaybackIndex}"]`);
-            if (activeCard) {
-                activeCard.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-            }
+            updatePlaybackFocus(currentPlaybackIndex, true);
 
             updateTunerDisplayForNote(note);
 
@@ -4992,13 +5752,36 @@
 
             livePitchSamples = [];
 
+            const waitMs = Math.max(0, playbackStartedAtMs + timelineEntry.endMs - performance.now());
             playbackTimer = setTimeout(() => {
                 if (activeAppMode === 'play_practice' && note.degree !== 0) {
                     evaluateNotePractice(note);
                 }
                 currentPlaybackIndex++;
                 processNextPlaybackStep();
-            }, durationSec * 1000);
+            }, waitMs);
+        }
+
+        function togglePlaybackPause() {
+            if (activeAppMode !== 'play_audio' && activeAppMode !== 'play_practice') return;
+            if (isPlaybackPaused) {
+                isPlaybackPaused = false;
+                playbackStartedAtMs = performance.now() - playbackPausedElapsedMs;
+                if (activeAppMode === 'play_practice') startMicListening();
+                playbackStatus.innerText = activeAppMode === 'play_practice' ? '🎤 播放全曲 (練聲) 中...' : '▶️ 播放全曲 (有聲) 中...';
+                syncPracticeModeButtons();
+                processNextPlaybackStep();
+                return;
+            }
+
+            if (playbackTimer) clearTimeout(playbackTimer);
+            playbackTimer = null;
+            playbackPausedElapsedMs = Math.max(0, performance.now() - playbackStartedAtMs);
+            isPlaybackPaused = true;
+            stopCurrentVoice(0.02);
+            if (activeAppMode === 'play_practice') stopMicListening();
+            playbackStatus.innerText = '⏸️ 已暫停 · 目前音符保持高亮';
+            syncPracticeModeButtons();
         }
 
         function evaluateNotePractice(note) {
@@ -5017,9 +5800,14 @@
             if (playbackTimer) clearTimeout(playbackTimer);
             playbackTimer = null;
             currentPlaybackIndex = -1;
+            playbackTimeline = [];
+            playbackStartedAtMs = 0;
+            playbackPausedElapsedMs = 0;
+            isPlaybackPaused = false;
             btnStop.classList.add('hidden');
             stopCurrentVoice(0.03);
             stopSustainedTone();
+            updatePlaybackFocus(-1, false);
         }
 
         btnStop.addEventListener('click', () => switchAppMode('learn'));
@@ -5125,7 +5913,7 @@
             const lyricInput = document.getElementById('global-lyric');
             const lyric = lyricInput.value.trim() || (selectedDegree === 0 ? '' : takeNextQueuedLyric());
 
-            editorCursorIndex = Math.max(0, Math.min(editorCursorIndex, scoreNotes.length));
+            editorCursorIndex = normalizeInsertBoundary(editorCursorIndex);
             const note = {
                 degree: selectedDegree,
                 octave: octave,
@@ -5140,6 +5928,7 @@
             const midi = noteToMidi(note, currentKey);
             if (selectedDegree !== 0) playSynthesizedTone(midi, 0.3);
             lyricInput.value = '';
+            markNotationDirty();
             renderMelodyTrack();
             setTimeout(() => melodyContainer.scrollTop = melodyContainer.scrollHeight, 50);
         }
@@ -5150,16 +5939,19 @@
         document.getElementById('insert-rest-btn').addEventListener('click', () => {
             saveHistoryState();
             const dur = parseFloat(document.getElementById('global-duration').value || 1.0);
-            scoreNotes.push({ degree: 0, octave: 0, accidental: 0, duration: dur, lyric: '' });
+            editorCursorIndex = normalizeInsertBoundary(editorCursorIndex);
+            scoreNotes.splice(editorCursorIndex, 0, { degree: 0, octave: 0, accidental: 0, duration: dur, lyric: '' });
+            editorCursorIndex++;
+            selectedEditorIndex = editorCursorIndex - 1;
+            markNotationDirty();
             renderMelodyTrack();
             setTimeout(() => melodyContainer.scrollTop = melodyContainer.scrollHeight, 50);
         });
 
         document.getElementById('delete-last-btn').addEventListener('click', () => {
             if (scoreNotes.length > 0) {
-                saveHistoryState();
-                scoreNotes.pop();
-                renderMelodyTrack();
+                editorCursorIndex = scoreNotes.length;
+                deleteBeforeEditorCursor();
             }
         });
 
@@ -5170,6 +5962,8 @@
                 activeSingleNoteIndex = null;
                 editorCursorIndex = 0;
                 selectedEditorIndex = null;
+                clearEditorSelection();
+                markNotationDirty();
                 renderMelodyTrack();
             }
         });
@@ -5335,16 +6129,20 @@
                     const lyricInput = document.getElementById('global-lyric');
                     const lyric = lyricInput.value.trim();
 
-                    scoreNotes.push({
+                    editorCursorIndex = normalizeInsertBoundary(editorCursorIndex);
+                    scoreNotes.splice(editorCursorIndex, 0, {
                         degree: degreeObj.degree,
                         octave: degreeObj.octave,
                         accidental: degreeObj.accidental,
                         duration: dur,
                         lyric: lyric
                     });
+                    selectedEditorIndex = editorCursorIndex;
+                    editorCursorIndex++;
 
                     playSynthesizedTone(targetMidi, 0.3);
                     lyricInput.value = '';
+                    markNotationDirty();
                     renderMelodyTrack();
                     setTimeout(() => melodyContainer.scrollTop = melodyContainer.scrollHeight, 50);
                 });
@@ -5399,9 +6197,8 @@
                 addNoteFromInputs();
             } else if (e.key === 'Backspace') {
                 if (scoreNotes.length > 0) {
-                    saveHistoryState();
-                    scoreNotes.pop();
-                    renderMelodyTrack();
+                    editorCursorIndex = scoreNotes.length;
+                    deleteBeforeEditorCursor();
                 }
             }
         });
@@ -5414,6 +6211,7 @@
             if (editorKey) editorKey.value = currentKey;
             updateKeySignatureGuidance();
             renderInteractiveStaff();
+            markNotationDirty();
             renderMelodyTrack();
         });
 
@@ -5423,12 +6221,13 @@
 
         document.getElementById('export-btn').addEventListener('click', () => {
             const exportData = {
+                schemaVersion: SCORE_SCHEMA_VERSION,
                 title: currentScoreTitle || "我的練唱樂譜",
                 key: currentKey,
                 mode: currentMode,
                 timeSignature: currentTimeSignature,
                 bpm: currentBpm,
-                notes: scoreNotes
+                notes: scoreNotes.map(semanticNoteCopy)
             };
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
             const a = document.createElement('a');
@@ -5449,14 +6248,14 @@
                     const parsed = JSON.parse(evt.target.result);
                     if (parsed.notes && Array.isArray(parsed.notes)) {
                         saveHistoryState();
-                        scoreNotes = parsed.notes.map(normalizeScoreNote);
+                        scoreNotes = normalizeAndValidateScoreNotes(parsed.notes);
                         if (parsed.key && Object.prototype.hasOwnProperty.call(KEY_SIGNATURE_INFO, parsed.key)) {
                             currentKey = parsed.key;
                             document.getElementById('score-key').value = currentKey;
                         }
                         currentMode = parsed.mode === 'minor' ? 'minor' : 'major';
                         if (Number.isFinite(Number(parsed.bpm))) {
-                            currentBpm = Math.max(40, Math.min(200, Number(parsed.bpm)));
+                            currentBpm = Math.max(BPM_MIN, Math.min(BPM_MAX, Number(parsed.bpm)));
                             document.getElementById('score-bpm-range').value = currentBpm;
                             document.getElementById('score-bpm-val').innerText = currentBpm;
                         }
@@ -5464,6 +6263,8 @@
                         if (parsed.title) currentScoreTitle = String(parsed.title).slice(0, 120);
                         editorCursorIndex = scoreNotes.length;
                         selectedEditorIndex = null;
+                        clearEditorSelection();
+                        markNotationDirty();
                         renderInteractiveStaff();
                         renderMelodyTrack();
                         syncWorkbenchControls();
@@ -5479,12 +6280,14 @@
             if (PRESET_SONGS[key]) {
                 saveHistoryState();
                 const song = PRESET_SONGS[key];
-                currentKey = song.key; currentBpm = song.bpm;
+                currentKey = song.key; currentBpm = Math.max(BPM_MIN, Math.min(BPM_MAX, song.bpm));
                 currentMode = 'major';
                 currentScoreTitle = song.title;
-                scoreNotes = JSON.parse(JSON.stringify(song.notes));
+                scoreNotes = normalizeAndValidateScoreNotes(song.notes);
                 editorCursorIndex = scoreNotes.length;
                 selectedEditorIndex = null;
+                clearEditorSelection();
+                markNotationDirty();
                 document.getElementById('score-key').value = currentKey;
                 document.getElementById('score-bpm-range').value = currentBpm;
                 document.getElementById('score-bpm-val').innerText = currentBpm;
