@@ -126,8 +126,90 @@ const server = http.createServer((request, response) => {
     assert.equal(exported.schemaVersion, 2);
     assert.equal(exported.bpm, 150);
 
+    await page.click('#workspace-tab-editor');
+
+    // 驗證左側歌詞收折與展開
+    const lyricSection = page.locator('#reference-lyric-section');
+    const photoStage = page.locator('#reference-stage');
+    const initialPhotoHeight = (await photoStage.boundingBox()).height;
+    await page.click('#toggle-lyric-panel-btn');
+    assert.equal(await lyricSection.evaluate(el => el.classList.contains('is-collapsed')), true);
+    assert.equal(await page.locator('#lyric-queue').isVisible(), false);
+    const expandedPhotoHeight = (await photoStage.boundingBox()).height;
+    assert.ok(expandedPhotoHeight >= initialPhotoHeight, 'Photo stage should expand when lyrics panel is collapsed');
+    await page.click('#toggle-lyric-panel-text-btn');
+    assert.equal(await lyricSection.evaluate(el => el.classList.contains('is-collapsed')), false);
+    assert.equal(await page.locator('#lyric-queue').isVisible(), true);
+
+    // 驗證右側樂曲設定收折與摘要膠囊
+    const metaPanel = page.locator('#editor-meta-panel');
+    await page.click('#toggle-editor-meta-btn');
+    assert.equal(await metaPanel.evaluate(el => el.classList.contains('is-collapsed')), true);
+    assert.equal(await page.locator('#editor-meta-body').isVisible(), false);
+    assert.equal(await page.locator('#editor-meta-summary-chip').isVisible(), true);
+    const metaSummary = await page.textContent('#editor-meta-summary-chip');
+    assert.match(metaSummary, /150 BPM/);
+    await page.click('#toggle-editor-meta-text-btn');
+    assert.equal(await metaPanel.evaluate(el => el.classList.contains('is-collapsed')), false);
+    assert.equal(await page.locator('#editor-meta-body').isVisible(), true);
+
+    // 驗證小高度 / 放大比例下右側板塊可正常滾動查看輸入鍵盤
+    await page.setViewportSize({ width: 1280, height: 600 });
+    const studioScrollable = await page.evaluate(() => {
+      const panel = document.querySelector('.editor-studio-panel');
+      panel.scrollTop = 9999;
+      return panel.scrollTop > 0;
+    });
+    assert.equal(studioScrollable, true, 'Studio panel should be vertically scrollable when content overflows');
+    // 驗證左側看譜區域滑桿縮放與滑鼠拖曳（Pan）
+    const zoomSlider = page.locator('#reference-zoom-slider');
+    await zoomSlider.evaluate(input => {
+      input.value = '180';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    assert.equal(await page.textContent('#reference-zoom-label'), '180%');
+    assert.equal(await page.$eval('#reference-image', img => img.style.width), '180%');
+
+    // 模擬在看譜區域拖曳平移
+    await page.evaluate(() => {
+      const stage = document.getElementById('reference-stage');
+      const img = document.getElementById('reference-image');
+      img.style.display = 'block';
+      img.style.width = '600px';
+      img.style.height = '600px';
+    });
+    const stageBox = await photoStage.boundingBox();
+    await page.mouse.move(stageBox.x + stageBox.width / 2, stageBox.y + stageBox.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(stageBox.x + stageBox.width / 2 - 50, stageBox.y + stageBox.height / 2 - 40, { steps: 5 });
+    await page.mouse.up();
+    const stageScrolled = await photoStage.evaluate(el => el.scrollLeft > 0 || el.scrollTop > 0);
+    assert.equal(stageScrolled, true, 'Stage should scroll when dragged with mouse');
+
+    await page.click('#reference-zoom-reset');
+    assert.equal(await page.textContent('#reference-zoom-label'), '100%');
+    assert.equal(await page.inputValue('#reference-zoom-slider'), '100');
+
+    // 驗證單音跟唱（練習）模式下點擊音格與長按發聲
+    await page.click('#workspace-tab-practice');
+    await page.click('#practice-cells-tab');
+    await page.click('.practice-mode-button[data-practice-mode="practice"]');
+    const firstTile = page.locator('#melody-container .note-tile').first();
+    const firstTileBox = await firstTile.boundingBox();
+    
+    // 按住音格 -> 觸發持續發音
+    await page.mouse.move(firstTileBox.x + firstTileBox.width / 2, firstTileBox.y + firstTileBox.height / 2);
+    await page.mouse.down();
+    const isSustaining = await page.evaluate(() => typeof activeSustainedOsc !== 'undefined' && activeSustainedOsc !== null);
+    assert.equal(isSustaining, true, 'Holding note tile in practice mode should start sustained reference tone');
+    
+    // 鬆開音格 -> 停止持續發音，純收音反饋
+    await page.mouse.up();
+    const isStopped = await page.evaluate(() => typeof activeSustainedOsc === 'undefined' || activeSustainedOsc === null);
+    assert.equal(isStopped, true, 'Releasing note tile should stop sustained tone');
+
     assert.deepEqual(pageErrors, []);
-    console.log('PASS integration: BPM, triplet atomicity, range paste, insertion, notation, playback highlight, export');
+    console.log('PASS integration: BPM, triplet atomicity, range paste, insertion, notation, playback highlight, collapsible panels, studio scrolling, reference slider & drag, practice note tone playback, export');
   } finally {
     if (browser) await browser.close();
     server.close();

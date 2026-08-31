@@ -6,3 +6,4 @@ Thumbs.db
 *.tmp
 *.log
 temp_*
+node_modules/

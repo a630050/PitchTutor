@@ -123,10 +123,17 @@
             min-width: 0; min-height: 0; padding: 10px;
             display: flex; flex-direction: column; gap: 8px;
             background: #0b151d; border-right: 1px solid #1f2f3c;
-            overflow-y: auto;
+            overflow-y: auto; overflow-x: hidden; height: 100%;
+            scrollbar-width: thin; scrollbar-color: #384e5e #0a141c;
         }
+        .reference-panel::-webkit-scrollbar { width: 6px; }
+        .reference-panel::-webkit-scrollbar-track { background: #0a141c; }
+        .reference-panel::-webkit-scrollbar-thumb { background-color: #384e5e; border-radius: 3px; }
+        .reference-panel::-webkit-scrollbar-thumb:hover { background-color: var(--baton); }
+
         .reference-photo-section {
-            display: flex; flex-direction: column; gap: 6px; flex: 1 1 54%; min-height: 200px;
+            display: flex; flex-direction: column; gap: 6px; flex: 1 1 54%; min-height: 180px;
+            transition: flex .2s ease;
         }
         .panel-heading { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
         .eyebrow { color: var(--baton); font-size: 9px; font-weight: 900; letter-spacing: .18em; text-transform: uppercase; }
@@ -134,35 +141,102 @@
         .quiet-button {
             padding: 5px 8px; border-radius: 7px; border: 1px solid #334653;
             color: #c4d0d8; background: #14222d; font-size: 10px; font-weight: 800;
+            cursor: pointer;
         }
         .quiet-button:hover { border-color: var(--baton); color: #fff; }
 
+        .collapse-toggle-btn {
+            width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center;
+            border-radius: 6px; border: 1px solid #2d4150; background: #152430; color: #9cb1bf;
+            font-size: 11px; font-weight: 900; cursor: pointer;
+            transition: transform .18s ease, background .12s ease, color .12s ease;
+            padding: 0; line-height: 1; flex-shrink: 0;
+        }
+        .collapse-toggle-btn:hover { background: #1f3547; color: #fff; border-color: #4b677d; }
+        .is-collapsed .collapse-toggle-btn { transform: rotate(-90deg); }
+
+        .meta-summary-chip {
+            font-size: 9px; font-weight: 700; color: #9db2c0; background: #152532;
+            border: 1px solid #2b4152; border-radius: 5px; padding: 2px 7px;
+            max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+
         .reference-stage {
             flex: 1; min-height: 140px; overflow: auto; position: relative;
-            display: grid; place-items: center;
             border-radius: 12px; border: 1px dashed #3c4e5c;
             background-color: #101c25;
             background-image: linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
             background-size: 20px 20px;
+            cursor: grab;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+            scrollbar-width: thin;
+            scrollbar-color: #384e5e #0a141c;
         }
-        .reference-empty { max-width: 220px; text-align: center; color: #748793; font-size: 11px; line-height: 1.6; padding: 18px; }
+        .reference-stage::-webkit-scrollbar { width: 6px; height: 6px; }
+        .reference-stage::-webkit-scrollbar-track { background: #0a141c; }
+        .reference-stage::-webkit-scrollbar-thumb { background-color: #384e5e; border-radius: 3px; }
+        .reference-stage.is-panning { cursor: grabbing !important; }
+        .reference-empty {
+            position: absolute; inset: 0; margin: auto; height: max-content;
+            max-width: 220px; text-align: center; color: #748793; font-size: 11px; line-height: 1.6; padding: 18px;
+            pointer-events: none;
+        }
         .reference-empty strong { color: #dce5e9; display: block; font-size: 12px; margin-bottom: 2px; }
-        #reference-image { display: none; max-width: none; transform-origin: top left; transition: width .12s ease; }
-        .reference-controls { display: flex; align-items: center; gap: 4px; }
-        .reference-controls button { width: 28px; height: 26px; border-radius: 6px; background: #152631; color: #d9e3e7; border: 1px solid #314550; font-size: 11px; font-weight: bold; }
-        #reference-zoom-label { color: #91a1aa; font: 700 9px/1 'Inter', sans-serif; min-width: 36px; text-align: center; }
+        #reference-image {
+            display: none; max-width: none;
+            transform-origin: top left; transition: width .08s ease-out;
+            pointer-events: none; user-select: none; -webkit-user-drag: none;
+        }
+        .reference-controls { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
+        .reference-controls button {
+            width: 24px; height: 24px; border-radius: 6px; background: #152631; color: #d9e3e7;
+            border: 1px solid #314550; font-size: 11px; font-weight: bold; cursor: pointer; flex-shrink: 0;
+            display: inline-flex; align-items: center; justify-content: center;
+        }
+        .reference-controls button:hover { background: #1d3342; color: #fff; border-color: #4f697c; }
+        .reference-zoom-slider {
+            flex: 1; min-width: 45px; height: 4px; border-radius: 2px;
+            background: #243846; outline: none; cursor: pointer;
+            -webkit-appearance: none; appearance: none;
+        }
+        .reference-zoom-slider::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none; width: 14px; height: 14px;
+            border-radius: 50%; background: var(--baton); cursor: pointer;
+            border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+            transition: transform .12s ease;
+        }
+        .reference-zoom-slider::-webkit-slider-thumb:hover { transform: scale(1.2); }
+        .reference-zoom-slider::-moz-range-thumb {
+            width: 14px; height: 14px; border-radius: 50%; background: var(--baton);
+            cursor: pointer; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+        }
+        #reference-zoom-label { color: #91a1aa; font: 700 9px/1 'Inter', sans-serif; min-width: 34px; text-align: center; flex-shrink: 0; }
 
         /* 左側下方的批次歌詞面板 */
         .reference-lyric-section {
             display: flex; flex-direction: column; gap: 6px; flex: 1 1 46%; min-height: 170px;
             padding: 8px 10px; border-radius: 12px; border: 1px solid #233745; background: #081219;
+            transition: flex .2s ease, min-height .2s ease, padding .2s ease;
         }
+        .reference-lyric-section.is-collapsed {
+            flex: 0 0 auto !important; min-height: 0 !important; padding: 6px 10px;
+        }
+        .reference-lyric-section.is-collapsed .lyric-panel-body,
+        .reference-lyric-section.is-collapsed .lyric-actions-main {
+            display: none !important;
+        }
+        .reference-panel.lyric-collapsed .reference-photo-section {
+            flex: 1 1 100%;
+        }
+
         .lyric-queue {
             flex: 1; min-height: 52px; resize: none; border-radius: 7px; border: 1px solid #2d424f;
             background: #050d12; color: #f2eee5; padding: 6px 8px; font-size: 11px; line-height: 1.45; outline: none;
         }
         .lyric-status { display: flex; justify-content: space-between; color: #738792; font-size: 8px; }
-        .primary-small { padding: 4px 8px; border-radius: 6px; background: var(--baton); color: #24130c; font-size: 9px; font-weight: 900; }
+        .primary-small { padding: 4px 8px; border-radius: 6px; background: var(--baton); color: #24130c; font-size: 9px; font-weight: 900; cursor: pointer; }
         .primary-small:hover { filter: brightness(1.08); }
 
         .panel-resizer {
@@ -188,14 +262,37 @@
         .editor-studio-panel {
             min-width: 0; min-height: 0; padding: 10px;
             display: flex; flex-direction: column; gap: 8px;
-            overflow-y: auto; background: #0c1822; border-left: 1px solid #1f2f3c;
+            overflow-y: auto; overflow-x: hidden; height: 100%;
+            background: #0c1822; border-left: 1px solid #1f2f3c;
+            scrollbar-width: thin; scrollbar-color: #384e5e #0a141c;
         }
-        .editor-studio-panel .editor-meta {
+        .editor-studio-panel::-webkit-scrollbar { width: 6px; }
+        .editor-studio-panel::-webkit-scrollbar-track { background: #0a141c; }
+        .editor-studio-panel::-webkit-scrollbar-thumb { background-color: #384e5e; border-radius: 3px; }
+        .editor-studio-panel::-webkit-scrollbar-thumb:hover { background-color: var(--baton); }
+
+        .editor-meta-panel {
+            flex-shrink: 0; min-width: 0;
+            display: flex; flex-direction: column; gap: 6px;
+            padding: 8px 10px; border: 1px solid #273a47; border-radius: 12px; background: #101d27;
+            transition: all .2s ease;
+        }
+        .editor-meta-panel.is-collapsed {
+            padding: 6px 10px;
+        }
+        .editor-meta-panel.is-collapsed .editor-meta-body {
+            display: none !important;
+        }
+        .editor-meta-panel.is-collapsed .meta-summary-chip {
+            display: inline-block !important;
+        }
+
+        .editor-meta {
             display: grid; grid-template-columns: 1fr 1fr;
-            gap: 6px; padding: 8px 10px; border: 1px solid #273a47; border-radius: 12px; background: #101d27;
+            gap: 6px;
         }
-        .editor-studio-panel .editor-meta > label:first-child { grid-column: 1 / -1; }
-        .editor-studio-panel .editor-meta > label:nth-child(2) { grid-column: 1 / -1; }
+        .editor-meta > label:first-child { grid-column: 1 / -1; }
+        .editor-meta > label:nth-child(2) { grid-column: 1 / -1; }
         .field-label { display: block; color: #738894; font-size: 9px; font-weight: 800; letter-spacing: .08em; margin-bottom: 2px; }
         .editor-input, .editor-select {
             width: 100%; height: 28px; border-radius: 6px; border: 1px solid #304653;
@@ -213,8 +310,9 @@
         .key-help-details p { margin-top: 3px; }
 
         .step-console {
+            flex-shrink: 0; min-width: 0; min-height: max-content;
             display: flex; flex-direction: column; gap: 5px;
-            border: 1px solid #2a3c48; border-radius: 12px; overflow: hidden; background: #111f29;
+            border: 1px solid #2a3c48; border-radius: 12px; overflow: visible; background: #111f29;
             padding: 8px 10px;
         }
         .step-controls { display: flex; flex-direction: column; gap: 5px; }
@@ -229,13 +327,13 @@
         .choice-button.accidental.is-active { background: #d5ebe7; border-color: #d5ebe7; }
         .choice-button.input-mode-btn.is-active { background: #fee4d6; color: #431f13; border-color: var(--baton); }
 
-        .pitch-pad { display: grid; grid-template-columns: repeat(8, minmax(36px, 1fr)); gap: 4px; margin-top: 1px; }
+        .pitch-pad { display: grid; grid-template-columns: repeat(8, minmax(36px, 1fr)); gap: 4px; margin-top: 1px; flex-shrink: 0; }
         .pitch-key {
             height: 34px; border-radius: 7px; border: 1px solid #39505d;
             background: #172a35; color: #f1f4f3;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             position: relative; overflow: hidden; padding: 2px 1px;
-            transition: all 0.12s ease;
+            transition: all 0.12s ease; flex-shrink: 0;
         }
         .pitch-key .key-main { font: 900 13px/1 'Inter', sans-serif; }
         .pitch-key .key-sub { font: 700 8px/1 'Inter', sans-serif; color: #879ea9; margin-top: 1px; }
@@ -607,31 +705,40 @@
 
                 <div class="panel-heading">
                     <div class="reference-controls" aria-label="圖片縮放">
-                        <button id="reference-zoom-out" type="button" aria-label="縮小圖片">−</button>
+                        <button id="reference-zoom-out" type="button" aria-label="縮小圖片" title="縮小">−</button>
+                        <input type="range" id="reference-zoom-slider" min="30" max="300" step="5" value="100" aria-label="圖片縮放比例" class="reference-zoom-slider">
+                        <button id="reference-zoom-in" type="button" aria-label="放大圖片" title="放大">＋</button>
                         <span id="reference-zoom-label">100%</span>
-                        <button id="reference-zoom-in" type="button" aria-label="放大圖片">＋</button>
-                        <button id="reference-zoom-reset" type="button" aria-label="重設圖片大小">↺</button>
+                        <button id="reference-zoom-reset" type="button" aria-label="重設圖片大小" title="重設為 100%">↺</button>
                     </div>
-                    <span class="text-[9px] text-slate-500">可捲動查看</span>
+                    <span class="text-[9px] text-slate-500 whitespace-nowrap shrink-0">可拖曳</span>
                 </div>
             </div>
 
-            <!-- 批次歌詞板塊 (移至左側下方) -->
-            <div class="reference-lyric-section">
-                <div class="panel-heading">
-                    <div>
-                        <div class="eyebrow">Lyric queue</div>
-                        <h3 class="panel-title">批次歌詞</h3>
+            <!-- 批次歌詞板塊 (移至左側下方，可收折) -->
+            <div id="reference-lyric-section" class="reference-lyric-section">
+                <div class="panel-heading" id="lyric-panel-toggle-bar">
+                    <div class="flex items-center gap-1.5 cursor-pointer select-none min-w-0" id="lyric-panel-toggle-header" title="點擊收折／展開歌詞板塊">
+                        <button id="toggle-lyric-panel-btn" class="collapse-toggle-btn" type="button" aria-expanded="true" aria-label="收折批次歌詞">▾</button>
+                        <div>
+                            <div class="eyebrow">Lyric queue</div>
+                            <h3 class="panel-title">批次歌詞</h3>
+                        </div>
                     </div>
-                    <div class="flex gap-1">
-                        <button id="apply-lyrics-btn" class="primary-small text-[10px]" type="button">從游標套用</button>
-                        <button id="clear-lyrics-btn" class="quiet-button text-[10px]" type="button">清空</button>
+                    <div class="flex items-center gap-1">
+                        <div class="flex gap-1 lyric-actions-main">
+                            <button id="apply-lyrics-btn" class="primary-small text-[10px]" type="button">從游標套用</button>
+                            <button id="clear-lyrics-btn" class="quiet-button text-[10px]" type="button">清空</button>
+                        </div>
+                        <button id="toggle-lyric-panel-text-btn" class="quiet-button text-[10px]" type="button" aria-label="收折歌詞板塊">收折</button>
                     </div>
                 </div>
-                <textarea id="lyric-queue" class="lyric-queue" placeholder="貼上整句歌詞；新增每個音符時會依序取出一個字。空白與直線 | 會略過，底線 _ 代表延續前一字。"></textarea>
-                <div class="lyric-status">
-                    <span id="lyric-queue-status">尚未排入歌詞</span>
-                    <span>休止符不消耗歌詞</span>
+                <div id="lyric-panel-body" class="lyric-panel-body flex flex-col gap-1.5 flex-1 min-h-0">
+                    <textarea id="lyric-queue" class="lyric-queue" placeholder="貼上整句歌詞；新增每個音符時會依序取出一個字。空白與直線 | 會略過，底線 _ 代表延續前一字。"></textarea>
+                    <div class="lyric-status">
+                        <span id="lyric-queue-status">尚未排入歌詞</span>
+                        <span>休止符不消耗歌詞</span>
+                    </div>
                 </div>
             </div>
         </aside>
@@ -675,57 +782,75 @@
         <button id="studio-pane-resizer" class="panel-resizer panel-resizer-horizontal" type="button" role="separator" aria-orientation="vertical" aria-label="拖曳調整右側設定寬度" title="拖曳調整右側寬度"></button>
 
         <!-- 【右欄】樂譜設定 ＋ 步進輸入控制台 -->
-        <aside class="editor-studio-panel">
-            <section class="editor-meta" aria-label="樂譜設定">
-                <label>
-                    <span class="field-label">曲名</span>
-                    <input id="editor-score-title" class="editor-input" type="text" value="我的練唱樂譜" autocomplete="off">
-                </label>
-                <label>
-                    <span class="field-label">調號</span>
-                    <select id="editor-score-key" class="editor-select">
-                        <option value="C">無升降｜C 大調／A 小調</option>
-                        <option value="G">1♯｜G 大調／E 小調</option>
-                        <option value="D">2♯｜D 大調／B 小調</option>
-                        <option value="A">3♯｜A 大調／F♯ 小調</option>
-                        <option value="E">4♯｜E 大調／C♯ 小調</option>
-                        <option value="B">5♯｜B 大調／G♯ 小調</option>
-                        <option value="F#">6♯｜F♯ 大調／D♯ 小調</option>
-                        <option value="C#">7♯｜C♯ 大調／A♯ 小調</option>
-                        <option value="F">1♭｜F 大調／D 小調</option>
-                        <option value="Bb">2♭｜B♭ 大調／G 小調</option>
-                        <option value="Eb">3♭｜E♭ 大調／C 小調</option>
-                        <option value="Ab">4♭｜A♭ 大調／F 小調</option>
-                        <option value="Db">5♭｜D♭ 大調／B♭ 小調</option>
-                        <option value="Gb">6♭｜G♭ 大調／E♭ 小調</option>
-                        <option value="Cb">7♭｜C♭ 大調／A♭ 小調</option>
-                    </select>
-                </label>
-                <label>
-                    <span class="field-label">採用調性</span>
-                    <select id="editor-score-mode" class="editor-select">
-                        <option value="major">使用大調</option>
-                        <option value="minor">使用關係小調</option>
-                    </select>
-                </label>
-                <label>
-                    <span class="field-label">拍號</span>
-                    <select id="editor-time-signature" class="editor-select">
-                        <option value="4/4">4 / 4</option>
-                        <option value="3/4">3 / 4</option>
-                        <option value="6/8">6 / 8</option>
-                    </select>
-                </label>
-                <label class="col-span-2">
-                    <span class="field-label">速度 BPM</span>
-                    <input id="editor-score-bpm" class="editor-input" type="number" min="40" max="150" value="90" inputmode="numeric">
-                </label>
-                <div class="key-signature-help">
-                    <div id="key-signature-summary"><strong>無升降號</strong>：可能是 C 大調，也可能是 A 小調。</div>
-                    <details class="key-help-details">
-                        <summary>怎麼判斷大調或小調？</summary>
-                        <p id="key-detection-tip">調號本身不能單獨決定。請看旋律最後停在哪個音，常回到 C 多半是 C 大調，常回到 A 多半是 A 小調。</p>
-                    </details>
+        <aside class="editor-studio-panel" id="editor-studio-panel">
+            <section id="editor-meta-panel" class="editor-meta-panel" aria-label="樂譜設定">
+                <div class="panel-heading meta-panel-heading" id="editor-meta-toggle-bar">
+                    <div class="flex items-center gap-1.5 cursor-pointer select-none min-w-0" id="editor-meta-toggle-header" title="點擊收折／展開樂譜設定">
+                        <button id="toggle-editor-meta-btn" class="collapse-toggle-btn" type="button" aria-expanded="true" aria-label="收折樂譜設定">▾</button>
+                        <div class="min-w-0">
+                            <div class="eyebrow">Score settings</div>
+                            <h3 class="panel-title flex items-center gap-2">
+                                <span>樂譜設定</span>
+                                <span id="editor-meta-summary-chip" class="meta-summary-chip hidden"></span>
+                            </h3>
+                        </div>
+                    </div>
+                    <button id="toggle-editor-meta-text-btn" class="quiet-button text-[10px] shrink-0" type="button" aria-label="收折樂譜設定板塊">收折</button>
+                </div>
+
+                <div id="editor-meta-body" class="editor-meta-body">
+                    <div class="editor-meta">
+                        <label>
+                            <span class="field-label">曲名</span>
+                            <input id="editor-score-title" class="editor-input" type="text" value="我的練唱樂譜" autocomplete="off">
+                        </label>
+                        <label>
+                            <span class="field-label">調號</span>
+                            <select id="editor-score-key" class="editor-select">
+                                <option value="C">無升降｜C 大調／A 小調</option>
+                                <option value="G">1♯｜G 大調／E 小調</option>
+                                <option value="D">2♯｜D 大調／B 小調</option>
+                                <option value="A">3♯｜A 大調／F♯ 小調</option>
+                                <option value="E">4♯｜E 大調／C♯ 小調</option>
+                                <option value="B">5♯｜B 大調／G♯ 小調</option>
+                                <option value="F#">6♯｜F♯ 大調／D♯ 小調</option>
+                                <option value="C#">7♯｜C♯ 大調／A♯ 小調</option>
+                                <option value="F">1♭｜F 大調／D 小調</option>
+                                <option value="Bb">2♭｜B♭ 大調／G 小調</option>
+                                <option value="Eb">3♭｜E♭ 大調／C 小調</option>
+                                <option value="Ab">4♭｜A♭ 大調／F 小調</option>
+                                <option value="Db">5♭｜D♭ 大調／B♭ 小調</option>
+                                <option value="Gb">6♭｜G♭ 大調／E♭ 小調</option>
+                                <option value="Cb">7♭｜C♭ 大調／A♭ 小調</option>
+                            </select>
+                        </label>
+                        <label>
+                            <span class="field-label">採用調性</span>
+                            <select id="editor-score-mode" class="editor-select">
+                                <option value="major">使用大調</option>
+                                <option value="minor">使用關係小調</option>
+                            </select>
+                        </label>
+                        <label>
+                            <span class="field-label">拍號</span>
+                            <select id="editor-time-signature" class="editor-select">
+                                <option value="4/4">4 / 4</option>
+                                <option value="3/4">3 / 4</option>
+                                <option value="6/8">6 / 8</option>
+                            </select>
+                        </label>
+                        <label class="col-span-2">
+                            <span class="field-label">速度 BPM</span>
+                            <input id="editor-score-bpm" class="editor-input" type="number" min="40" max="150" value="90" inputmode="numeric">
+                        </label>
+                        <div class="key-signature-help">
+                            <div id="key-signature-summary"><strong>無升降號</strong>：可能是 C 大調，也可能是 A 小調。</div>
+                            <details class="key-help-details">
+                                <summary>怎麼判斷大調或小調？</summary>
+                                <p id="key-detection-tip">調號本身不能單獨決定。請看旋律最後停在哪個音，常回到 C 多半是 C 大調，常回到 A 多半是 A 小調。</p>
+                            </details>
+                        </div>
+                    </div>
                 </div>
             </section>
 
@@ -2633,6 +2758,7 @@
             currentScoreTitle = titleInput ? (titleInput.value.trim() || '未命名樂譜') : currentScoreTitle;
             document.getElementById('editor-score-heading').textContent = currentScoreTitle;
             document.getElementById('editor-score-meta').textContent = `${getCurrentTonalityLabel()} · ${currentTimeSignature} · ${currentBpm} BPM · ${scoreNotes.length} 個音符`;
+            updateEditorMetaSummary();
 
             if (scoreNotes.length === 0) {
                 const empty = document.createElement('div');
@@ -2730,6 +2856,94 @@
             if (persist) {
                 try { localStorage.setItem('rehearsalDeskTextSize', setting.value); } catch (_) { /* 本機檔案模式可能停用儲存 */ }
             }
+        }
+
+        /**
+         * 更新樂譜設定摘要膠囊
+         */
+        function updateEditorMetaSummary() {
+            const summaryChip = document.getElementById('editor-meta-summary-chip');
+            if (!summaryChip) return;
+            const title = currentScoreTitle || '未命名樂譜';
+            const keyLabel = getCurrentTonalityLabel();
+            summaryChip.textContent = `${title} · ${keyLabel} · ${currentTimeSignature} · ${currentBpm} BPM`;
+            summaryChip.title = `${title} (${keyLabel}, ${currentTimeSignature}, ${currentBpm} BPM)`;
+        }
+
+        /**
+         * 初始化側欄可收折板塊（左側歌詞、右側樂曲設定）
+         */
+        function initializeCollapsiblePanels() {
+            // 1. 左側批次歌詞板塊
+            const lyricSection = document.getElementById('reference-lyric-section');
+            const lyricPanel = document.getElementById('reference-panel');
+            const toggleLyricBtn = document.getElementById('toggle-lyric-panel-btn');
+            const toggleLyricTextBtn = document.getElementById('toggle-lyric-panel-text-btn');
+            const lyricToggleHeader = document.getElementById('lyric-panel-toggle-header');
+
+            const setLyricCollapsed = (collapsed, persist = true) => {
+                if (!lyricSection) return;
+                lyricSection.classList.toggle('is-collapsed', collapsed);
+                if (lyricPanel) lyricPanel.classList.toggle('lyric-collapsed', collapsed);
+                if (toggleLyricBtn) {
+                    toggleLyricBtn.setAttribute('aria-expanded', String(!collapsed));
+                    toggleLyricBtn.setAttribute('title', collapsed ? '展開批次歌詞' : '收折批次歌詞');
+                }
+                if (toggleLyricTextBtn) {
+                    toggleLyricTextBtn.textContent = collapsed ? '展開' : '收折';
+                }
+                if (persist) {
+                    try { localStorage.setItem('rehearsalDeskLyricCollapsed', collapsed ? 'true' : 'false'); } catch (_) {}
+                }
+            };
+
+            const toggleLyric = () => {
+                const isNowCollapsed = !lyricSection?.classList?.contains('is-collapsed');
+                setLyricCollapsed(isNowCollapsed, true);
+            };
+
+            if (toggleLyricBtn) toggleLyricBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleLyric(); });
+            if (toggleLyricTextBtn) toggleLyricTextBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleLyric(); });
+            if (lyricToggleHeader) lyricToggleHeader.addEventListener('click', toggleLyric);
+
+            let savedLyricCollapsed = false;
+            try { savedLyricCollapsed = localStorage.getItem('rehearsalDeskLyricCollapsed') === 'true'; } catch (_) {}
+            setLyricCollapsed(savedLyricCollapsed, false);
+
+            // 2. 右側樂譜基本設定板塊
+            const metaPanel = document.getElementById('editor-meta-panel');
+            const toggleMetaBtn = document.getElementById('toggle-editor-meta-btn');
+            const toggleMetaTextBtn = document.getElementById('toggle-editor-meta-text-btn');
+            const metaToggleHeader = document.getElementById('editor-meta-toggle-header');
+
+            const setMetaCollapsed = (collapsed, persist = true) => {
+                if (!metaPanel) return;
+                metaPanel.classList.toggle('is-collapsed', collapsed);
+                if (toggleMetaBtn) {
+                    toggleMetaBtn.setAttribute('aria-expanded', String(!collapsed));
+                    toggleMetaBtn.setAttribute('title', collapsed ? '展開樂譜設定' : '收折樂譜設定');
+                }
+                if (toggleMetaTextBtn) {
+                    toggleMetaTextBtn.textContent = collapsed ? '展開' : '收折';
+                }
+                updateEditorMetaSummary();
+                if (persist) {
+                    try { localStorage.setItem('rehearsalDeskMetaCollapsed', collapsed ? 'true' : 'false'); } catch (_) {}
+                }
+            };
+
+            const toggleMeta = () => {
+                const isNowCollapsed = !metaPanel?.classList?.contains('is-collapsed');
+                setMetaCollapsed(isNowCollapsed, true);
+            };
+
+            if (toggleMetaBtn) toggleMetaBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleMeta(); });
+            if (toggleMetaTextBtn) toggleMetaTextBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleMeta(); });
+            if (metaToggleHeader) metaToggleHeader.addEventListener('click', toggleMeta);
+
+            let savedMetaCollapsed = false;
+            try { savedMetaCollapsed = localStorage.getItem('rehearsalDeskMetaCollapsed') === 'true'; } catch (_) {}
+            setMetaCollapsed(savedMetaCollapsed, false);
         }
 
         function initializeTextSizeControls() {
@@ -2870,11 +3084,84 @@
         }
 
         function setReferenceZoom(nextZoom) {
-            referenceZoom = Math.max(0.35, Math.min(3, Number(nextZoom)));
+            referenceZoom = Math.max(0.3, Math.min(3, Number(nextZoom) || 1));
             const image = document.getElementById('reference-image');
             const label = document.getElementById('reference-zoom-label');
-            if (image) image.style.width = `${referenceZoom * 100}%`;
-            if (label) label.textContent = `${Math.round(referenceZoom * 100)}%`;
+            const slider = document.getElementById('reference-zoom-slider');
+            const percent = Math.round(referenceZoom * 100);
+            if (image) image.style.width = `${percent}%`;
+            if (label) label.textContent = `${percent}%`;
+            if (slider && Number(slider.value) !== percent) slider.value = String(percent);
+        }
+
+        /**
+         * 初始化樂譜照片參照區的滑鼠拖曳（Pan）與縮放互動
+         */
+        function initializeReferenceStageInteractions() {
+            const stage = document.getElementById('reference-stage');
+            const slider = document.getElementById('reference-zoom-slider');
+            const zoomOutBtn = document.getElementById('reference-zoom-out');
+            const zoomInBtn = document.getElementById('reference-zoom-in');
+            const zoomResetBtn = document.getElementById('reference-zoom-reset');
+
+            if (slider) {
+                slider.addEventListener('input', (event) => {
+                    setReferenceZoom(Number(event.target.value) / 100);
+                });
+            }
+            if (zoomOutBtn) zoomOutBtn.addEventListener('click', () => setReferenceZoom(referenceZoom - 0.15));
+            if (zoomInBtn) zoomInBtn.addEventListener('click', () => setReferenceZoom(referenceZoom + 0.15));
+            if (zoomResetBtn) zoomResetBtn.addEventListener('click', () => setReferenceZoom(1));
+
+            if (!stage) return;
+
+            let isPanning = false;
+            let startClientX = 0;
+            let startClientY = 0;
+            let startScrollLeft = 0;
+            let startScrollTop = 0;
+
+            stage.addEventListener('pointerdown', (event) => {
+                // 僅在滑鼠左鍵或主要觸控點按下時觸發拖曳
+                if (event.button !== 0) return;
+                isPanning = true;
+                stage.classList.add('is-panning');
+                startClientX = event.clientX;
+                startClientY = event.clientY;
+                startScrollLeft = stage.scrollLeft;
+                startScrollTop = stage.scrollTop;
+                try { stage.setPointerCapture(event.pointerId); } catch (_) {}
+            });
+
+            stage.addEventListener('pointermove', (event) => {
+                if (!isPanning) return;
+                event.preventDefault();
+                const deltaX = event.clientX - startClientX;
+                const deltaY = event.clientY - startClientY;
+                stage.scrollLeft = startScrollLeft - deltaX;
+                stage.scrollTop = startScrollTop - deltaY;
+            });
+
+            const stopPanning = (event) => {
+                if (!isPanning) return;
+                isPanning = false;
+                stage.classList.remove('is-panning');
+                if (event) {
+                    try { stage.releasePointerCapture(event.pointerId); } catch (_) {}
+                }
+            };
+
+            stage.addEventListener('pointerup', stopPanning);
+            stage.addEventListener('pointercancel', stopPanning);
+
+            // 支援 Ctrl + 滑鼠滾輪 縮放
+            stage.addEventListener('wheel', (event) => {
+                if (event.ctrlKey || event.metaKey) {
+                    event.preventDefault();
+                    const delta = event.deltaY < 0 ? 0.1 : -0.1;
+                    setReferenceZoom(referenceZoom + delta);
+                }
+            }, { passive: false });
         }
 
         function handleEditorShortcut(event) {
@@ -5115,10 +5402,6 @@
                 };
                 reader.readAsDataURL(file);
             });
-            document.getElementById('reference-zoom-out').addEventListener('click', () => setReferenceZoom(referenceZoom - 0.15));
-            document.getElementById('reference-zoom-in').addEventListener('click', () => setReferenceZoom(referenceZoom + 0.15));
-            document.getElementById('reference-zoom-reset').addEventListener('click', () => setReferenceZoom(1));
-
             document.querySelectorAll('.practice-mode-button').forEach(button => {
                 button.addEventListener('click', () => {
                     if (button.dataset.practiceMode === activeAppMode && (activeAppMode === 'play_audio' || activeAppMode === 'play_practice')) {
@@ -5140,6 +5423,8 @@
 
             initializeTextSizeControls();
             initializePanelResizers();
+            initializeCollapsiblePanels();
+            initializeReferenceStageInteractions();
             setWorkspaceView('editor');
             syncWorkbenchControls();
             updateLyricQueueStatus();
@@ -5245,8 +5530,22 @@
             element.setAttribute('tabindex', '0');
             element.setAttribute('role', 'button');
             element.setAttribute('aria-label', `第 ${index + 1} 個音格${scoreNotes[index]?.lyric ? `，歌詞 ${scoreNotes[index].lyric}` : ''}`);
+            
             const activate = () => onNoteTileInteraction(index, 'click');
             element.addEventListener('click', activate);
+            element.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                onNoteTileInteraction(index, 'press');
+            });
+            element.addEventListener('mouseup', () => stopSustainedTone());
+            element.addEventListener('mouseleave', () => stopSustainedTone());
+            element.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                onNoteTileInteraction(index, 'press');
+            }, { passive: false });
+            element.addEventListener('touchend', () => stopSustainedTone());
+            element.addEventListener('touchcancel', () => stopSustainedTone());
+
             element.addEventListener('keydown', event => {
                 if (event.key === 'Enter' || event.key === ' ') {
                     event.preventDefault();
@@ -5517,11 +5816,16 @@
                     playSynthesizedTone(midi, getNoteDurationSeconds(note), 0.45);
                 }
             } else if (activeAppMode === 'practice') {
-                // 2. 練習模式：单音收音/测音
-                stopSustainedTone();
+                // 2. 練習（單音跟唱）模式：點擊發聲、長按持續發聲；不按時純收音測音
                 if (note.degree !== 0) {
                     startMicListening();
+                    if (eventType === 'press') {
+                        startSustainedTone(midi);
+                    } else if (eventType === 'click' && !activeSustainedOsc) {
+                        playSynthesizedTone(midi, getNoteDurationSeconds(note), 0.45);
+                    }
                 } else {
+                    stopSustainedTone();
                     stopMicListening();
                 }
             }
@@ -5686,9 +5990,9 @@
                 document.getElementById('tuner-feedback').innerText = "📖 學習模式: 點擊/長按卡片聽標準音";
             } else if (targetMode === 'practice') {
                 btnModePractice.className = "btn-press px-3 py-1 rounded-lg font-bold transition-all text-xs bg-emerald-600 text-white shadow flex items-center gap-1";
-                playbackStatus.innerText = "🎯 練習模式 · 點擊單音對著麥克風唱出音高 (收音)";
-                cardTrackHeaderTitle.innerText = "🎼 聽好的聲音 (🎯 練習模式：點擊單音對著麥克風唱)";
-                document.getElementById('tuner-feedback').innerText = "🎤 練習模式: 請對著麥克風唱出音高...";
+                playbackStatus.innerText = "🎯 練習模式 · 點擊/長按音格發聲聽音，對著麥克風唱出音高 (收音)";
+                cardTrackHeaderTitle.innerText = "🎼 聽好的聲音 (🎯 練習模式：點擊/長按發聲聽音，對著麥克風唱)";
+                document.getElementById('tuner-feedback').innerText = "🎤 練習模式: 點擊/長按可聽標準音，請對著麥克風唱...";
                 if (activeSingleNoteIndex !== null && scoreNotes[activeSingleNoteIndex]) {
                     startMicListening();
                 }
