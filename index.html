@@ -904,7 +904,19 @@
             }
 
             #notation-rerender-btn { display: none !important; }
-            .practice-score-tabs { flex-wrap: wrap; }
+            .practice-score-tabs {
+                flex-wrap: nowrap !important;
+                display: flex !important;
+                align-items: center !important;
+                gap: 4px !important;
+                flex-shrink: 0 !important;
+            }
+            .practice-score-tab {
+                padding: 4px 6px !important;
+                font-size: 9px !important;
+                white-space: nowrap !important;
+            }
+            .notation-follow-label { display: none !important; }
             .notation-panel { padding: 6px; overflow-x: hidden; width: 100%; -webkit-overflow-scrolling: touch; }
             .notation-stage { width: 100%; min-width: 0; }
             .notation-heading { font-size: 11px; margin: 0 0 4px 6px; }
@@ -1495,26 +1507,27 @@
                 </div>
             </section>
 
-            <!-- 右下区: 聽好的聲音 - 高容量迷你樂譜卡片軌道 (Score Card Track) -->
-            <section class="flex-1 glass-panel p-3 rounded-xl shadow-xl flex flex-col space-y-2 min-h-[260px]">
-                <div class="flex justify-between items-center gap-3 px-1">
-                    <h2 id="card-track-header-title" class="text-xs font-bold text-slate-200 flex items-center gap-1">
-                        🎼 練唱樂譜 (📖 學習模式：點擊/長按卡片發聲聽音)
+            <!-- 右下区: 練唱樂譜軌道 (五線譜 / 音格) -->
+            <section class="flex-1 glass-panel p-2.5 sm:p-3 rounded-xl shadow-xl flex flex-col space-y-2 min-h-[260px]">
+                <div class="flex justify-between items-center gap-2 px-1">
+                    <h2 id="card-track-header-title" class="text-xs font-bold text-slate-200 truncate min-w-0" title="點擊音符即可開始練習">
+                        📖 學習模式：點擊/長按發聲聽音
                     </h2>
-                    <div class="practice-score-tabs">
-                        <button id="practice-cells-tab" class="practice-score-tab is-active" type="button">▦ 音格</button>
-                        <button id="practice-notation-tab" class="practice-score-tab" type="button">🎼 五線譜</button>
-                        <label id="notation-follow-wrap" class="notation-follow-label hidden"><input id="notation-follow-checkbox" type="checkbox" checked> 跟隨播放</label>
+                    <div class="practice-score-tabs flex items-center gap-1 shrink-0 flex-nowrap">
+                        <button id="practice-cells-tab" class="practice-score-tab" type="button">▦ 音格</button>
+                        <button id="practice-notation-tab" class="practice-score-tab is-active" type="button">🎼 五線譜</button>
+                        <label id="notation-follow-wrap" class="notation-follow-label"><input id="notation-follow-checkbox" type="checkbox" checked> 跟隨播放</label>
                         <button id="notation-rerender-btn" class="practice-score-tab hidden" type="button">重新排版</button>
-                        <span class="text-[10px] text-slate-400" id="score-count-badge">共 0 個音符</span>
+                        <span class="text-[10px] text-slate-400 whitespace-nowrap ml-0.5" id="score-count-badge">共 0 個音符</span>
                     </div>
                 </div>
 
-                <!-- 高容量迷你卡片容器 -->
-                <div id="melody-container" class="flex-1 flex flex-wrap gap-1.5 overflow-y-auto hide-scrollbar p-1 items-start content-start">
+                <!-- 高容量迷你卡片容器 (預設隱藏，切換為音格時顯示) -->
+                <div id="melody-container" class="hidden flex-1 flex flex-wrap gap-1.5 overflow-y-auto hide-scrollbar p-1 items-start content-start">
                     <!-- 动态卡片 -->
                 </div>
-                <div id="notation-panel" class="notation-panel is-hidden" aria-label="五線譜練唱視圖">
+                <!-- 五線譜練唱視圖 (預設顯示) -->
+                <div id="notation-panel" class="notation-panel" aria-label="五線譜練唱視圖">
                     <div id="notation-stage" class="notation-stage"></div>
                 </div>
             </section>
@@ -1898,7 +1911,7 @@
         let playbackScrollTimers = [];
         let practiceControlsInView = true;
         let practiceControlsObserver = null;
-        let practiceScoreView = 'cells';
+        let practiceScoreView = 'notation';
         let notationDirty = true;
         let notationSourceMap = new Map();
         let highlightedNotationElements = [];
@@ -5085,23 +5098,23 @@
             if (targetMode === 'learn') {
                 btnModeLearn.className = "btn-press px-3 py-1 rounded-lg font-bold transition-all text-xs bg-blue-600 text-white shadow flex items-center gap-1";
                 playbackStatus.innerText = "📖 學習模式 · 點擊/長按卡片聽音";
-                cardTrackHeaderTitle.innerText = "🎼 聽好的聲音 (📖 學習模式：點擊/長按卡片發聲聽音)";
+                cardTrackHeaderTitle.innerText = "📖 學習模式：點擊/長按發聲聽音";
                 document.getElementById('tuner-feedback').innerText = "📖 學習模式: 點擊/長按卡片聽標準音";
             } else if (targetMode === 'practice') {
                 btnModePractice.className = "btn-press px-3 py-1 rounded-lg font-bold transition-all text-xs bg-emerald-600 text-white shadow flex items-center gap-1";
                 playbackStatus.innerText = "🎯 練習模式 · 點擊/長按音格發聲聽音，對著麥克風唱出音高 (收音)";
-                cardTrackHeaderTitle.innerText = "🎼 聽好的聲音 (🎯 練習模式：點擊/長按發聲聽音，對著麥克風唱)";
+                cardTrackHeaderTitle.innerText = "🎯 練習模式：點擊/長按發聲聽音，對著麥克風唱";
                 document.getElementById('tuner-feedback').innerText = "🎤 練習模式: 點擊/長按可聽標準音，請對著麥克風唱...";
                 if (activeSingleNoteIndex !== null && scoreNotes[activeSingleNoteIndex]) {
                     startMicListening();
                 }
             } else if (targetMode === 'play_audio') {
                 btnModePlayAudio.className = "btn-press px-3 py-1 rounded-lg font-bold transition-all text-xs bg-indigo-600 text-white shadow flex items-center gap-1";
-                cardTrackHeaderTitle.innerText = "🎼 聽好的聲音 (▶️ 全曲發聲播放中...)";
+                cardTrackHeaderTitle.innerText = "▶️ 全曲發聲播放中...";
                 startFullPlayback('audio');
             } else if (targetMode === 'play_practice') {
                 btnModePlayPractice.className = "btn-press px-3 py-1 rounded-lg font-bold transition-all text-xs bg-teal-600 text-white shadow flex items-center gap-1";
-                cardTrackHeaderTitle.innerText = "🎼 聽好的聲音 (🎤 全曲練聲模式跟唱中...)";
+                cardTrackHeaderTitle.innerText = "🎤 全曲練唱模式跟唱中...";
                 startFullPlayback('practice');
             }
 

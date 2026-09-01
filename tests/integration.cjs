@@ -384,6 +384,14 @@ const server = http.createServer((request, response) => {
     assert.equal(await paramPage.locator('#tuner-hear-sound').isVisible(), true);
     assert.equal(await paramPage.locator('#notation-rerender-btn').isVisible(), false, 'Rerender button should be hidden from UI');
 
+    // 驗證預設樂譜視圖為五線譜
+    assert.equal(await paramPage.evaluate(() => practiceScoreView), 'notation', 'Default practice score view should be notation');
+    assert.equal(await paramPage.locator('#practice-notation-tab.is-active').count(), 1, 'Notation tab should be active by default');
+
+    // 驗證樂譜板塊左上角文字精簡
+    const headerTitleText = (await paramPage.textContent('#card-track-header-title')).trim();
+    assert.equal(headerTitleText, '🎯 練習模式：點擊/長按發聲聽音，對著麥克風唱');
+
     // 驗證向下捲動超過初始位置時 #tuner-panel 吸頂鎖定於頂端 (top <= 5)
     const initialTunerTop = await paramPage.locator('#tuner-panel').evaluate(el => el.getBoundingClientRect().top + window.scrollY);
     await paramPage.evaluate(target => window.scrollTo(0, target + 120), initialTunerTop);
