@@ -1609,6 +1609,8 @@
         let isPlaybackPaused = false;
         let playbackPausedByLifecycle = false;
         let playbackLifecycleResumeInFlight = false;
+        let playbackWakeLock = null;
+        let playbackWakeLockRequestInFlight = null;
         let playbackScrollTimers = [];
         let practiceControlsInView = true;
         let practiceControlsObserver = null;
@@ -4723,6 +4725,61 @@
         btnModePlayAudio.addEventListener('click', () => activeAppMode === 'play_audio' ? togglePlaybackPause() : switchAppMode('play_audio'));
         btnModePlayPractice.addEventListener('click', () => activeAppMode === 'play_practice' ? togglePlaybackPause() : switchAppMode('play_practice'));
 
+        function shouldHoldPlaybackWakeLock() {
+            const isFullPlayback = activeAppMode === 'play_audio' || activeAppMode === 'play_practice';
+            return isFullPlayback && !isPlaybackPaused && currentPlaybackIndex >= 0 && !document.hidden;
+        }
+
+        async function requestPlaybackWakeLock() {
+            if (!navigator.wakeLock?.request || !shouldHoldPlaybackWakeLock()) return false;
+            if (playbackWakeLock && !playbackWakeLock.released) return true;
+            if (playbackWakeLockRequestInFlight) return playbackWakeLockRequestInFlight;
+
+            const request = (async () => {
+                try {
+                    const sentinel = await navigator.wakeLock.request('screen');
+                    if (!shouldHoldPlaybackWakeLock()) {
+                        await sentinel.release();
+                        return false;
+                    }
+                    playbackWakeLock = sentinel;
+                    sentinel.addEventListener('release', () => {
+                        if (playbackWakeLock === sentinel) playbackWakeLock = null;
+                        if (shouldHoldPlaybackWakeLock()) {
+                            setTimeout(() => requestPlaybackWakeLock(), 0);
+                        }
+                    });
+                    return true;
+                } catch (error) {
+                    console.warn('無法啟用播放螢幕喚醒鎖定：', error);
+                    return false;
+                }
+            })();
+
+            playbackWakeLockRequestInFlight = request;
+            try {
+                return await request;
+            } finally {
+                if (playbackWakeLockRequestInFlight === request) playbackWakeLockRequestInFlight = null;
+            }
+        }
+
+        function releasePlaybackWakeLock() {
+            const sentinel = playbackWakeLock;
+            if (!sentinel || sentinel.released) {
+                if (playbackWakeLock === sentinel) playbackWakeLock = null;
+                return;
+            }
+            sentinel.release().then(() => {
+                if (playbackWakeLock === sentinel) playbackWakeLock = null;
+            }).catch(error => {
+                console.warn('無法釋放播放螢幕喚醒鎖定：', error);
+                if (!shouldHoldPlaybackWakeLock()) {
+                    setTimeout(() => releasePlaybackWakeLock(), 1000);
+                }
+            });
+        }
+
         /**
          * 播放過程中點擊任一音符/音格時，立即跳轉至該位置繼續播放
          * @param {number} targetIndex 目標音符索引
@@ -4756,6 +4813,7 @@
             playbackPausedElapsedMs = 0;
             isPlaybackPaused = false;
             playbackPausedByLifecycle = false;
+            requestPlaybackWakeLock();
 
             btnStop.classList.remove('hidden');
             if (activeAppMode === 'play_practice') {
@@ -4784,6 +4842,7 @@
             playbackPausedElapsedMs = 0;
             isPlaybackPaused = false;
             playbackPausedByLifecycle = false;
+            requestPlaybackWakeLock();
 
             btnStop.classList.remove('hidden');
 
@@ -4847,6 +4906,7 @@
             playbackPausedElapsedMs = currentEntry?.startMs ?? Math.max(0, performance.now() - playbackStartedAtMs);
             isPlaybackPaused = true;
             playbackPausedByLifecycle = true;
+            releasePlaybackWakeLock();
             stopCurrentVoice(0.01);
             stopSustainedTone();
             if (activeAppMode === 'play_practice') stopMicListening();
@@ -4870,6 +4930,7 @@
             isPlaybackPaused = false;
             playbackPausedByLifecycle = false;
             playbackStartedAtMs = performance.now() - playbackPausedElapsedMs;
+            requestPlaybackWakeLock();
             if (activeAppMode === 'play_practice') startMicListening();
             playbackStatus.innerText = activeAppMode === 'play_practice' ? '🎤 播放全曲 (練聲) 中...' : '▶️ 播放全曲 (有聲) 中...';
             syncPracticeModeButtons();
@@ -4884,6 +4945,7 @@
             // 某些手機不會在鎖屏前送出 hidden；醒來時若 AudioContext 已中斷，先固定目前音符再恢復。
             if (!isPlaybackPaused && audioCtx && audioCtx.state !== 'running') pausePlaybackForPageLifecycle();
             if (playbackPausedByLifecycle) await resumePausedPlayback();
+            else if (!isPlaybackPaused) await requestPlaybackWakeLock();
         }
 
         function initializePlaybackLifecycleHandling() {
@@ -4909,6 +4971,7 @@
             playbackPausedElapsedMs = Math.max(0, performance.now() - playbackStartedAtMs);
             isPlaybackPaused = true;
             playbackPausedByLifecycle = false;
+            releasePlaybackWakeLock();
             stopCurrentVoice(0.02);
             if (activeAppMode === 'play_practice') stopMicListening();
             playbackStatus.innerText = '⏸️ 已暫停 · 目前音符保持高亮';
@@ -4938,6 +5001,7 @@
             isPlaybackPaused = false;
             playbackPausedByLifecycle = false;
             playbackLifecycleResumeInFlight = false;
+            releasePlaybackWakeLock();
             btnStop.classList.add('hidden');
             stopCurrentVoice(0.03);
             stopSustainedTone();

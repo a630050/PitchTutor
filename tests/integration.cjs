@@ -36,6 +36,53 @@ const server = http.createServer((request, response) => {
       args: ['--ignore-certificate-errors'],
     });
     const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, acceptDownloads: true });
+    await page.addInitScript(() => {
+      const wakeLockState = {
+        requestCount: 0,
+        releaseCount: 0,
+        activeSentinel: null,
+        rejectRequests: false,
+      };
+      Object.defineProperty(window, '__wakeLockTestState', { value: wakeLockState });
+      let hiddenForTest = false;
+      Object.defineProperty(document, 'hidden', {
+        configurable: true,
+        get: () => hiddenForTest,
+      });
+      Object.defineProperty(window, '__setDocumentHiddenForTest', {
+        value: value => { hiddenForTest = value; },
+      });
+      Object.defineProperty(navigator, 'wakeLock', {
+        configurable: true,
+        value: {
+          async request(type) {
+            assertWakeLockType(type);
+            if (wakeLockState.rejectRequests) throw new Error('Wake Lock denied for test');
+            wakeLockState.requestCount++;
+            const listeners = new Map();
+            const sentinel = {
+              released: false,
+              addEventListener(eventName, listener) {
+                listeners.set(eventName, listener);
+              },
+              async release() {
+                if (this.released) return;
+                this.released = true;
+                wakeLockState.releaseCount++;
+                if (wakeLockState.activeSentinel === this) wakeLockState.activeSentinel = null;
+                listeners.get('release')?.();
+              },
+            };
+            wakeLockState.activeSentinel = sentinel;
+            return sentinel;
+          },
+        },
+      });
+
+      function assertWakeLockType(type) {
+        if (type !== 'screen') throw new Error(`Expected screen wake lock, received ${type}`);
+      }
+    });
     const pageErrors = [];
     page.on('pageerror', error => pageErrors.push(error.message));
     await page.goto(`http://127.0.0.1:${port}`, { waitUntil: 'domcontentloaded' });
@@ -101,31 +148,61 @@ const server = http.createServer((request, response) => {
 
     await page.click('.practice-mode-button[data-practice-mode="play_audio"]');
     await page.waitForSelector('#notation-stage .vf-note-playing', { timeout: 3000 });
+    await page.waitForFunction(() => window.__wakeLockTestState.requestCount === 1);
+    assert.equal(await page.evaluate(() => Boolean(window.__wakeLockTestState.activeSentinel)), true, 'Playback should hold a screen wake lock');
+    await page.evaluate(() => window.__wakeLockTestState.activeSentinel.release());
+    await page.waitForFunction(() => window.__wakeLockTestState.requestCount === 2);
+    assert.equal(await page.evaluate(() => Boolean(window.__wakeLockTestState.activeSentinel)), true, 'Playback should reacquire a wake lock released by the browser');
     assert.equal(await page.locator('#notation-stage .vf-source-note.vf-note-playing').count(), 1);
     const pausedSourceIndex = await page.locator('#notation-stage .vf-source-note.vf-note-playing').getAttribute('data-source-index');
 
     // 模擬手機鎖屏：保存目前音符、AudioContext 被系統暫停，再於回到頁面後恢復同一位置與聲音
     const lifecycleIndex = await page.evaluate(() => currentPlaybackIndex);
-    await page.evaluate(() => pausePlaybackForPageLifecycle());
+    await page.evaluate(() => {
+      window.__setDocumentHiddenForTest(true);
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
     assert.equal(await page.evaluate(() => isPlaybackPaused && playbackPausedByLifecycle), true);
+    await page.waitForFunction(() => window.__wakeLockTestState.releaseCount === 2);
+    assert.equal(await page.evaluate(() => window.__wakeLockTestState.activeSentinel), null, 'Lifecycle pause should release the wake lock');
     await page.evaluate(async () => {
       if (audioCtx?.state === 'running') await audioCtx.suspend();
     });
     assert.equal(await page.evaluate(() => audioCtx?.state), 'suspended');
-    await page.evaluate(() => resumePlaybackAfterPageLifecycle());
-    assert.equal(await page.evaluate(() => audioCtx?.state), 'running');
-    assert.equal(await page.evaluate(() => isPlaybackPaused), false);
+    await page.evaluate(() => {
+      window.__setDocumentHiddenForTest(false);
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    await page.waitForFunction(() => audioCtx?.state === 'running' && !isPlaybackPaused);
     assert.equal(await page.evaluate(() => currentPlaybackIndex), lifecycleIndex);
+    await page.waitForFunction(() => window.__wakeLockTestState.requestCount === 3);
 
     await page.click('#practice-pause-btn');
     await page.waitForTimeout(700);
+    assert.equal(await page.evaluate(() => window.__wakeLockTestState.releaseCount), 3, 'Manual pause should release the wake lock');
     assert.equal(await page.locator('#notation-stage .vf-source-note.vf-note-playing').getAttribute('data-source-index'), pausedSourceIndex);
     assert.equal(await page.textContent('#practice-pause-btn'), '繼續');
     await page.click('#practice-pause-btn');
+    await page.waitForFunction(() => window.__wakeLockTestState.requestCount === 4);
     await page.waitForFunction(index => {
       const active = document.querySelector('#notation-stage .vf-source-note[aria-current="true"]');
       return active && active.dataset.sourceIndex !== index;
     }, pausedSourceIndex, { timeout: 2000 });
+    await page.click('#practice-stop-btn');
+    await page.waitForFunction(() => window.__wakeLockTestState.releaseCount === 4);
+
+    await page.evaluate(() => { window.__wakeLockTestState.rejectRequests = true; });
+    await page.click('.practice-mode-button[data-practice-mode="play_audio"]');
+    await page.waitForSelector('#notation-stage .vf-note-playing', { timeout: 3000 });
+    assert.equal(await page.evaluate(() => isPlaybackPaused), false, 'Wake Lock rejection must not block playback');
+    await page.click('#practice-stop-btn');
+
+    await page.evaluate(() => {
+      Object.defineProperty(navigator, 'wakeLock', { configurable: true, value: undefined });
+    });
+    await page.click('.practice-mode-button[data-practice-mode="play_audio"]');
+    await page.waitForSelector('#notation-stage .vf-note-playing', { timeout: 3000 });
+    assert.equal(await page.evaluate(() => isPlaybackPaused), false, 'Playback must work when Wake Lock is unsupported');
     await page.click('#practice-stop-btn');
 
     if (process.env.SCREENSHOT_PATH) {
