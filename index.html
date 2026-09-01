@@ -97,16 +97,36 @@
             z-index: 40;
         }
 
-        .brand-lockup { display: flex; align-items: center; gap: 10px; min-width: 0; }
+        .brand-lockup {
+            display: flex; align-items: center; gap: 10px; min-width: 0;
+            cursor: pointer; user-select: none;
+            border-radius: 12px; padding: 4px 8px; margin: -4px -8px;
+            transition: background .18s ease, transform .12s ease;
+        }
+        .brand-lockup:hover { background: rgba(255, 255, 255, 0.08); }
+        .brand-lockup:active { transform: scale(0.97); }
+        html[data-theme="day"] .brand-lockup:hover { background: rgba(0, 0, 0, 0.06); }
         .brand-mark {
             width: 38px; height: 38px; border-radius: 50%;
             display: grid; place-items: center;
             background: var(--paper); color: var(--ink);
             font-family: Georgia, serif; font-weight: 700; font-size: 22px;
             box-shadow: inset 0 0 0 4px var(--paper-deep);
+            transition: transform .2s ease, box-shadow .2s ease;
         }
+        .brand-lockup:hover .brand-mark { transform: rotate(-8deg); }
         .brand-title { color: #fffaf0; font-size: 15px; font-weight: 900; letter-spacing: .12em; }
         .brand-subtitle { color: #8192a0; font-size: 10px; margin-top: 1px; }
+        .brand-theme-badge {
+            font-size: 9px; font-weight: 800; padding: 1px 6px; border-radius: 9999px;
+            transition: all .2s ease;
+        }
+        html[data-theme="night"] .brand-theme-badge {
+            background: rgba(255, 255, 255, 0.12); color: #fde68a; border: 1px solid rgba(253, 230, 138, 0.25);
+        }
+        html[data-theme="day"] .brand-theme-badge {
+            background: rgba(120, 53, 15, 0.12); color: #92400e; border: 1px solid rgba(146, 64, 14, 0.25);
+        }
 
         .workspace-tabs {
             display: flex; gap: 4px; padding: 4px;
@@ -450,6 +470,40 @@
         .shortcut-legend { color: #71838d; font-size: 9px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
         .shortcut-legend kbd { color: #d8e2e6; background: #172833; border: 1px solid #314651; border-bottom-width: 2px; border-radius: 5px; padding: 2px 5px; font: 700 9px/1 'Inter', sans-serif; }
 
+        .tuner-grid-layout {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            align-items: center;
+            gap: 8px 12px;
+        }
+        .tuner-target-block {
+            grid-column: 1;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+        }
+        .tuner-action-block {
+            grid-column: 2;
+            justify-self: end;
+        }
+        .tuner-meter-block {
+            grid-column: 1 / -1;
+            width: 100%;
+        }
+        @media (min-width: 820px) {
+            .tuner-grid-layout {
+                display: flex;
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+                gap: 16px;
+            }
+            .tuner-target-block { min-width: 180px; }
+            .tuner-meter-block { max-width: 380px; flex: 1; }
+            .tuner-action-block { flex-shrink: 0; }
+        }
+
         .practice-toolbar { padding: 10px 14px 0; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
         .practice-mode-group { display: flex; gap: 6px; flex-wrap: wrap; }
         .practice-mode-button { padding: 8px 11px; border-radius: 9px; background: #14232e; color: #8fa0aa; border: 1px solid #2b3f4b; font-size: 10px; font-weight: 900; }
@@ -765,7 +819,7 @@
             .practice-toolbar { flex-direction: column; align-items: stretch; gap: 8px; padding: 10px 12px 0; }
             .practice-mode-group { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; width: 100%; }
             .practice-mode-button { text-align: center; padding: 8px 4px; font-size: 11px; }
-            #practice-page > main { padding: 10px; }
+            #practice-page > main { padding: 10px; overflow: visible !important; height: auto !important; }
         }
 
         /* 手機直式 (Mobile Portrait <= 680px) */
@@ -789,14 +843,30 @@
             
             /* 練唱頁手機端優化 */
             .practice-toolbar { padding: 6px 8px 0; gap: 6px; }
-            .practice-mode-group { grid-template-columns: repeat(2, 1fr); }
-            .practice-mode-button { font-size: 11px; padding: 7px 4px; }
+            .practice-mode-group { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; width: 100%; }
+            .practice-mode-button { font-size: 10px; padding: 6px 2px; text-align: center; white-space: nowrap; }
             #practice-instrument-toolbar { width: 100%; justify-content: space-between; margin-right: 0; }
             #practice-bpm-toolbar { width: 100%; justify-content: space-between; margin-right: 0; }
-            #practice-page > main { padding: 8px; gap: 8px; }
-            #tuner-panel { padding: 10px; }
-            #tuner-panel > div { flex-direction: column; align-items: stretch; gap: 10px; }
-            #tuner-hear-sound { width: 100%; justify-content: center; padding: 8px; }
+            #practice-page > main { padding: 6px 8px; gap: 8px; overflow: visible !important; height: auto !important; }
+            #tuner-panel {
+                position: sticky;
+                top: 40px;
+                z-index: 30;
+                padding: 8px 10px;
+                backdrop-filter: blur(16px);
+                -webkit-backdrop-filter: blur(16px);
+            }
+            html[data-theme="day"] #tuner-panel {
+                background-color: rgba(230, 218, 195, 0.94) !important;
+                border-color: #c5b48f !important;
+                box-shadow: 0 4px 16px rgba(92, 74, 46, 0.12) !important;
+            }
+            html[data-theme="night"] #tuner-panel {
+                background-color: rgba(15, 23, 42, 0.94) !important;
+                border-color: rgba(51, 65, 85, 0.8) !important;
+                box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45) !important;
+            }
+            #tuner-hear-sound { width: auto; justify-content: center; padding: 5px 9px; font-size: 11px; }
             .practice-score-tabs { flex-wrap: wrap; }
             .notation-panel { padding: 6px; overflow-x: hidden; width: 100%; -webkit-overflow-scrolling: touch; }
             .notation-stage { width: 100%; min-width: 0; }
@@ -893,10 +963,13 @@
 
     <!-- 新工作台導覽：只保留「輸譜／練唱」兩個使用者任務 -->
     <header id="app-header" class="workbench-header shrink-0">
-        <div class="brand-lockup">
+        <div id="theme-toggle" class="brand-lockup" role="button" tabindex="0" title="點擊切換深墨／暖陽主題" aria-label="點擊切換深墨／暖陽主題" aria-checked="false">
             <div class="brand-mark" aria-hidden="true">♩</div>
             <div class="min-w-0">
-                <div class="brand-title">排練桌</div>
+                <div class="brand-title flex items-center gap-1.5">
+                    <span>排練桌</span>
+                    <span id="brand-theme-badge" class="brand-theme-badge">☾ 夜</span>
+                </div>
                 <div class="brand-subtitle">快速輸譜 · 專注練唱</div>
             </div>
         </div>
@@ -1036,15 +1109,6 @@
                 </div>
 
                 <div id="editor-meta-body" class="editor-meta-body">
-                    <div class="theme-setting-row">
-                        <div class="theme-setting-copy">
-                            <div class="theme-setting-title">介面主題・<span id="theme-mode-label">深墨夜間</span></div>
-                            <div class="theme-setting-hint">切換禪風暖色日間介面，瀏覽器會記住選擇</div>
-                        </div>
-                        <button id="theme-toggle" class="theme-switch" type="button" role="switch" aria-checked="false" aria-label="切換為禪風日間模式" title="切換為禪風日間模式">
-                            <span id="theme-switch-mark" class="theme-switch-mark" aria-hidden="true">☾</span>
-                        </button>
-                    </div>
                     <div class="editor-meta">
                         <label>
                             <span class="field-label">曲名</span>
@@ -1357,46 +1421,48 @@
         <main class="flex-1 flex flex-col p-3.5 gap-3 overflow-y-auto bg-slate-950/60">
             
             <!-- 右上区: 實時 Pitch 測音與調音面板 (Tuner Panel) -->
-            <section id="tuner-panel" class="glass-panel p-3 rounded-xl shadow-xl relative overflow-hidden shrink-0">
-                <div class="flex flex-col md:flex-row items-center justify-between gap-3">
-                    <!-- 目标音高与歌词 -->
-                    <div class="flex items-center gap-3 min-w-[180px]">
-                        <div class="w-11 h-11 rounded-xl bg-blue-600/20 border border-blue-500/30 flex flex-col items-center justify-center">
-                            <span id="tuner-target-degree" class="text-xl font-black text-blue-400 leading-none">--</span>
-                            <span id="tuner-target-pitch" class="text-[9px] text-slate-400 mt-0.5">C4</span>
+            <section id="tuner-panel" class="glass-panel p-2.5 sm:p-3 rounded-xl shadow-xl relative overflow-hidden shrink-0">
+                <div class="tuner-grid-layout">
+                    <!-- 左上：目标音高与歌词 -->
+                    <div class="tuner-target-block">
+                        <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-blue-600/20 border border-blue-500/30 flex flex-col items-center justify-center shrink-0">
+                            <span id="tuner-target-degree" class="text-lg sm:text-xl font-black text-blue-400 leading-none">--</span>
+                            <span id="tuner-target-pitch" class="text-[8px] sm:text-[9px] text-slate-400 mt-0.5">C4</span>
                         </div>
-                        <div>
-                            <div class="text-[10px] text-slate-400">當前目標音符 / 歌詞</div>
-                            <div class="text-base font-bold text-white mt-0.5">
+                        <div class="min-w-0">
+                            <div class="text-[9px] sm:text-[10px] text-slate-400">當前目標音符 / 歌詞</div>
+                            <div class="text-sm sm:text-base font-bold text-white truncate">
                                 歌詞: <span id="tuner-target-lyric" class="text-blue-300">--</span>
                             </div>
-                            <div class="text-[9px] text-slate-500" id="tuner-freq-text">頻率: -- Hz</div>
+                            <div class="text-[8px] sm:text-[9px] text-slate-500" id="tuner-freq-text">頻率: -- Hz</div>
                         </div>
                     </div>
 
-                    <!-- 测音刻度指針 -->
-                    <div class="w-full max-w-sm space-y-1">
+                    <!-- 右上：听标准音按钮 -->
+                    <div class="tuner-action-block">
+                        <button id="tuner-hear-sound" class="btn-press bg-blue-500/15 hover:bg-blue-500/25 text-blue-300 border border-blue-500/40 text-[11px] sm:text-xs px-2.5 sm:px-3 py-1.5 rounded-xl flex items-center gap-1 font-semibold select-none cursor-pointer shrink-0 shadow-sm" type="button" title="點擊或長按發出目前目標音符的標準音">
+                            <span>🔊</span><span class="hear-sound-label">長按聽標準音</span>
+                        </button>
+                    </div>
+
+                    <!-- 第二行：测音刻度指針 -->
+                    <div class="tuner-meter-block space-y-1">
                         <div class="flex justify-between text-[10px] font-bold text-slate-400 px-1">
                             <span class="text-red-400">♭ 偏低</span>
                             <span class="text-emerald-400">🎯 準確</span>
                             <span class="text-amber-400">♯ 偏高</span>
                         </div>
 
-                        <div class="relative w-full h-7 bg-slate-900/90 rounded-full border border-slate-700 flex items-center px-3 overflow-hidden">
+                        <div class="relative w-full h-6 sm:h-7 bg-slate-900/90 rounded-full border border-slate-700 flex items-center px-3 overflow-hidden">
                             <div class="absolute left-1/2 top-0 bottom-0 w-10 -translate-x-1/2 bg-emerald-500/20 border-x border-emerald-500/30"></div>
                             <div class="absolute left-1/2 top-0 bottom-0 w-0.5 bg-emerald-400 -translate-x-1/2 z-10"></div>
-                            <div id="tuner-needle" class="absolute left-1/2 top-1 bottom-1 w-1.5 bg-white rounded-full shadow border border-slate-900 -translate-x-1/2 z-20"></div>
+                            <div id="tuner-needle" class="absolute left-1/2 top-0.5 bottom-0.5 w-1.5 bg-white rounded-full shadow border border-slate-900 -translate-x-1/2 z-20"></div>
                         </div>
 
-                        <div id="tuner-feedback" class="text-center text-[10px] font-bold text-slate-300">
+                        <div id="tuner-feedback" class="text-center text-[9px] sm:text-[10px] font-bold text-slate-300 truncate">
                             📖 學習模式: 點擊/長按卡片聽標準音
                         </div>
                     </div>
-
-                    <!-- 听标准音按钮 -->
-                    <button id="tuner-hear-sound" class="btn-press bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 text-xs px-3 py-1.5 rounded-xl flex items-center gap-1 font-semibold select-none cursor-pointer">
-                        🔊 長按聽標準音
-                    </button>
                 </div>
             </section>
 
@@ -3278,16 +3344,16 @@
             document.documentElement.dataset.theme = normalizedTheme;
 
             const toggle = document.getElementById('theme-toggle');
-            const modeLabel = document.getElementById('theme-mode-label');
-            const switchMark = document.getElementById('theme-switch-mark');
-            const nextModeLabel = isDay ? '切換為深墨夜間模式' : '切換為禪風日間模式';
+            const brandBadge = document.getElementById('brand-theme-badge');
+            const nextModeLabel = isDay ? '切換為深墨夜間模式' : '切換為禪風暖陽模式';
             if (toggle) {
                 toggle.setAttribute('aria-checked', String(isDay));
                 toggle.setAttribute('aria-label', nextModeLabel);
                 toggle.title = nextModeLabel;
             }
-            if (modeLabel) modeLabel.textContent = isDay ? '暖陽日間' : '深墨夜間';
-            if (switchMark) switchMark.textContent = isDay ? '日' : '☾';
+            if (brandBadge) {
+                brandBadge.textContent = isDay ? '☼ 日' : '☾ 夜';
+            }
 
             const themeColor = document.querySelector('meta[name="theme-color"]');
             if (themeColor) themeColor.content = isDay ? '#e8ddc6' : '#0f1a24';
@@ -3298,10 +3364,20 @@
 
         function initializeThemeControl() {
             applyAppTheme(document.documentElement.dataset.theme, false);
-            document.getElementById('theme-toggle')?.addEventListener('click', () => {
-                const nextTheme = document.documentElement.dataset.theme === 'day' ? 'night' : 'day';
-                applyAppTheme(nextTheme, true);
-            });
+            const toggle = document.getElementById('theme-toggle');
+            if (toggle) {
+                const switchTheme = () => {
+                    const nextTheme = document.documentElement.dataset.theme === 'day' ? 'night' : 'day';
+                    applyAppTheme(nextTheme, true);
+                };
+                toggle.addEventListener('click', switchTheme);
+                toggle.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        switchTheme();
+                    }
+                });
+            }
         }
 
         function initializePanelResizers() {
@@ -4304,6 +4380,63 @@
             return `${pitchClasses[(midi % 12 + 12) % 12]}/${octave}`;
         }
 
+        function bindNoteTouchInteraction(domElement, index) {
+            let touchStartX = 0;
+            let touchStartY = 0;
+            let isTouchScrolling = false;
+            let touchPressTimer = null;
+
+            domElement.addEventListener('touchstart', (e) => {
+                if (e.touches.length !== 1) return;
+                const t = e.touches[0];
+                touchStartX = t.clientX;
+                touchStartY = t.clientY;
+                isTouchScrolling = false;
+
+                // 延迟 160ms 触发按压长音，如果在此期间用户手指滑动了，判定为滚动浏览，不触发长音
+                touchPressTimer = setTimeout(() => {
+                    if (!isTouchScrolling) {
+                        onNoteTileInteraction(index, 'press');
+                    }
+                }, 160);
+            }, { passive: true });
+
+            domElement.addEventListener('touchmove', (e) => {
+                if (isTouchScrolling || e.touches.length !== 1) return;
+                const t = e.touches[0];
+                const dx = t.clientX - touchStartX;
+                const dy = t.clientY - touchStartY;
+                if (Math.hypot(dx, dy) > 8) {
+                    isTouchScrolling = true;
+                    if (touchPressTimer) {
+                        clearTimeout(touchPressTimer);
+                        touchPressTimer = null;
+                    }
+                    stopSustainedTone();
+                }
+            }, { passive: true });
+
+            domElement.addEventListener('touchend', () => {
+                if (touchPressTimer) {
+                    clearTimeout(touchPressTimer);
+                    touchPressTimer = null;
+                }
+                stopSustainedTone();
+                if (!isTouchScrolling) {
+                    onNoteTileInteraction(index, 'click');
+                }
+            });
+
+            domElement.addEventListener('touchcancel', () => {
+                if (touchPressTimer) {
+                    clearTimeout(touchPressTimer);
+                    touchPressTimer = null;
+                }
+                isTouchScrolling = true;
+                stopSustainedTone();
+            });
+        }
+
         function registerNotationElement(index, element, role = 'note') {
             if (!element) return;
             element.classList.add('vf-source-note');
@@ -4321,12 +4454,7 @@
             });
             element.addEventListener('mouseup', () => stopSustainedTone());
             element.addEventListener('mouseleave', () => stopSustainedTone());
-            element.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                onNoteTileInteraction(index, 'press');
-            }, { passive: false });
-            element.addEventListener('touchend', () => stopSustainedTone());
-            element.addEventListener('touchcancel', () => stopSustainedTone());
+            bindNoteTouchInteraction(element, index);
 
             element.addEventListener('keydown', event => {
                 if (event.key === 'Enter' || event.key === ' ') {
@@ -4586,13 +4714,7 @@
                 });
                 tile.addEventListener('mouseup', () => stopSustainedTone());
                 tile.addEventListener('mouseleave', () => stopSustainedTone());
-
-                tile.addEventListener('touchstart', (e) => {
-                    e.preventDefault();
-                    onNoteTileInteraction(index, 'press');
-                }, { passive: false });
-                tile.addEventListener('touchend', () => stopSustainedTone());
-                tile.addEventListener('touchcancel', () => stopSustainedTone());
+                bindNoteTouchInteraction(tile, index);
 
                 tile.addEventListener('click', () => {
                     onNoteTileInteraction(index, 'click');
@@ -4617,14 +4739,28 @@
             const note = scoreNotes[index];
             const midi = noteToMidi(note, currentKey, currentMode);
 
-            // 更新 Class 高亮
+            // 更新音格卡片高亮
             const tiles = melodyContainer.querySelectorAll('.note-tile');
             tiles.forEach((t, i) => {
-                if (i === index) {
-                    t.className = 'note-tile w-[50px] h-[76px] rounded-lg p-1 border flex flex-col justify-between flex-shrink-0 relative cursor-pointer bg-indigo-600/30 border-indigo-400 text-white shadow-sm';
+                const isCurrent = i === index;
+                t.classList.toggle('is-playback-active', isCurrent);
+                if (isCurrent) {
+                    t.setAttribute('aria-current', 'true');
+                    t.className = 'note-tile w-[50px] h-[76px] rounded-lg p-1 border flex flex-col justify-between flex-shrink-0 relative cursor-pointer bg-indigo-600/40 border-indigo-400 text-white shadow-md is-playback-active';
                 } else {
+                    t.removeAttribute('aria-current');
                     t.className = 'note-tile w-[50px] h-[76px] rounded-lg p-1 border flex flex-col justify-between flex-shrink-0 relative cursor-pointer bg-slate-900/90 border-slate-800 text-slate-200';
                 }
+            });
+
+            // 同步高亮五线谱视图中的音符与歌词
+            clearNotationHighlight();
+            const mappedElements = notationSourceMap.get(index) || [];
+            mappedElements.forEach(element => {
+                const isLyric = element.dataset.notationRole === 'lyric';
+                element.classList.add(isLyric ? 'notation-lyric-playing' : (scoreNotes[index]?.degree === 0 ? 'vf-rest-playing' : 'vf-note-playing'));
+                element.setAttribute('aria-current', 'true');
+                highlightedNotationElements.push(element);
             });
 
             updateTunerDisplayForNote(note);

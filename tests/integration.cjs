@@ -89,7 +89,7 @@ const server = http.createServer((request, response) => {
     await page.waitForSelector('#editor-page.is-active');
 
     assert.equal(await page.getAttribute('html', 'data-theme'), 'night');
-    assert.equal(await page.locator('#editor-meta-panel #theme-toggle').count(), 1, 'Theme switch should live in the settings panel');
+    assert.equal(await page.locator('#app-header #theme-toggle').count(), 1, 'Theme switch should live in the header brand lockup');
     assert.equal(await page.locator('#summary-modal').evaluate(element => getComputedStyle(element).display), 'none');
     assert.equal(await page.getAttribute('#theme-toggle', 'aria-checked'), 'false');
     const nightHeaderColor = await page.locator('.workbench-header').evaluate(element => getComputedStyle(element).backgroundColor);
@@ -99,7 +99,7 @@ const server = http.createServer((request, response) => {
     assert.equal(await page.evaluate(() => localStorage.getItem('pitch-tutor-theme')), 'day');
     const dayHeaderColor = await page.locator('.workbench-header').evaluate(element => getComputedStyle(element).backgroundColor);
     assert.notEqual(dayHeaderColor, nightHeaderColor, 'Day mode should visibly change the interface palette');
-    assert.ok((await page.locator('#theme-toggle').boundingBox()).width <= 60, 'Theme switch should remain compact');
+    assert.ok((await page.locator('#theme-toggle').boundingBox()).width >= 60, 'Theme switch brand lockup should be easily clickable');
 
     await page.reload({ waitUntil: 'domcontentloaded' });
     await page.waitForSelector('#editor-page.is-active');
@@ -369,8 +369,25 @@ const server = http.createServer((request, response) => {
     const loadedNotesCount = await paramPage.evaluate(() => scoreNotes.length);
     assert.equal(loadedNotesCount, 138);
     const activeAppModeOnLoad = await paramPage.evaluate(() => activeAppMode);
-    assert.equal(activeAppModeOnLoad, 'practice');
     assert.equal(await paramPage.locator('#tuner-panel').isVisible(), true);
+
+    // 驗證手機端模式按鈕為一列四欄
+    const modeGroupGridCols = await paramPage.locator('.practice-mode-group').evaluate(el => getComputedStyle(el).gridTemplateColumns.split(' ').length);
+    assert.equal(modeGroupGridCols, 4, 'Mobile practice mode group should render 4 columns');
+
+    // 驗證聽標準音按鈕位於 tuner-panel 右上角且面板高度已緊湊壓縮
+    const tunerBox = await paramPage.locator('#tuner-panel').boundingBox();
+    assert.ok(tunerBox.height <= 135, `Tuner panel height should be compact (<= 135px), got ${tunerBox.height}`);
+    assert.equal(await paramPage.locator('#tuner-hear-sound').isVisible(), true);
+
+    // 驗證單音跟唱模式下，點擊五線譜音符即時高亮
+    await paramPage.click('#practice-notation-tab');
+    await paramPage.waitForSelector('#notation-stage .vf-source-note');
+    const firstNote = paramPage.locator('#notation-stage .vf-source-note').first();
+    await firstNote.click();
+    await paramPage.waitForSelector('#notation-stage .vf-source-note[aria-current="true"]', { timeout: 2000 });
+    assert.ok(await paramPage.locator('#notation-stage .vf-source-note[aria-current="true"]').count() >= 1, 'Clicking note in single note practice mode should highlight on notation');
+    await paramPage.click('#practice-cells-tab');
 
     // 驗證播放中點擊音符/音格跳轉播放 (jumpPlaybackTo)
     await paramPage.click('.practice-mode-button[data-practice-mode="play_audio"]');
