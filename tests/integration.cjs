@@ -375,10 +375,22 @@ const server = http.createServer((request, response) => {
     const modeGroupGridCols = await paramPage.locator('.practice-mode-group').evaluate(el => getComputedStyle(el).gridTemplateColumns.split(' ').length);
     assert.equal(modeGroupGridCols, 4, 'Mobile practice mode group should render 4 columns');
 
-    // 驗證聽標準音按鈕位於 tuner-panel 右上角且面板高度已緊湊壓縮
+    // 驗證音色板塊包含「音色」標籤並水平排列
+    assert.equal(await paramPage.locator('#practice-instrument-toolbar .tool-label').isVisible(), true, 'Instrument label should be visible');
+
+    // 驗證聽標準音正方形按鈕與 tuner-panel 超薄單行高度 (<= 75px)
     const tunerBox = await paramPage.locator('#tuner-panel').boundingBox();
-    assert.ok(tunerBox.height <= 135, `Tuner panel height should be compact (<= 135px), got ${tunerBox.height}`);
+    assert.ok(tunerBox.height <= 75, `Tuner panel height should be ultra-compact (<= 75px), got ${tunerBox.height}`);
     assert.equal(await paramPage.locator('#tuner-hear-sound').isVisible(), true);
+    assert.equal(await paramPage.locator('#notation-rerender-btn').isVisible(), false, 'Rerender button should be hidden from UI');
+
+    // 驗證向下捲動超過初始位置時 #tuner-panel 吸頂鎖定於頂端 (top <= 5)
+    const initialTunerTop = await paramPage.locator('#tuner-panel').evaluate(el => el.getBoundingClientRect().top + window.scrollY);
+    await paramPage.evaluate(target => window.scrollTo(0, target + 120), initialTunerTop);
+    await paramPage.waitForTimeout(100);
+    const stickyTop = await paramPage.locator('#tuner-panel').evaluate(el => el.getBoundingClientRect().top);
+    assert.ok(Math.abs(stickyTop) <= 5, `Tuner panel should stick to top (<= 5px), got ${stickyTop}`);
+    await paramPage.evaluate(() => window.scrollTo(0, 0));
 
     // 驗證單音跟唱模式下，點擊五線譜音符即時高亮
     await paramPage.click('#practice-notation-tab');

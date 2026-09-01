@@ -775,8 +775,14 @@
         html[data-theme="day"] #practice-page [class*="text-slate-400"],
         html[data-theme="day"] #practice-page [class*="text-slate-500"] { color: #76695c !important; }
         html[data-theme="day"] #practice-page [class*="text-blue-"],
-        html[data-theme="day"] #practice-page [class*="text-indigo-"] { color: #5f7358 !important; }
         html[data-theme="day"] #tuner-panel .text-white { color: #3f352d !important; }
+        html[data-theme="day"] #tuner-hear-sound {
+            background-color: rgba(99, 120, 92, 0.18) !important;
+            border-color: #8da386 !important;
+            color: #31442d !important;
+        }
+        html[data-theme="day"] #tuner-hear-sound #tuner-target-degree { color: #273b23 !important; }
+        html[data-theme="day"] #tuner-hear-sound #tuner-target-pitch { color: #556751 !important; }
         html[data-theme="day"] .note-tile:not(.is-playback-active):not(.is-single-active) { background: #f7f0e2 !important; border-color: #c4b28e !important; color: #43382f !important; }
         html[data-theme="day"] .note-tile:not(.is-playback-active):not(.is-single-active) [class*="bg-slate-800"] { background: #e8dcc6 !important; border-color: #c8b591 !important; }
         html[data-theme="day"] .app-modal-backdrop { background: rgba(72,61,49,.55); }
@@ -819,12 +825,14 @@
             .practice-toolbar { flex-direction: column; align-items: stretch; gap: 8px; padding: 10px 12px 0; }
             .practice-mode-group { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; width: 100%; }
             .practice-mode-button { text-align: center; padding: 8px 4px; font-size: 11px; }
+            body { height: auto !important; min-height: 100vh; overflow-x: clip !important; overflow-y: visible !important; }
+            #practice-page { overflow: visible !important; height: auto !important; flex: none !important; }
             #practice-page > main { padding: 10px; overflow: visible !important; height: auto !important; }
         }
 
         /* 手機直式 (Mobile Portrait <= 680px) */
         @media (max-width: 680px) {
-            .workbench-header { position: sticky; top: 0; padding: 6px 10px; grid-template-columns: 1fr auto; }
+            .workbench-header { position: static; padding: 6px 10px; grid-template-columns: 1fr auto; }
             .brand-title { font-size: 13px; font-weight: 900; }
             .brand-mark { width: 28px; height: 28px; font-size: 15px; }
             .header-control { display: none; }
@@ -838,35 +846,64 @@
             .key-help-details summary { text-align: left; }
             .step-console { display: block; }
             .pitch-pad { grid-template-columns: repeat(4, 1fr); }
-            .tool-label { width: 100%; }
+            .tool-label { width: auto; }
             .score-paper { min-height: 320px; }
             
             /* 練唱頁手機端優化 */
             .practice-toolbar { padding: 6px 8px 0; gap: 6px; }
+            #practice-instrument-toolbar {
+                display: flex; align-items: center; gap: 6px; width: 100%; margin-right: 0;
+            }
+            #practice-instrument-toolbar .tool-label {
+                width: auto !important; font-size: 11px; font-weight: 800; color: #8fa0ad; flex-shrink: 0; display: inline-block !important;
+            }
+            #practice-instrument-toolbar .instrument-choice {
+                flex: 1; min-width: 0; text-align: center; padding: 6px 2px; font-size: 10px; white-space: nowrap;
+            }
+
+            #practice-bpm-toolbar {
+                display: flex; align-items: center; gap: 6px; width: 100%; height: 32px; padding: 0 8px; margin-right: 0; box-sizing: border-box;
+            }
+            #practice-bpm-toolbar .tool-label {
+                width: auto !important; font-size: 11px; font-weight: 800; color: #8fa0ad; flex-shrink: 0; display: inline-block !important;
+            }
+            #practice-bpm-toolbar input[type="range"] { flex: 1; min-width: 50px; }
+
             .practice-mode-group { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; width: 100%; }
             .practice-mode-button { font-size: 10px; padding: 6px 2px; text-align: center; white-space: nowrap; }
-            #practice-instrument-toolbar { width: 100%; justify-content: space-between; margin-right: 0; }
-            #practice-bpm-toolbar { width: 100%; justify-content: space-between; margin-right: 0; }
-            #practice-page > main { padding: 6px 8px; gap: 8px; overflow: visible !important; height: auto !important; }
+            .practice-pause, .practice-stop {
+                height: 30px !important; padding: 4px 10px !important; font-size: 10px !important; line-height: 1 !important;
+                display: inline-flex !important; align-items: center; justify-content: center;
+            }
+
+            #practice-page { overflow: visible !important; height: auto !important; flex: none !important; }
+            #practice-page > main { padding: 4px 8px 8px; gap: 6px; overflow: visible !important; height: auto !important; }
+            
+            /* 唯一吸頂：偏高偏低高低音反饋面板鎖定在頂端 */
             #tuner-panel {
-                position: sticky;
-                top: 40px;
-                z-index: 30;
-                padding: 8px 10px;
+                position: sticky !important;
+                top: 0 !important;
+                z-index: 40 !important;
+                padding: 6px 8px;
                 backdrop-filter: blur(16px);
                 -webkit-backdrop-filter: blur(16px);
             }
             html[data-theme="day"] #tuner-panel {
-                background-color: rgba(230, 218, 195, 0.94) !important;
+                background-color: rgba(247, 239, 223, 0.98) !important;
                 border-color: #c5b48f !important;
-                box-shadow: 0 4px 16px rgba(92, 74, 46, 0.12) !important;
+                box-shadow: 0 4px 16px rgba(92, 74, 46, 0.16) !important;
             }
             html[data-theme="night"] #tuner-panel {
-                background-color: rgba(15, 23, 42, 0.94) !important;
+                background-color: rgba(15, 23, 42, 0.98) !important;
                 border-color: rgba(51, 65, 85, 0.8) !important;
-                box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45) !important;
+                box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5) !important;
             }
-            #tuner-hear-sound { width: auto; justify-content: center; padding: 5px 9px; font-size: 11px; }
+            html[data-theme="day"] #practice-instrument-toolbar .tool-label,
+            html[data-theme="day"] #practice-bpm-toolbar .tool-label {
+                color: #716254 !important;
+            }
+
+            #notation-rerender-btn { display: none !important; }
             .practice-score-tabs { flex-wrap: wrap; }
             .notation-panel { padding: 6px; overflow-x: hidden; width: 100%; -webkit-overflow-scrolling: touch; }
             .notation-stage { width: 100%; min-width: 0; }
@@ -1420,47 +1457,39 @@
         <!-- 2.2 右欄：聽好的聲音 (右邊主區: 測音調音盤 + 已錄入樂譜迷你高容量卡片軌) -->
         <main class="flex-1 flex flex-col p-3.5 gap-3 overflow-y-auto bg-slate-950/60">
             
-            <!-- 右上区: 實時 Pitch 測音與調音面板 (Tuner Panel) -->
-            <section id="tuner-panel" class="glass-panel p-2.5 sm:p-3 rounded-xl shadow-xl relative overflow-hidden shrink-0">
-                <div class="tuner-grid-layout">
-                    <!-- 左上：目标音高与歌词 -->
-                    <div class="tuner-target-block">
-                        <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-blue-600/20 border border-blue-500/30 flex flex-col items-center justify-center shrink-0">
-                            <span id="tuner-target-degree" class="text-lg sm:text-xl font-black text-blue-400 leading-none">--</span>
-                            <span id="tuner-target-pitch" class="text-[8px] sm:text-[9px] text-slate-400 mt-0.5">C4</span>
+            <!-- 右上区: 實時 Pitch 測音與調音面板 (Tuner Panel) - 超薄單行整合版 -->
+            <section id="tuner-panel" class="glass-panel p-2 sm:p-2.5 rounded-xl shadow-xl relative overflow-hidden shrink-0">
+                <div class="flex items-center gap-2 sm:gap-3 w-full">
+                    <!-- 左侧：正方形目標音符發音按鈕 (點擊/長按發出標準音) -->
+                    <button id="tuner-hear-sound" class="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-blue-600/25 hover:bg-blue-600/35 active:scale-95 border border-blue-500/40 text-blue-300 flex flex-col items-center justify-center shrink-0 cursor-pointer shadow select-none transition-transform group" type="button" title="點擊發聲、長按持續聽標準音" aria-label="點擊發聲、長按持續聽標準音">
+                        <span id="tuner-target-degree" class="text-base sm:text-lg font-black leading-none text-blue-400 group-hover:text-blue-300">--</span>
+                        <span id="tuner-target-pitch" class="text-[8px] opacity-80 mt-0.5 leading-none text-slate-300">C4</span>
+                        <span class="text-[7px] text-blue-400/90 leading-none mt-0.5">🔊 聽音</span>
+                    </button>
+
+                    <!-- 中间：當前歌詞與頻率 -->
+                    <div class="min-w-0 flex flex-col justify-center shrink-0 max-w-[80px] sm:max-w-[110px]">
+                        <div class="text-[9px] sm:text-[10px] text-slate-400 leading-tight">當前目標</div>
+                        <div class="text-xs sm:text-sm font-bold text-white truncate leading-tight">
+                            歌詞: <span id="tuner-target-lyric" class="text-blue-300">--</span>
                         </div>
-                        <div class="min-w-0">
-                            <div class="text-[9px] sm:text-[10px] text-slate-400">當前目標音符 / 歌詞</div>
-                            <div class="text-sm sm:text-base font-bold text-white truncate">
-                                歌詞: <span id="tuner-target-lyric" class="text-blue-300">--</span>
-                            </div>
-                            <div class="text-[8px] sm:text-[9px] text-slate-500" id="tuner-freq-text">頻率: -- Hz</div>
-                        </div>
+                        <div class="text-[8px] text-slate-500 truncate" id="tuner-freq-text">-- Hz</div>
                     </div>
 
-                    <!-- 右上：听标准音按钮 -->
-                    <div class="tuner-action-block">
-                        <button id="tuner-hear-sound" class="btn-press bg-blue-500/15 hover:bg-blue-500/25 text-blue-300 border border-blue-500/40 text-[11px] sm:text-xs px-2.5 sm:px-3 py-1.5 rounded-xl flex items-center gap-1 font-semibold select-none cursor-pointer shrink-0 shadow-sm" type="button" title="點擊或長按發出目前目標音符的標準音">
-                            <span>🔊</span><span class="hear-sound-label">長按聽標準音</span>
-                        </button>
-                    </div>
-
-                    <!-- 第二行：测音刻度指針 -->
-                    <div class="tuner-meter-block space-y-1">
-                        <div class="flex justify-between text-[10px] font-bold text-slate-400 px-1">
+                    <!-- 右侧：測音刻度指針橫桿 (直接上移到同一行，極度節省空間) -->
+                    <div class="flex-1 min-w-0 flex flex-col justify-center space-y-0.5">
+                        <div class="flex justify-between text-[9px] font-bold text-slate-400 px-1 leading-none">
                             <span class="text-red-400">♭ 偏低</span>
                             <span class="text-emerald-400">🎯 準確</span>
                             <span class="text-amber-400">♯ 偏高</span>
                         </div>
-
-                        <div class="relative w-full h-6 sm:h-7 bg-slate-900/90 rounded-full border border-slate-700 flex items-center px-3 overflow-hidden">
-                            <div class="absolute left-1/2 top-0 bottom-0 w-10 -translate-x-1/2 bg-emerald-500/20 border-x border-emerald-500/30"></div>
+                        <div class="relative w-full h-5 sm:h-6 bg-slate-900/90 rounded-full border border-slate-700 flex items-center px-2 overflow-hidden">
+                            <div class="absolute left-1/2 top-0 bottom-0 w-8 -translate-x-1/2 bg-emerald-500/20 border-x border-emerald-500/30"></div>
                             <div class="absolute left-1/2 top-0 bottom-0 w-0.5 bg-emerald-400 -translate-x-1/2 z-10"></div>
                             <div id="tuner-needle" class="absolute left-1/2 top-0.5 bottom-0.5 w-1.5 bg-white rounded-full shadow border border-slate-900 -translate-x-1/2 z-20"></div>
                         </div>
-
-                        <div id="tuner-feedback" class="text-center text-[9px] sm:text-[10px] font-bold text-slate-300 truncate">
-                            📖 學習模式: 點擊/長按卡片聽標準音
+                        <div id="tuner-feedback" class="text-center text-[8px] font-semibold text-slate-400 truncate leading-none">
+                            點擊方塊聽標準音，對著麥克風唱
                         </div>
                     </div>
                 </div>
