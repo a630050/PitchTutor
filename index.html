@@ -3,7 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0f1a24">
     <title>排練桌｜快速輸譜與音準練唱</title>
+    <script>
+        (() => {
+            const storageKey = 'pitch-tutor-theme';
+            window.PITCH_TUTOR_THEME_STORAGE_KEY = storageKey;
+            let savedTheme = 'night';
+            try {
+                const storedTheme = localStorage.getItem(storageKey);
+                if (storedTheme === 'day' || storedTheme === 'night') savedTheme = storedTheme;
+            } catch (_) { /* 無法使用儲存空間時維持夜間模式 */ }
+            document.documentElement.dataset.theme = savedTheme;
+        })();
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="vendor/vexflow.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
@@ -52,6 +65,21 @@
             --baton: #f47b45;
             --baton-soft: #ffe1d2;
             --tuner: #37b8a3;
+        }
+
+        html[data-theme="night"] { color-scheme: dark; }
+        html[data-theme="day"] {
+            color-scheme: light;
+            --desk-950: #ded3bc;
+            --desk-900: #e8ddc6;
+            --desk-800: #d9c9ab;
+            --paper: #fbf7ed;
+            --paper-deep: #e5d5b7;
+            --ink: #3d352d;
+            --muted-ink: #766b60;
+            --baton: #b76543;
+            --baton-soft: #f2d7c4;
+            --tuner: #63785c;
         }
 
         #legacy-header { display: none !important; }
@@ -468,6 +496,7 @@
             opacity: 0; pointer-events: none; transition: opacity .18s ease, transform .18s ease; z-index: 80;
         }
         .toast.is-visible { opacity: 1; transform: translate(-50%, 0); }
+        #summary-modal.hidden { display: none !important; }
 
         body[data-text-size="large"] .panel-title { font-size: 16px; }
         body[data-text-size="large"] .field-label,
@@ -566,6 +595,157 @@
             margin: 0;
             z-index: 10;
         }
+
+        .theme-setting-row {
+            display: flex; align-items: center; justify-content: space-between; gap: 12px;
+            margin-bottom: 8px; padding: 8px 9px; border-radius: 9px;
+            border: 1px solid #293e4b; background: #0b161e;
+        }
+        .theme-setting-copy { min-width: 0; }
+        .theme-setting-title { color: #e9efef; font-size: 10px; font-weight: 900; letter-spacing: .06em; }
+        .theme-setting-hint { margin-top: 2px; color: #788d98; font-size: 8px; line-height: 1.35; }
+        .theme-switch {
+            position: relative; width: 54px; min-width: 54px; height: 28px; padding: 0;
+            border-radius: 99px; border: 1px solid #405663; background: #172832;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,.24); cursor: pointer;
+            transition: background .2s ease, border-color .2s ease, box-shadow .2s ease;
+        }
+        .theme-switch-mark {
+            position: absolute; top: 2px; left: 3px; width: 22px; height: 22px;
+            display: grid; place-items: center; border-radius: 50%;
+            background: #edf1ed; color: #30414a; font: 900 12px/1 Georgia, serif;
+            box-shadow: 0 2px 6px rgba(0,0,0,.3);
+            transition: transform .22s cubic-bezier(.2,.8,.2,1), background .2s ease, color .2s ease;
+        }
+        .theme-switch[aria-checked="true"] { background: #7a886d; border-color: #65745b; box-shadow: inset 0 2px 5px rgba(76,67,50,.18); }
+        .theme-switch[aria-checked="true"] .theme-switch-mark { transform: translateX(25px); background: #fff9ea; color: #a75e3f; }
+
+        html[data-theme="day"] body {
+            background-color: #ded3bc;
+            background-image:
+                radial-gradient(circle at 14% 8%, rgba(255,255,255,.46), transparent 31%),
+                repeating-linear-gradient(112deg, rgba(92,75,54,.018) 0, rgba(92,75,54,.018) 1px, transparent 1px, transparent 7px);
+            color: var(--ink);
+        }
+        html[data-theme="day"] .workbench-header {
+            background: rgba(235,224,201,.96); border-bottom-color: #c8b895;
+            box-shadow: 0 8px 24px rgba(88,68,43,.12);
+        }
+        html[data-theme="day"] .brand-mark { background: #f9f4e8; color: #4a3c31; box-shadow: inset 0 0 0 4px #d6c5a3; }
+        html[data-theme="day"] .brand-title { color: #44382e; }
+        html[data-theme="day"] .brand-subtitle { color: #776a5e; }
+        html[data-theme="day"] .workspace-tabs { background: #d8c9aa; border-color: #b8a783; }
+        html[data-theme="day"] .workspace-tab { color: #716356; }
+        html[data-theme="day"] .workspace-tab:hover { color: #3d352d; }
+        html[data-theme="day"] .workspace-tab.is-active { background: #fbf7ed; color: #3d352d; box-shadow: 0 4px 12px rgba(86,66,40,.13); }
+        html[data-theme="day"] .header-control,
+        html[data-theme="day"] .header-action,
+        html[data-theme="day"] .text-size-control { background: #f4ecdc; color: #55483c; border-color: #c8b895; }
+        html[data-theme="day"] .header-action:hover,
+        html[data-theme="day"] .text-size-control button:hover:not(:disabled) { background: #e2d3b6; color: #3d352d; border-color: #9b8968; }
+        html[data-theme="day"] .text-size-control button { color: #55483c; }
+        html[data-theme="day"] #ui-text-size-label { color: #77695c; }
+
+        html[data-theme="day"] #editor-page,
+        html[data-theme="day"] #practice-page { background: transparent; }
+        html[data-theme="day"] .reference-panel { background: #e6dac3; border-color: #c5b48f; scrollbar-color: #ad9b78 #e6dac3; }
+        html[data-theme="day"] .reference-panel::-webkit-scrollbar-track,
+        html[data-theme="day"] .editor-studio-panel::-webkit-scrollbar-track { background: #e6dac3; }
+        html[data-theme="day"] .reference-panel::-webkit-scrollbar-thumb,
+        html[data-theme="day"] .editor-studio-panel::-webkit-scrollbar-thumb { background-color: #ad9b78; }
+        html[data-theme="day"] .panel-title { color: #453a31; }
+        html[data-theme="day"] .eyebrow { color: #a55f42; }
+        html[data-theme="day"] .quiet-button,
+        html[data-theme="day"] .collapse-toggle-btn { background: #e3d5ba; color: #5f5145; border-color: #bbaa87; }
+        html[data-theme="day"] .quiet-button:hover,
+        html[data-theme="day"] .collapse-toggle-btn:hover { background: #d6c5a4; color: #382f28; border-color: #8d7a5c; }
+        html[data-theme="day"] .meta-summary-chip { color: #685a4d; background: #e5d8bf; border-color: #bbaa89; }
+        html[data-theme="day"] .reference-stage {
+            border-color: #aa9875; background-color: #d9caaa;
+            background-image: linear-gradient(rgba(78,66,49,.045) 1px, transparent 1px), linear-gradient(90deg, rgba(78,66,49,.045) 1px, transparent 1px);
+            scrollbar-color: #a99570 #d9caaa;
+        }
+        html[data-theme="day"] .reference-empty { color: #75695c; }
+        html[data-theme="day"] .reference-empty strong { color: #453b32; }
+        html[data-theme="day"] .reference-controls button { background: #eee4d1; color: #55483d; border-color: #baa986; }
+        html[data-theme="day"] .reference-controls button:hover { background: #ddceb1; color: #372f29; border-color: #907b59; }
+        html[data-theme="day"] .reference-zoom-slider { background: #c7b692; }
+        html[data-theme="day"] #reference-zoom-label { color: #75685b; }
+        html[data-theme="day"] .reference-lyric-section { background: #eee4d2; border-color: #c5b28d; }
+        html[data-theme="day"] .lyric-queue { background: #fbf7ed; color: #42372f; border-color: #b9a782; }
+        html[data-theme="day"] .lyric-status { color: #75695d; }
+
+        html[data-theme="day"] .panel-resizer { background: #d8c8a9; }
+        html[data-theme="day"] .panel-resizer-horizontal { border-color: #b9a986; }
+        html[data-theme="day"] .panel-resizer-horizontal::before { background: #98866a; }
+        html[data-theme="day"] .editor-studio-panel { background: #e4d7bf; border-color: #c5b48f; scrollbar-color: #ad9b78 #e4d7bf; }
+        html[data-theme="day"] .editor-meta-panel,
+        html[data-theme="day"] .step-console { background: rgba(245,237,222,.94); border-color: #c4b28d; }
+        html[data-theme="day"] .field-label,
+        html[data-theme="day"] .tool-label { color: #75685b; }
+        html[data-theme="day"] .editor-input,
+        html[data-theme="day"] .editor-select { background: #fffaf0; color: #45382f; border-color: #b7a37e; }
+        html[data-theme="day"] .key-signature-help { background: #e9ddc7; color: #65584c; border-color: #c3b18c; }
+        html[data-theme="day"] #key-signature-summary strong { color: #42372f; }
+        html[data-theme="day"] .key-help-details { color: #6d6053; }
+        html[data-theme="day"] .choice-button { background: #e4d6bc; color: #625448; border-color: #bba987; }
+        html[data-theme="day"] .choice-button:hover { color: #332c26; border-color: #8e7b5d; }
+        html[data-theme="day"] .choice-button.is-active { background: #fdf8ed; color: #3d352d; border-color: #a99875; }
+        html[data-theme="day"] .pitch-key { background: #e0d2b7; color: #42372e; border-color: #b7a37d; }
+        html[data-theme="day"] .pitch-key .key-sub { color: #746658; }
+        html[data-theme="day"] .pitch-key:hover,
+        html[data-theme="day"] .pitch-key:focus-visible { box-shadow: 0 4px 10px rgba(84,64,40,.16); }
+        html[data-theme="day"] .shortcut-legend { color: #76695c; }
+        html[data-theme="day"] .shortcut-legend kbd { color: #55483d; background: #ede2cf; border-color: #b9a783; }
+        html[data-theme="day"] .score-paper { box-shadow: 0 16px 34px rgba(91,70,42,.16); }
+
+        html[data-theme="day"] .theme-setting-row { background: #e7dbc4; border-color: #c2af89; }
+        html[data-theme="day"] .theme-setting-title { color: #493d33; }
+        html[data-theme="day"] .theme-setting-hint { color: #786a5c; }
+
+        html[data-theme="day"] .practice-toolbar { background: rgba(232,221,198,.76); }
+        html[data-theme="day"] .practice-mode-button { background: #e3d5bb; color: #695b4e; border-color: #b9a785; }
+        html[data-theme="day"] .practice-mode-button.is-active { background: #6a7e62; color: #fffaf0; border-color: #5e7257; }
+        html[data-theme="day"] .practice-score-tab { background: #e5d8c0; color: #66584b; border-color: #b8a681; }
+        html[data-theme="day"] .practice-score-tab.is-active { background: #65775e; border-color: #53684d; color: #fff; }
+        html[data-theme="day"] .notation-follow-label { color: #6f6256; }
+        html[data-theme="day"] .glass-panel { background: rgba(248,242,229,.88); border-color: rgba(151,130,94,.38); box-shadow: 0 10px 28px rgba(82,63,39,.12); }
+        html[data-theme="day"] #practice-page > main { background-color: rgba(222,211,188,.58) !important; }
+        html[data-theme="day"] #practice-page [class*="bg-slate-950"]:not(.note-tile),
+        html[data-theme="day"] #practice-page [class*="bg-slate-900"]:not(.note-tile),
+        html[data-theme="day"] #practice-page [class*="bg-slate-800"]:not(.note-tile) { background-color: #e5d8c0 !important; }
+        html[data-theme="day"] #practice-page [class*="border-slate-"] { border-color: #b9a783 !important; }
+        html[data-theme="day"] #practice-page [class*="text-slate-100"],
+        html[data-theme="day"] #practice-page [class*="text-slate-200"],
+        html[data-theme="day"] #practice-page [class*="text-slate-300"] { color: #4f4338 !important; }
+        html[data-theme="day"] #practice-page [class*="text-slate-400"],
+        html[data-theme="day"] #practice-page [class*="text-slate-500"] { color: #76695c !important; }
+        html[data-theme="day"] #practice-page [class*="text-blue-"],
+        html[data-theme="day"] #practice-page [class*="text-indigo-"] { color: #5f7358 !important; }
+        html[data-theme="day"] #tuner-panel .text-white { color: #3f352d !important; }
+        html[data-theme="day"] .note-tile:not(.is-playback-active):not(.is-single-active) { background: #f7f0e2 !important; border-color: #c4b28e !important; color: #43382f !important; }
+        html[data-theme="day"] .note-tile:not(.is-playback-active):not(.is-single-active) [class*="bg-slate-800"] { background: #e8dcc6 !important; border-color: #c8b591 !important; }
+        html[data-theme="day"] .app-modal-backdrop { background: rgba(72,61,49,.55); }
+        html[data-theme="day"] .app-modal-content { background: #f5eddd; color: #44392f; border-color: #bda982; box-shadow: 0 20px 48px rgba(72,55,34,.26); }
+        html[data-theme="day"] .app-modal-header,
+        html[data-theme="day"] .app-modal-footer { background: #e8dbc3; border-color: #c4b18c; }
+        html[data-theme="day"] .app-modal-title { color: #44382f; }
+        html[data-theme="day"] .app-modal-close { background: #eee3cf; color: #655649; border-color: #b9a682; }
+        html[data-theme="day"] .score-lib-card { background: #eee3d0; border-color: #c1ad87; }
+        html[data-theme="day"] .score-lib-card:hover { background: #e2d2b5; }
+        html[data-theme="day"] .toast { background: #f6eddb; color: #45382e; border-color: #b9a681; box-shadow: 0 12px 30px rgba(70,52,32,.2); }
+        html[data-theme="day"] #summary-modal { background-color: rgba(72,61,49,.55) !important; }
+        html[data-theme="day"] #summary-modal [class*="bg-slate-900"],
+        html[data-theme="day"] #summary-modal [class*="bg-slate-800"] { background-color: #e7dac2 !important; }
+        html[data-theme="day"] #summary-modal [class*="border-slate-"] { border-color: #b9a783 !important; }
+        html[data-theme="day"] #summary-modal .text-white { color: #44382f !important; }
+        html[data-theme="day"] #summary-modal [class*="text-slate-300"] { color: #55483d !important; }
+        html[data-theme="day"] #summary-modal [class*="text-slate-400"] { color: #76695c !important; }
+        html[data-theme="day"] #summary-modal > .glass-panel { background: #f7efdf; }
+        html[data-theme="day"] #summary-modal > .glass-panel > [class*="bg-blue-"] { background: #dce5d6 !important; border-color: #91a489 !important; color: #556b50 !important; }
+        html[data-theme="day"] #close-summary-btn { background: #63785c !important; color: #fffaf0 !important; }
+        html[data-theme="day"] #close-summary-btn:hover { background: #53694d !important; }
+
         @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation: none !important; } }
         
         /* 平板與中螢幕 (Tablet & Medium Screens) */
@@ -856,6 +1036,15 @@
                 </div>
 
                 <div id="editor-meta-body" class="editor-meta-body">
+                    <div class="theme-setting-row">
+                        <div class="theme-setting-copy">
+                            <div class="theme-setting-title">介面主題・<span id="theme-mode-label">深墨夜間</span></div>
+                            <div class="theme-setting-hint">切換禪風暖色日間介面，瀏覽器會記住選擇</div>
+                        </div>
+                        <button id="theme-toggle" class="theme-switch" type="button" role="switch" aria-checked="false" aria-label="切換為禪風日間模式" title="切換為禪風日間模式">
+                            <span id="theme-switch-mark" class="theme-switch-mark" aria-hidden="true">☾</span>
+                        </button>
+                    </div>
                     <div class="editor-meta">
                         <label>
                             <span class="field-label">曲名</span>
@@ -3081,6 +3270,40 @@
             document.getElementById('ui-text-increase').addEventListener('click', () => setUiTextSize(uiTextSizeIndex + 1));
         }
 
+        const APP_THEME_STORAGE_KEY = window.PITCH_TUTOR_THEME_STORAGE_KEY || 'pitch-tutor-theme';
+
+        function applyAppTheme(theme, persist = true) {
+            const normalizedTheme = theme === 'day' ? 'day' : 'night';
+            const isDay = normalizedTheme === 'day';
+            document.documentElement.dataset.theme = normalizedTheme;
+
+            const toggle = document.getElementById('theme-toggle');
+            const modeLabel = document.getElementById('theme-mode-label');
+            const switchMark = document.getElementById('theme-switch-mark');
+            const nextModeLabel = isDay ? '切換為深墨夜間模式' : '切換為禪風日間模式';
+            if (toggle) {
+                toggle.setAttribute('aria-checked', String(isDay));
+                toggle.setAttribute('aria-label', nextModeLabel);
+                toggle.title = nextModeLabel;
+            }
+            if (modeLabel) modeLabel.textContent = isDay ? '暖陽日間' : '深墨夜間';
+            if (switchMark) switchMark.textContent = isDay ? '日' : '☾';
+
+            const themeColor = document.querySelector('meta[name="theme-color"]');
+            if (themeColor) themeColor.content = isDay ? '#e8ddc6' : '#0f1a24';
+            if (persist) {
+                try { localStorage.setItem(APP_THEME_STORAGE_KEY, normalizedTheme); } catch (_) { /* 主題仍套用，僅不保存 */ }
+            }
+        }
+
+        function initializeThemeControl() {
+            applyAppTheme(document.documentElement.dataset.theme, false);
+            document.getElementById('theme-toggle')?.addEventListener('click', () => {
+                const nextTheme = document.documentElement.dataset.theme === 'day' ? 'night' : 'day';
+                applyAppTheme(nextTheme, true);
+            });
+        }
+
         function initializePanelResizers() {
             const editorPage = document.getElementById('editor-page');
             const referencePanel = document.querySelector('.reference-panel');
@@ -3940,6 +4163,7 @@
                 }
             });
 
+            initializeThemeControl();
             initializeTextSizeControls();
             initializePanelResizers();
             initializeCollapsiblePanels();

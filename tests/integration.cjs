@@ -88,6 +88,50 @@ const server = http.createServer((request, response) => {
     await page.goto(`http://127.0.0.1:${port}`, { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('#editor-page.is-active');
 
+    assert.equal(await page.getAttribute('html', 'data-theme'), 'night');
+    assert.equal(await page.locator('#editor-meta-panel #theme-toggle').count(), 1, 'Theme switch should live in the settings panel');
+    assert.equal(await page.locator('#summary-modal').evaluate(element => getComputedStyle(element).display), 'none');
+    assert.equal(await page.getAttribute('#theme-toggle', 'aria-checked'), 'false');
+    const nightHeaderColor = await page.locator('.workbench-header').evaluate(element => getComputedStyle(element).backgroundColor);
+    await page.click('#theme-toggle');
+    assert.equal(await page.getAttribute('html', 'data-theme'), 'day');
+    assert.equal(await page.getAttribute('#theme-toggle', 'aria-checked'), 'true');
+    assert.equal(await page.evaluate(() => localStorage.getItem('pitch-tutor-theme')), 'day');
+    const dayHeaderColor = await page.locator('.workbench-header').evaluate(element => getComputedStyle(element).backgroundColor);
+    assert.notEqual(dayHeaderColor, nightHeaderColor, 'Day mode should visibly change the interface palette');
+    assert.ok((await page.locator('#theme-toggle').boundingBox()).width <= 60, 'Theme switch should remain compact');
+
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('#editor-page.is-active');
+    assert.equal(await page.getAttribute('html', 'data-theme'), 'day', 'Saved day mode should be restored on reload');
+    assert.equal(await page.getAttribute('#theme-toggle', 'aria-checked'), 'true');
+    await page.click('#theme-toggle');
+    assert.equal(await page.getAttribute('html', 'data-theme'), 'night');
+    assert.equal(await page.evaluate(() => localStorage.getItem('pitch-tutor-theme')), 'night');
+    await page.click('#theme-toggle');
+    assert.equal(await page.getAttribute('html', 'data-theme'), 'day');
+    if (process.env.THEME_SCREENSHOT_PATH) {
+      await page.screenshot({ path: process.env.THEME_SCREENSHOT_PATH, fullPage: true });
+    }
+    await page.locator('#summary-modal').evaluate(element => element.classList.remove('hidden'));
+    assert.equal(await page.locator('#summary-modal h3').evaluate(element => getComputedStyle(element).color), 'rgb(68, 56, 47)', 'Day-mode summary text should use warm dark ink');
+    await page.click('#close-summary-btn');
+    assert.equal(await page.locator('#summary-modal').evaluate(element => getComputedStyle(element).display), 'none');
+
+    const storageFailurePage = await browser.newPage({ viewport: { width: 900, height: 700 } });
+    const storageFailureErrors = [];
+    storageFailurePage.on('pageerror', error => storageFailureErrors.push(error.message));
+    await storageFailurePage.addInitScript(() => {
+      Storage.prototype.getItem = () => { throw new Error('Storage disabled for test'); };
+      Storage.prototype.setItem = () => { throw new Error('Storage disabled for test'); };
+    });
+    await storageFailurePage.goto(`http://127.0.0.1:${port}`, { waitUntil: 'domcontentloaded' });
+    await storageFailurePage.waitForSelector('#editor-page.is-active');
+    await storageFailurePage.click('#theme-toggle');
+    assert.equal(await storageFailurePage.getAttribute('html', 'data-theme'), 'day', 'Theme should still switch when browser storage is unavailable');
+    assert.deepEqual(storageFailureErrors, []);
+    await storageFailurePage.close();
+
     assert.equal(await page.getAttribute('#editor-score-bpm', 'max'), '150');
     assert.equal(await page.getAttribute('#practice-bpm-slider', 'max'), '150');
     await page.$eval('#editor-score-bpm', input => {
@@ -316,8 +360,10 @@ const server = http.createServer((request, response) => {
 
     // 驗證網址帶參數直接載入樂譜並切換至練唱模式
     const paramPage = await browser.newPage({ viewport: { width: 390, height: 844 } }); // 模擬手機直式
+    await paramPage.addInitScript(() => localStorage.setItem('pitch-tutor-theme', 'day'));
     await paramPage.goto(`http://127.0.0.1:${port}?score=隱形的翅膀_第一部.json&view=practice&mode=practice`);
     await paramPage.waitForSelector('#practice-page.is-active');
+    assert.equal(await paramPage.getAttribute('html', 'data-theme'), 'day');
     const loadedScoreTitle = await paramPage.evaluate(() => currentScoreTitle);
     assert.equal(loadedScoreTitle, '隱形的翅膀 (第一部)');
     const loadedNotesCount = await paramPage.evaluate(() => scoreNotes.length);
