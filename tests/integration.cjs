@@ -109,7 +109,7 @@ const server = http.createServer((request, response) => {
     assert.equal(await page.textContent('#practice-pause-btn'), '繼續');
     await page.click('#practice-pause-btn');
     await page.waitForFunction(index => {
-      const active = document.querySelector('#notation-stage .vf-source-note.vf-note-playing');
+      const active = document.querySelector('#notation-stage .vf-source-note[aria-current="true"]');
       return active && active.dataset.sourceIndex !== index;
     }, pausedSourceIndex, { timeout: 2000 });
     await page.click('#practice-stop-btn');
@@ -246,20 +246,64 @@ const server = http.createServer((request, response) => {
 
     // 驗證五線譜模式下點擊五線譜音符跳轉
     await paramPage.click('#practice-notation-tab');
-    await paramPage.waitForTimeout(200);
+    await paramPage.waitForFunction(() => document.getElementById('notation-stage')?.dataset.measuresPerLine === '2');
+    assert.equal(await paramPage.locator('#notation-stage').getAttribute('data-notation-layout'), 'mobile-portrait');
+    assert.equal(await paramPage.locator('#notation-stage').getAttribute('data-measures-per-line'), '2', 'Portrait mobile notation should show two measures per line');
     const vfNote4 = paramPage.locator('.vf-source-note[data-source-index="4"]').first();
     if (await vfNote4.count() > 0) {
       await vfNote4.click();
       currentPlayIdx = await paramPage.evaluate(() => currentPlaybackIndex);
       assert.equal(currentPlayIdx, 4, 'Clicking score notation note 4 should jump playback to note 4');
     }
+
+    // 播放跳到後段時，譜面與頁面都要把高亮音符帶進可視範圍
+    await paramPage.evaluate(() => {
+      jumpPlaybackTo(100);
+      togglePlaybackPause();
+    });
+    await paramPage.waitForTimeout(750);
+    const highlightedVisibility = await paramPage.evaluate(() => {
+      const active = document.querySelector('#notation-stage .vf-source-note[aria-current="true"]');
+      if (!active) return {
+        found: false,
+        currentPlaybackIndex,
+        mappedCount: notationSourceMap.get(currentPlaybackIndex)?.length || 0,
+        sourceCount: document.querySelectorAll('#notation-stage .vf-source-note').length,
+      };
+      const rect = active.getBoundingClientRect();
+      return { found: true, top: rect.top, bottom: rect.bottom, viewportHeight: window.innerHeight };
+    });
+    assert.equal(highlightedVisibility.found, true, `Expected mapped highlight: ${JSON.stringify(highlightedVisibility)}`);
+    assert.ok(highlightedVisibility.bottom > 0 && highlightedVisibility.top < highlightedVisibility.viewportHeight,
+      `Highlighted notation should be visible after auto-scroll, got top=${highlightedVisibility.top}, bottom=${highlightedVisibility.bottom}`);
+
+    // 頂端控制列離開可視範圍後，浮動圓鈕可暫停與繼續
+    await paramPage.evaluate(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'auto' }));
+    await paramPage.waitForSelector('#floating-playback-toggle.is-visible', { timeout: 2000 });
+    assert.equal(await paramPage.getAttribute('#floating-playback-toggle', 'aria-label'), '繼續播放');
+    await paramPage.click('#floating-playback-toggle');
+    assert.equal(await paramPage.evaluate(() => isPlaybackPaused), false);
+    assert.equal(await paramPage.getAttribute('#floating-playback-toggle', 'aria-label'), '暫停播放');
+    await paramPage.click('#floating-playback-toggle');
+    assert.equal(await paramPage.evaluate(() => isPlaybackPaused), true);
+    if (process.env.MOBILE_SCREENSHOT_DIR) {
+      fs.mkdirSync(process.env.MOBILE_SCREENSHOT_DIR, { recursive: true });
+      await paramPage.screenshot({ path: path.join(process.env.MOBILE_SCREENSHOT_DIR, 'mobile-portrait.png') });
+    }
     await paramPage.click('#practice-stop-btn');
 
     // 驗證手機橫式 RWD 佈局
     await paramPage.setViewportSize({ width: 844, height: 390 });
+    await paramPage.waitForFunction(() => document.getElementById('notation-stage')?.dataset.measuresPerLine === '4');
     assert.equal(await paramPage.locator('.workbench-header').isVisible(), true);
     assert.equal(await paramPage.locator('.practice-toolbar').isVisible(), true);
     assert.equal(await paramPage.locator('#tuner-panel').isVisible(), true);
+    assert.equal(await paramPage.locator('#notation-stage').getAttribute('data-notation-layout'), 'mobile-landscape');
+    assert.equal(await paramPage.locator('#notation-stage').getAttribute('data-measures-per-line'), '4', 'Landscape mobile notation should show four measures per line');
+    if (process.env.MOBILE_SCREENSHOT_DIR) {
+      await paramPage.locator('#notation-panel').scrollIntoViewIfNeeded();
+      await paramPage.screenshot({ path: path.join(process.env.MOBILE_SCREENSHOT_DIR, 'mobile-landscape.png') });
+    }
     await paramPage.close();
 
     assert.deepEqual(pageErrors, []);

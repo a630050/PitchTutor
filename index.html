@@ -434,6 +434,8 @@
         .notation-panel { min-height: 260px; height: 100%; overflow-y: auto; border-radius: 9px; background: #fff; color: #111827; padding: 12px; position: relative; }
         .notation-panel.is-hidden { display: none; }
         .notation-stage { width: 100%; min-width: 0; }
+        .notation-stage > div:not(.notation-heading) { width: 100%; }
+        .notation-stage svg { display: block; width: 100%; max-width: 100%; height: auto; overflow: visible; }
         .notation-empty { min-height: 220px; display: grid; place-items: center; text-align: center; color: #64748b; font-size: 13px; line-height: 1.7; }
         .notation-error { margin: 8px; padding: 12px; border: 1px solid #f59e0b; border-radius: 8px; color: #7c2d12; background: #fff7ed; font-size: 12px; font-weight: 700; }
         .notation-follow-label { display: inline-flex; align-items: center; gap: 4px; color: #94a3b8; font-size: 10px; font-weight: 700; white-space: nowrap; }
@@ -447,6 +449,17 @@
         .note-tile.is-playback-active { background: rgba(37,99,235,.42) !important; border-color: #60a5fa !important; color: #fff !important; box-shadow: 0 0 0 2px rgba(96,165,250,.35), 0 8px 18px rgba(15,23,42,.35); transform: scale(1.05); z-index: 10; }
         .note-tile.is-single-active { background: rgba(79,70,229,.3) !important; border-color: #818cf8 !important; color: #fff !important; }
         .notation-heading { margin: 0 0 6px 10px; color: #334155; font: 800 13px/1.4 'Noto Sans TC', sans-serif; }
+        .floating-playback-toggle {
+            position: fixed; right: max(16px, env(safe-area-inset-right)); bottom: max(18px, env(safe-area-inset-bottom));
+            width: 54px; height: 54px; border-radius: 50%; z-index: 75;
+            display: grid; place-items: center; border: 2px solid rgba(255,255,255,.42);
+            background: #d97706; color: #fff; box-shadow: 0 12px 28px rgba(0,0,0,.42), 0 0 0 5px rgba(217,119,6,.18);
+            font-size: 20px; font-weight: 900; opacity: 0; visibility: hidden; pointer-events: none;
+            transform: translateY(14px) scale(.88); transition: opacity .18s ease, transform .18s ease, background .18s ease;
+        }
+        .floating-playback-toggle.is-visible { opacity: 1; visibility: visible; pointer-events: auto; transform: translateY(0) scale(1); }
+        .floating-playback-toggle.is-paused { background: #059669; box-shadow: 0 12px 28px rgba(0,0,0,.42), 0 0 0 5px rgba(5,150,105,.2); }
+        .floating-playback-toggle:focus-visible { outline: 3px solid #93c5fd; outline-offset: 3px; }
 
         .toast {
             position: fixed; left: 50%; bottom: 18px; transform: translate(-50%, 18px);
@@ -608,6 +621,7 @@
             .notation-panel { padding: 6px; overflow-x: hidden; width: 100%; -webkit-overflow-scrolling: touch; }
             .notation-stage { width: 100%; min-width: 0; }
             .notation-heading { font-size: 11px; margin: 0 0 4px 6px; }
+            .floating-playback-toggle { right: max(12px, env(safe-area-inset-right)); bottom: max(12px, env(safe-area-inset-bottom)); width: 50px; height: 50px; font-size: 18px; }
             .note-tile { width: 44px; height: 68px; }
         }
 
@@ -1225,6 +1239,10 @@
 
     </div>
 
+    <button id="floating-playback-toggle" class="floating-playback-toggle" type="button" aria-label="暫停播放" aria-hidden="true">
+        <span id="floating-playback-icon" aria-hidden="true">⏸</span>
+    </button>
+
     <!-- 3. 练唱结果结算弹窗 -->
     <section id="summary-modal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="glass-panel max-w-xs w-full p-5 rounded-3xl border border-slate-700 shadow-2xl text-center space-y-4">
@@ -1589,6 +1607,9 @@
         let playbackTimeline = [];
         let playbackPausedElapsedMs = 0;
         let isPlaybackPaused = false;
+        let playbackScrollTimers = [];
+        let practiceControlsInView = true;
+        let practiceControlsObserver = null;
         let practiceScoreView = 'cells';
         let notationDirty = true;
         let notationSourceMap = new Map();
@@ -2085,6 +2106,7 @@
             } else {
                 renderMelodyTrack();
             }
+            syncFloatingPlaybackControl();
         }
 
         function getTimeSignatureCapacity(signature = currentTimeSignature) {
@@ -2866,6 +2888,49 @@
                 pauseButton.textContent = isPlaybackPaused ? '繼續' : '暫停';
                 pauseButton.setAttribute('aria-pressed', String(isPlaybackPaused));
             }
+            syncFloatingPlaybackControl();
+        }
+
+        function syncFloatingPlaybackControl() {
+            const button = document.getElementById('floating-playback-toggle');
+            const icon = document.getElementById('floating-playback-icon');
+            if (!button) return;
+            const isFullPlayback = activeAppMode === 'play_audio' || activeAppMode === 'play_practice';
+            const controlsRect = document.querySelector('.practice-mode-group')?.getBoundingClientRect();
+            const controlsActuallyVisible = !!controlsRect && controlsRect.bottom > 8 && controlsRect.top < window.innerHeight - 8;
+            const shouldShow = activeWorkspaceView === 'practice' && isFullPlayback && !practiceControlsInView && !controlsActuallyVisible;
+            button.classList.toggle('is-visible', shouldShow);
+            button.classList.toggle('is-paused', isPlaybackPaused);
+            button.setAttribute('aria-hidden', String(!shouldShow));
+            button.setAttribute('aria-label', isPlaybackPaused ? '繼續播放' : '暫停播放');
+            button.title = isPlaybackPaused ? '繼續播放' : '暫停播放';
+            if (icon) icon.textContent = isPlaybackPaused ? '▶' : '⏸';
+        }
+
+        function initializeFloatingPlaybackControl() {
+            const controls = document.querySelector('.practice-mode-group');
+            const floatingButton = document.getElementById('floating-playback-toggle');
+            if (!controls || !floatingButton) return;
+            floatingButton.addEventListener('click', togglePlaybackPause);
+
+            const updateFromBounds = () => {
+                const rect = controls.getBoundingClientRect();
+                practiceControlsInView = rect.bottom > 8 && rect.top < window.innerHeight - 8;
+                syncFloatingPlaybackControl();
+            };
+
+            if ('IntersectionObserver' in window) {
+                practiceControlsObserver = new IntersectionObserver(entries => {
+                    const entry = entries[0];
+                    practiceControlsInView = !!entry?.isIntersecting && entry.intersectionRatio >= 0.15;
+                    syncFloatingPlaybackControl();
+                }, { threshold: [0, 0.15, 0.5] });
+                practiceControlsObserver.observe(controls);
+            } else {
+                window.addEventListener('scroll', updateFromBounds, { passive: true });
+                window.addEventListener('resize', updateFromBounds, { passive: true });
+            }
+            requestAnimationFrame(updateFromBounds);
         }
 
         function updateKeySignatureGuidance() {
@@ -3837,6 +3902,7 @@
             });
             document.getElementById('practice-pause-btn').addEventListener('click', togglePlaybackPause);
             document.getElementById('practice-stop-btn').addEventListener('click', () => switchAppMode('learn'));
+            initializeFloatingPlaybackControl();
             document.getElementById('practice-cells-tab').addEventListener('click', () => setPracticeScoreView('cells'));
             document.getElementById('practice-notation-tab').addEventListener('click', () => setPracticeScoreView('notation'));
             document.getElementById('notation-rerender-btn').addEventListener('click', () => {
@@ -3896,12 +3962,54 @@
             highlightedNotationElements = [];
         }
 
-        function isElementOutsideContainer(element, container) {
-            if (!element || !container) return false;
-            const elementRect = element.getBoundingClientRect();
+        function getPlaybackScrollBehavior() {
+            return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+        }
+
+        function scrollTargetWithinContainer(target, container, ratio = 0.3) {
+            if (!target || !container || container.scrollHeight <= container.clientHeight + 2) return false;
+            const targetRect = target.getBoundingClientRect();
             const containerRect = container.getBoundingClientRect();
-            return elementRect.left < containerRect.left || elementRect.right > containerRect.right ||
-                elementRect.top < containerRect.top || elementRect.bottom > containerRect.bottom;
+            const safeTop = containerRect.top + 12;
+            const safeBottom = containerRect.bottom - 12;
+            if (targetRect.top >= safeTop && targetRect.bottom <= safeBottom) return false;
+            const nextTop = container.scrollTop + targetRect.top - containerRect.top - container.clientHeight * ratio;
+            container.scrollTo({ top: Math.max(0, nextTop), behavior: getPlaybackScrollBehavior() });
+            return true;
+        }
+
+        function clearPlaybackScrollTimers() {
+            playbackScrollTimers.forEach(timerId => clearTimeout(timerId));
+            playbackScrollTimers = [];
+        }
+
+        function ensurePlaybackTargetVisible(target, primaryContainer) {
+            if (!target) return;
+            clearPlaybackScrollTimers();
+            const primaryMoved = scrollTargetWithinContainer(target, primaryContainer);
+            const settleDelay = primaryMoved && getPlaybackScrollBehavior() === 'smooth' ? 180 : 0;
+
+            const outerTimer = setTimeout(() => {
+                const practiceMain = target.closest('main');
+                const mainMoved = practiceMain ? scrollTargetWithinContainer(target, practiceMain) : false;
+                const viewportDelay = mainMoved && getPlaybackScrollBehavior() === 'smooth' ? 180 : 0;
+
+                const viewportTimer = setTimeout(() => {
+                    const rect = target.getBoundingClientRect();
+                    const header = document.querySelector('.workbench-header');
+                    const headerRect = header?.getBoundingClientRect();
+                    const headerInset = headerRect && headerRect.bottom > 0 && headerRect.top <= 1 ? headerRect.bottom + 8 : 12;
+                    const floatingButton = document.getElementById('floating-playback-toggle');
+                    const bottomInset = floatingButton?.classList.contains('is-visible') ? 78 : 18;
+                    const safeBottom = window.innerHeight - bottomInset;
+                    if (rect.top < headerInset || rect.bottom > safeBottom) {
+                        const targetViewportTop = Math.max(headerInset, window.innerHeight * 0.3);
+                        window.scrollBy({ top: rect.top - targetViewportTop, behavior: getPlaybackScrollBehavior() });
+                    }
+                }, viewportDelay);
+                playbackScrollTimers.push(viewportTimer);
+            }, settleDelay);
+            playbackScrollTimers.push(outerTimer);
         }
 
         function updatePlaybackFocus(index, allowScroll = true) {
@@ -3926,17 +4034,10 @@
                 const panel = document.getElementById('notation-panel');
                 const target = mappedElements.find(element => element.dataset.notationRole !== 'lyric');
                 const follow = document.getElementById('notation-follow-checkbox');
-                if (follow?.checked && target && isElementOutsideContainer(target, panel)) {
-                    const targetRect = target.getBoundingClientRect();
-                    const panelRect = panel.getBoundingClientRect();
-                    const targetTop = panel.scrollTop + targetRect.top - panelRect.top - panel.clientHeight * 0.3;
-                    panel.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
-                }
+                if (follow?.checked && target) ensurePlaybackTargetVisible(target, panel);
             } else {
                 const activeCard = melodyContainer.querySelector(`[data-index="${index}"]`);
-                if (activeCard && isElementOutsideContainer(activeCard, melodyContainer)) {
-                    activeCard.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-                }
+                if (activeCard) ensurePlaybackTargetVisible(activeCard, melodyContainer);
             }
         }
 
@@ -4038,28 +4139,41 @@
 
                 const panel = document.getElementById('notation-panel');
                 const panelWidth = panel?.clientWidth || 360;
-                const isMobileScreen = window.innerWidth <= 680;
+                const isPortraitMobile = window.innerWidth <= 680 && window.innerHeight >= window.innerWidth;
                 const isLandscapeMobile = window.innerHeight <= 520 && window.innerWidth > window.innerHeight;
-
-                // 完全貼合容器寬度，直式手機不強制 680px
+                const isMobileScreen = isPortraitMobile || isLandscapeMobile;
                 const sidePadding = isMobileScreen ? 8 : 20;
-                const canvasWidth = Math.max(260, panelWidth - sidePadding);
+                const displayWidth = Math.max(260, panelWidth - sidePadding);
 
-                let measuresPerLine = 1;
-                if (canvasWidth >= 1050) measuresPerLine = 3;
-                else if (canvasWidth >= 560) measuresPerLine = 2;
-                else measuresPerLine = 1;
+                // 手機使用較大的邏輯畫布再等比縮放：直式固定 2 小節，橫式固定 4 小節。
+                // 這能保留 VexFlow 的排版空間，同時把整行譜面縮到手機可視寬度。
+                let measuresPerLine;
+                let canvasWidth;
+                if (isPortraitMobile) {
+                    measuresPerLine = 2;
+                    canvasWidth = 620;
+                } else if (isLandscapeMobile) {
+                    measuresPerLine = 4;
+                    canvasWidth = 1160;
+                } else {
+                    canvasWidth = displayWidth;
+                    if (canvasWidth >= 1240) measuresPerLine = 4;
+                    else if (canvasWidth >= 900) measuresPerLine = 3;
+                    else if (canvasWidth >= 560) measuresPerLine = 2;
+                    else measuresPerLine = 1;
+                }
+                stage.dataset.measuresPerLine = String(measuresPerLine);
+                stage.dataset.notationLayout = isPortraitMobile ? 'mobile-portrait' : (isLandscapeMobile ? 'mobile-landscape' : 'responsive');
 
                 const rowCount = Math.ceil(measures.length / measuresPerLine);
-                // 橫式手機緊湊排版 (122px)，直式手機 (140px)，桌機 (165px)
-                const rowHeight = isLandscapeMobile ? 122 : (isMobileScreen ? 140 : 165);
+                const rowHeight = isLandscapeMobile ? 132 : (isPortraitMobile ? 152 : 165);
                 const canvasHeight = Math.max(150, rowCount * rowHeight + (isMobileScreen ? 10 : 20));
 
                 const renderer = new VF.Renderer(host, VF.Renderer.Backends.SVG);
                 renderer.resize(canvasWidth, canvasHeight);
                 const context = renderer.getContext();
                 const [numBeats, beatValue] = currentTimeSignature.split('/').map(Number);
-                const leftMargin = isMobileScreen ? 4 : 10;
+                const leftMargin = isMobileScreen ? 8 : 10;
                 const usableWidth = canvasWidth - leftMargin * 2;
                 const staveWidth = Math.floor(usableWidth / measuresPerLine);
 
@@ -4067,7 +4181,7 @@
                     const column = measureIndex % measuresPerLine;
                     const row = Math.floor(measureIndex / measuresPerLine);
                     const x = leftMargin + column * staveWidth;
-                    const y = (isLandscapeMobile ? 6 : 14) + row * rowHeight;
+                    const y = (isLandscapeMobile ? 5 : 12) + row * rowHeight;
                     const stave = new VF.Stave(x, y, staveWidth);
                     if (column === 0) {
                         stave.addClef('treble').addKeySignature(currentKey);
@@ -4138,6 +4252,15 @@
                         });
                     });
                 });
+
+                const svg = host.querySelector('svg');
+                if (svg) {
+                    svg.setAttribute('viewBox', `0 0 ${canvasWidth} ${canvasHeight}`);
+                    svg.setAttribute('preserveAspectRatio', 'xMinYMin meet');
+                    svg.dataset.measuresPerLine = String(measuresPerLine);
+                    svg.style.width = '100%';
+                    svg.style.height = 'auto';
+                }
 
                 notationDirty = false;
                 updatePlaybackFocus(currentPlaybackIndex, false);
@@ -4711,6 +4834,7 @@
         function stopPlayback() {
             if (playbackTimer) clearTimeout(playbackTimer);
             playbackTimer = null;
+            clearPlaybackScrollTimers();
             currentPlaybackIndex = -1;
             playbackTimeline = [];
             playbackStartedAtMs = 0;
