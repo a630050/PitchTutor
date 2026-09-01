@@ -7,3 +7,4 @@ Thumbs.db
 *.log
 temp_*
 node_modules/
+*.mp4

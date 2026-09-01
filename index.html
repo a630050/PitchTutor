@@ -504,7 +504,9 @@
             .tuner-action-block { flex-shrink: 0; }
         }
 
-        .practice-toolbar { padding: 10px 14px 0; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+        .practice-toolbar { padding: 10px 14px 0; display: flex; flex-direction: column; gap: 4px; }
+        .practice-toolbar-body { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; }
+        .practice-toolbar-toggle { display: none !important; }
         .practice-mode-group { display: flex; gap: 6px; flex-wrap: wrap; }
         .practice-mode-button { padding: 8px 11px; border-radius: 9px; background: #14232e; color: #8fa0aa; border: 1px solid #2b3f4b; font-size: 10px; font-weight: 900; }
         .practice-mode-button.is-active { color: #09211d; background: #a7e2d7; border-color: #a7e2d7; }
@@ -850,7 +852,22 @@
             .score-paper { min-height: 320px; }
             
             /* 練唱頁手機端優化 */
-            .practice-toolbar { padding: 6px 8px 0; gap: 6px; }
+            .practice-toolbar { padding: 4px 8px 0; gap: 4px; flex-shrink: 0; }
+            .practice-toolbar-body { display: flex; flex-direction: column; gap: 4px; width: 100%; }
+            .practice-toolbar.is-collapsed .practice-toolbar-body { display: none !important; }
+            .practice-toolbar-toggle {
+                display: flex !important; align-items: center; justify-content: center;
+                width: 100%; height: 22px; margin-top: 1px; border-radius: 6px;
+                background: rgba(30, 41, 59, 0.6); border: 1px dashed rgba(71, 85, 105, 0.6);
+                color: #94a3b8; font-size: 10px; font-weight: 800; cursor: pointer; user-select: none;
+            }
+            .practice-toolbar-toggle:active { background: rgba(51, 65, 85, 0.85); color: #f8fafc; }
+            html[data-theme="day"] .practice-toolbar-toggle {
+                background: rgba(226, 213, 189, 0.7) !important;
+                border-color: rgba(185, 167, 131, 0.8) !important;
+                color: #5c4b3c !important;
+            }
+
             #practice-instrument-toolbar {
                 display: flex; align-items: center; gap: 6px; width: 100%; margin-right: 0;
             }
@@ -858,11 +875,11 @@
                 width: auto !important; font-size: 11px; font-weight: 800; color: #8fa0ad; flex-shrink: 0; display: inline-block !important;
             }
             #practice-instrument-toolbar .instrument-choice {
-                flex: 1; min-width: 0; text-align: center; padding: 6px 2px; font-size: 10px; white-space: nowrap;
+                flex: 1; min-width: 0; text-align: center; padding: 5px 2px; font-size: 10px; white-space: nowrap;
             }
 
             #practice-bpm-toolbar {
-                display: flex; align-items: center; gap: 6px; width: 100%; height: 32px; padding: 0 8px; margin-right: 0; box-sizing: border-box;
+                display: flex; align-items: center; gap: 6px; width: 100%; height: 30px; padding: 0 8px; margin-right: 0; box-sizing: border-box;
             }
             #practice-bpm-toolbar .tool-label {
                 width: auto !important; font-size: 11px; font-weight: 800; color: #8fa0ad; flex-shrink: 0; display: inline-block !important;
@@ -870,37 +887,74 @@
             #practice-bpm-toolbar input[type="range"] { flex: 1; min-width: 50px; }
 
             .practice-mode-group { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; width: 100%; }
-            .practice-mode-button { font-size: 10px; padding: 6px 2px; text-align: center; white-space: nowrap; }
+            .practice-mode-button { font-size: 10px; padding: 5px 2px; text-align: center; white-space: nowrap; }
             .practice-pause, .practice-stop {
-                height: 30px !important; padding: 4px 10px !important; font-size: 10px !important; line-height: 1 !important;
+                height: 28px !important; padding: 4px 10px !important; font-size: 10px !important; line-height: 1 !important;
                 display: inline-flex !important; align-items: center; justify-content: center;
             }
 
-            #practice-page { overflow: visible !important; height: auto !important; flex: none !important; }
-            #practice-page > main { padding: 4px 8px 8px; gap: 6px; overflow: visible !important; height: auto !important; }
+            /* 練唱模式專屬：App 級 100dvh 視口隔離，樂譜為獨立滾動容器，絕不觸發頁面回彈拉出工具列 */
+            body[data-active-workspace="practice"] {
+                height: 100dvh !important;
+                max-height: 100dvh !important;
+                overflow: hidden !important;
+            }
+            body[data-active-workspace="practice"] #practice-page.is-active {
+                display: flex !important;
+                flex-direction: column !important;
+                height: 100% !important;
+                max-height: 100% !important;
+                flex: 1 1 auto !important;
+                min-height: 0 !important;
+                overflow: hidden !important;
+            }
+            body[data-active-workspace="practice"] #practice-page > main {
+                flex: 1 1 auto !important;
+                min-height: 0 !important;
+                display: flex !important;
+                flex-direction: column !important;
+                overflow: hidden !important;
+                padding: 4px 6px 6px !important;
+                gap: 4px !important;
+            }
             
-            /* 唯一吸頂：偏高偏低高低音反饋面板鎖定在頂端 */
+            /* 高低音反饋面板固定置頂，不依賴頁面滾動 */
             #tuner-panel {
-                position: sticky !important;
-                top: 0 !important;
-                z-index: 40 !important;
+                flex-shrink: 0 !important;
+                position: static !important;
                 padding: 6px 8px;
-                backdrop-filter: blur(16px);
-                -webkit-backdrop-filter: blur(16px);
             }
             html[data-theme="day"] #tuner-panel {
                 background-color: rgba(247, 239, 223, 0.98) !important;
                 border-color: #c5b48f !important;
-                box-shadow: 0 4px 16px rgba(92, 74, 46, 0.16) !important;
+                box-shadow: 0 2px 10px rgba(92, 74, 46, 0.12) !important;
             }
             html[data-theme="night"] #tuner-panel {
                 background-color: rgba(15, 23, 42, 0.98) !important;
                 border-color: rgba(51, 65, 85, 0.8) !important;
-                box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5) !important;
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4) !important;
             }
             html[data-theme="day"] #practice-instrument-toolbar .tool-label,
             html[data-theme="day"] #practice-bpm-toolbar .tool-label {
                 color: #716254 !important;
+            }
+
+            /* 樂譜卡片與五線譜容器：獨立垂直滾動容器 */
+            body[data-active-workspace="practice"] #practice-page section.glass-panel:last-child {
+                flex: 1 1 auto !important;
+                min-height: 0 !important;
+                display: flex !important;
+                flex-direction: column !important;
+                overflow: hidden !important;
+            }
+            body[data-active-workspace="practice"] #notation-panel,
+            body[data-active-workspace="practice"] #melody-container {
+                flex: 1 1 auto !important;
+                min-height: 0 !important;
+                height: 100% !important;
+                overflow-y: auto !important;
+                -webkit-overflow-scrolling: touch !important;
+                overscroll-behavior-y: contain !important;
             }
 
             #notation-rerender-btn { display: none !important; }
@@ -1277,35 +1331,41 @@
     <!-- 2. 主區域 (左右分欄: 左欄設置聲音 / 右欄聽好的聲音與練唱) -->
     <div id="practice-page" class="workspace-page flex-1 flex overflow-hidden" role="tabpanel" aria-labelledby="workspace-tab-practice">
         <div class="practice-toolbar">
-            <div>
-                <div class="eyebrow">Practice room</div>
-                <h2 class="panel-title">聽音與練唱</h2>
-            </div>
-            <div class="tool-row items-center ml-auto mr-2" id="practice-instrument-toolbar">
-                <span class="tool-label text-slate-400">音色</span>
-                <button class="choice-button instrument-choice is-active" type="button" data-instrument="piano" title="鋼琴：溫暖自然的觸鍵與延音">🎹 鋼琴</button>
-                <button class="choice-button instrument-choice" type="button" data-instrument="flute" title="長笛管樂：純淨連音，最適合視唱練唱">🪈 長笛</button>
-                <button class="choice-button instrument-choice" type="button" data-instrument="strings" title="溫暖弦樂：醇厚悠揚的平滑長音">🎻 弦樂</button>
-                <button class="choice-button instrument-choice" type="button" data-instrument="vocal" title="人聲導唱：模擬 Ahh 人聲共鳴">🎤 人聲</button>
-            </div>
-            <div class="tool-row items-center gap-1.5 bg-slate-950/80 px-2.5 py-1 rounded-lg border border-slate-800 mr-2" id="practice-bpm-toolbar" title="調整練唱與播放速度 (BPM)">
-                <span class="tool-label text-slate-400">速度</span>
-                <button id="practice-bpm-minus" class="quiet-button px-1.5 py-0.5 text-xs font-bold text-slate-300 hover:text-white" type="button" title="降低 5 BPM">−5</button>
-                <input type="range" id="practice-bpm-slider" min="40" max="150" step="1" value="82" class="w-16 accent-orange-500 cursor-pointer h-1.5 bg-slate-700 rounded-lg">
-                <button id="practice-bpm-plus" class="quiet-button px-1.5 py-0.5 text-xs font-bold text-slate-300 hover:text-white" type="button" title="增加 5 BPM">+5</button>
-                <div class="flex items-center gap-0.5 text-xs font-mono font-bold text-amber-400">
-                    <span id="practice-bpm-display">82</span>
-                    <span class="text-[9px] text-slate-500 font-sans">BPM</span>
+            <div class="practice-toolbar-body" id="practice-toolbar-body">
+                <div>
+                    <div class="eyebrow">Practice room</div>
+                    <h2 class="panel-title">聽音與練唱</h2>
+                </div>
+                <div class="tool-row items-center ml-auto mr-2" id="practice-instrument-toolbar">
+                    <span class="tool-label text-slate-400">音色</span>
+                    <button class="choice-button instrument-choice is-active" type="button" data-instrument="piano" title="鋼琴：溫暖自然的觸鍵與延音">🎹 鋼琴</button>
+                    <button class="choice-button instrument-choice" type="button" data-instrument="flute" title="長笛管樂：純淨連音，最適合視唱練唱">🪈 長笛</button>
+                    <button class="choice-button instrument-choice" type="button" data-instrument="strings" title="溫暖弦樂：醇厚悠揚的平滑長音">🎻 弦樂</button>
+                    <button class="choice-button instrument-choice" type="button" data-instrument="vocal" title="人聲導唱：模擬 Ahh 人聲共鳴">🎤 人聲</button>
+                </div>
+                <div class="tool-row items-center gap-1.5 bg-slate-950/80 px-2.5 py-1 rounded-lg border border-slate-800 mr-2" id="practice-bpm-toolbar" title="調整練唱與播放速度 (BPM)">
+                    <span class="tool-label text-slate-400">速度</span>
+                    <button id="practice-bpm-minus" class="quiet-button px-1.5 py-0.5 text-xs font-bold text-slate-300 hover:text-white" type="button" title="降低 5 BPM">−5</button>
+                    <input type="range" id="practice-bpm-slider" min="40" max="150" step="1" value="82" class="w-16 accent-orange-500 cursor-pointer h-1.5 bg-slate-700 rounded-lg">
+                    <button id="practice-bpm-plus" class="quiet-button px-1.5 py-0.5 text-xs font-bold text-slate-300 hover:text-white" type="button" title="增加 5 BPM">+5</button>
+                    <div class="flex items-center gap-0.5 text-xs font-mono font-bold text-amber-400">
+                        <span id="practice-bpm-display">82</span>
+                        <span class="text-[9px] text-slate-500 font-sans">BPM</span>
+                    </div>
+                </div>
+                <div class="practice-mode-group" aria-label="練唱操作">
+                    <button class="practice-mode-button is-active" type="button" data-practice-mode="learn">單音聽音</button>
+                    <button class="practice-mode-button" type="button" data-practice-mode="practice">單音跟唱</button>
+                    <button class="practice-mode-button" type="button" data-practice-mode="play_audio">播放全曲</button>
+                    <button class="practice-mode-button" type="button" data-practice-mode="play_practice">全曲練唱</button>
+                    <button id="practice-pause-btn" class="practice-pause hidden" type="button">暫停</button>
+                    <button id="practice-stop-btn" class="practice-stop hidden" type="button">停止</button>
                 </div>
             </div>
-            <div class="practice-mode-group" aria-label="練唱操作">
-                <button class="practice-mode-button is-active" type="button" data-practice-mode="learn">單音聽音</button>
-                <button class="practice-mode-button" type="button" data-practice-mode="practice">單音跟唱</button>
-                <button class="practice-mode-button" type="button" data-practice-mode="play_audio">播放全曲</button>
-                <button class="practice-mode-button" type="button" data-practice-mode="play_practice">全曲練唱</button>
-                <button id="practice-pause-btn" class="practice-pause hidden" type="button">暫停</button>
-                <button id="practice-stop-btn" class="practice-stop hidden" type="button">停止</button>
-            </div>
+            <!-- 手机端专属：收折切换按钮 -->
+            <button id="practice-toolbar-toggle" class="practice-toolbar-toggle" type="button" aria-expanded="true" title="收起或展開控制列">
+                <span id="practice-toolbar-toggle-text">▲ 收起控制列</span>
+            </button>
         </div>
 
         <!-- 2.1 左欄：設置聲音的部分 (側邊欄概念) -->
@@ -1815,6 +1875,7 @@
 
         // 新輸譜工作台狀態
         let activeWorkspaceView = 'editor';
+        document.body.dataset.activeWorkspace = activeWorkspaceView;
         let editorInputMode = 'fixed'; // 'fixed' (五線譜看譜模式 / 固定音名 C-D-E-F-G-A-B) | 'movable' (首調簡譜模式 1-2-3-4-5-6-7)
         let editorCursorIndex = scoreNotes.length;
         let selectedEditorIndex = null;
@@ -2402,6 +2463,7 @@
 
         function setWorkspaceView(view) {
             activeWorkspaceView = view === 'practice' ? 'practice' : 'editor';
+            document.body.dataset.activeWorkspace = activeWorkspaceView;
             const isEditor = activeWorkspaceView === 'editor';
             const editorPage = document.getElementById('editor-page');
             const practicePage = document.getElementById('practice-page');
@@ -3212,8 +3274,9 @@
             if (!button) return;
             const isFullPlayback = activeAppMode === 'play_audio' || activeAppMode === 'play_practice';
             const controlsRect = document.querySelector('.practice-mode-group')?.getBoundingClientRect();
-            const controlsActuallyVisible = !!controlsRect && controlsRect.bottom > 8 && controlsRect.top < window.innerHeight - 8;
-            const shouldShow = activeWorkspaceView === 'practice' && isFullPlayback && !practiceControlsInView && !controlsActuallyVisible;
+            const controlsActuallyVisible = !!controlsRect && controlsRect.height > 0 && controlsRect.bottom > 8 && controlsRect.top < window.innerHeight - 8;
+            const isToolbarCollapsed = !!document.querySelector('.practice-toolbar.is-collapsed');
+            const shouldShow = activeWorkspaceView === 'practice' && isFullPlayback && (!practiceControlsInView || !controlsActuallyVisible || isToolbarCollapsed);
             button.classList.toggle('is-visible', shouldShow);
             button.classList.toggle('is-paused', isPlaybackPaused);
             button.setAttribute('aria-hidden', String(!shouldShow));
@@ -4261,6 +4324,25 @@
             });
             document.getElementById('practice-pause-btn').addEventListener('click', togglePlaybackPause);
             document.getElementById('practice-stop-btn').addEventListener('click', () => switchAppMode('learn'));
+            const toolbarToggle = document.getElementById('practice-toolbar-toggle');
+            const toolbarToggleText = document.getElementById('practice-toolbar-toggle-text');
+            const practiceToolbar = document.querySelector('.practice-toolbar');
+            if (toolbarToggle && practiceToolbar) {
+                toolbarToggle.addEventListener('click', () => {
+                    const isCollapsed = practiceToolbar.classList.toggle('is-collapsed');
+                    toolbarToggle.setAttribute('aria-expanded', String(!isCollapsed));
+                    if (toolbarToggleText) {
+                        toolbarToggleText.textContent = isCollapsed ? '▼ 展開控制列 (音色 / 速度 / 模式)' : '▲ 收起控制列';
+                    }
+                    if (practiceScoreView === 'notation') {
+                        setTimeout(() => {
+                            notationDirty = true;
+                            renderNotationScore();
+                        }, 120);
+                    }
+                    syncFloatingPlaybackControl();
+                });
+            }
             initializeFloatingPlaybackControl();
             initializePlaybackLifecycleHandling();
             document.getElementById('practice-cells-tab').addEventListener('click', () => setPracticeScoreView('cells'));

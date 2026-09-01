@@ -392,13 +392,31 @@ const server = http.createServer((request, response) => {
     const headerTitleText = (await paramPage.textContent('#card-track-header-title')).trim();
     assert.equal(headerTitleText, '🎯 練習模式：點擊/長按發聲聽音，對著麥克風唱');
 
-    // 驗證向下捲動超過初始位置時 #tuner-panel 吸頂鎖定於頂端 (top <= 5)
-    const initialTunerTop = await paramPage.locator('#tuner-panel').evaluate(el => el.getBoundingClientRect().top + window.scrollY);
-    await paramPage.evaluate(target => window.scrollTo(0, target + 120), initialTunerTop);
-    await paramPage.waitForTimeout(100);
-    const stickyTop = await paramPage.locator('#tuner-panel').evaluate(el => el.getBoundingClientRect().top);
-    assert.ok(Math.abs(stickyTop) <= 5, `Tuner panel should stick to top (<= 5px), got ${stickyTop}`);
-    await paramPage.evaluate(() => window.scrollTo(0, 0));
+    // 驗證手機端練唱工具列收折與展開交互
+    const toggleBtn = paramPage.locator('#practice-toolbar-toggle');
+    assert.equal(await toggleBtn.isVisible(), true, 'Practice toolbar toggle should be visible on mobile');
+    await toggleBtn.click();
+    assert.equal(await paramPage.locator('.practice-toolbar.is-collapsed').count(), 1, 'Toolbar should be collapsed after click');
+    await toggleBtn.click();
+    assert.equal(await paramPage.locator('.practice-toolbar.is-collapsed').count(), 0, 'Toolbar should expand after second click');
+
+    // 驗證五線譜為獨立垂直滾動容器，向下滾動與反向回看時均不觸發全頁滾動
+    const notationPanelScrollable = await paramPage.locator('#notation-panel').evaluate(el => {
+        const style = getComputedStyle(el);
+        return style.overflowY === 'auto' || style.overflowY === 'scroll';
+    });
+    assert.equal(notationPanelScrollable, true, 'Notation panel must be an independent scrollable container on mobile');
+
+    // 模擬在五線譜內部向下滾動並反向回滾，驗證 window.scrollY 始終維持為 0（絕不拉出上方工具列）
+    await paramPage.evaluate(() => {
+        const panel = document.getElementById('notation-panel');
+        if (panel) {
+            panel.scrollTop = 250;
+            panel.scrollTop = 60; // 反向向上回看
+        }
+    });
+    const pageScrollY = await paramPage.evaluate(() => window.scrollY);
+    assert.equal(pageScrollY, 0, 'Window scroll must stay at 0 during score browsing to prevent pulling down toolbars');
 
     // 驗證單音跟唱模式下，點擊五線譜音符即時高亮
     await paramPage.click('#practice-notation-tab');
@@ -451,8 +469,8 @@ const server = http.createServer((request, response) => {
     assert.ok(highlightedVisibility.bottom > 0 && highlightedVisibility.top < highlightedVisibility.viewportHeight,
       `Highlighted notation should be visible after auto-scroll, got top=${highlightedVisibility.top}, bottom=${highlightedVisibility.bottom}`);
 
-    // 頂端控制列離開可視範圍後，浮動圓鈕可暫停與繼續
-    await paramPage.evaluate(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'auto' }));
+    // 頂端控制列收起後，浮動圓鈕立即可用於暫停與繼續
+    await paramPage.click('#practice-toolbar-toggle');
     await paramPage.waitForSelector('#floating-playback-toggle.is-visible', { timeout: 2000 });
     assert.equal(await paramPage.getAttribute('#floating-playback-toggle', 'aria-label'), '繼續播放');
     await paramPage.click('#floating-playback-toggle');
@@ -465,6 +483,9 @@ const server = http.createServer((request, response) => {
       fs.mkdirSync(process.env.MOBILE_SCREENSHOT_DIR, { recursive: true });
       await paramPage.screenshot({ path: path.join(process.env.MOBILE_SCREENSHOT_DIR, 'mobile-portrait.png') });
     }
+    // 重新展開工具列以恢復正常操作按鈕
+    await paramPage.click('#practice-toolbar-toggle');
+    await paramPage.waitForSelector('#practice-stop-btn', { state: 'visible' });
     await paramPage.click('#practice-stop-btn');
 
     // 驗證手機橫式 RWD 佈局
