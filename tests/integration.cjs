@@ -103,6 +103,20 @@ const server = http.createServer((request, response) => {
     await page.waitForSelector('#notation-stage .vf-note-playing', { timeout: 3000 });
     assert.equal(await page.locator('#notation-stage .vf-source-note.vf-note-playing').count(), 1);
     const pausedSourceIndex = await page.locator('#notation-stage .vf-source-note.vf-note-playing').getAttribute('data-source-index');
+
+    // 模擬手機鎖屏：保存目前音符、AudioContext 被系統暫停，再於回到頁面後恢復同一位置與聲音
+    const lifecycleIndex = await page.evaluate(() => currentPlaybackIndex);
+    await page.evaluate(() => pausePlaybackForPageLifecycle());
+    assert.equal(await page.evaluate(() => isPlaybackPaused && playbackPausedByLifecycle), true);
+    await page.evaluate(async () => {
+      if (audioCtx?.state === 'running') await audioCtx.suspend();
+    });
+    assert.equal(await page.evaluate(() => audioCtx?.state), 'suspended');
+    await page.evaluate(() => resumePlaybackAfterPageLifecycle());
+    assert.equal(await page.evaluate(() => audioCtx?.state), 'running');
+    assert.equal(await page.evaluate(() => isPlaybackPaused), false);
+    assert.equal(await page.evaluate(() => currentPlaybackIndex), lifecycleIndex);
+
     await page.click('#practice-pause-btn');
     await page.waitForTimeout(700);
     assert.equal(await page.locator('#notation-stage .vf-source-note.vf-note-playing').getAttribute('data-source-index'), pausedSourceIndex);
@@ -282,6 +296,7 @@ const server = http.createServer((request, response) => {
     await paramPage.waitForSelector('#floating-playback-toggle.is-visible', { timeout: 2000 });
     assert.equal(await paramPage.getAttribute('#floating-playback-toggle', 'aria-label'), '繼續播放');
     await paramPage.click('#floating-playback-toggle');
+    await paramPage.waitForFunction(() => !isPlaybackPaused);
     assert.equal(await paramPage.evaluate(() => isPlaybackPaused), false);
     assert.equal(await paramPage.getAttribute('#floating-playback-toggle', 'aria-label'), '暫停播放');
     await paramPage.click('#floating-playback-toggle');

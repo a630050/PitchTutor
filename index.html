@@ -1607,6 +1607,8 @@
         let playbackTimeline = [];
         let playbackPausedElapsedMs = 0;
         let isPlaybackPaused = false;
+        let playbackPausedByLifecycle = false;
+        let playbackLifecycleResumeInFlight = false;
         let playbackScrollTimers = [];
         let practiceControlsInView = true;
         let practiceControlsObserver = null;
@@ -1688,11 +1690,25 @@
         }
 
         async function ensureAudioContextReady() {
-            if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            }
-            if (audioCtx.state === 'suspended') {
-                await audioCtx.resume();
+            try {
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                if (!AudioContextClass) return false;
+                if (!audioCtx || audioCtx.state === 'closed') {
+                    audioCtx = new AudioContextClass();
+                    currentPlayingVoice = null;
+                    activeSustainedOsc = null;
+                    activeSustainedGain = null;
+                    analyser = null;
+                    micStreamSource = null;
+                    micHighPassFilter = null;
+                    micLowPassFilter = null;
+                }
+                if (audioCtx.state === 'suspended' || audioCtx.state === 'interrupted') {
+                    await audioCtx.resume();
+                }
+                return audioCtx.state === 'running';
+            } catch (_) {
+                return false;
             }
         }
 
@@ -1725,7 +1741,7 @@
                 stopCurrentVoice(0.02);
                 return;
             }
-            await ensureAudioContextReady();
+            if (!await ensureAudioContextReady()) return;
             stopCurrentVoice(0.02);
 
             const now = audioCtx.currentTime;
@@ -1870,7 +1886,7 @@
 
         async function startSustainedTone(midi) {
             if (!midi || midi <= 0) return;
-            await ensureAudioContextReady();
+            if (!await ensureAudioContextReady()) return;
             stopSustainedTone();
             stopCurrentVoice(0.02);
 
@@ -3903,6 +3919,7 @@
             document.getElementById('practice-pause-btn').addEventListener('click', togglePlaybackPause);
             document.getElementById('practice-stop-btn').addEventListener('click', () => switchAppMode('learn'));
             initializeFloatingPlaybackControl();
+            initializePlaybackLifecycleHandling();
             document.getElementById('practice-cells-tab').addEventListener('click', () => setPracticeScoreView('cells'));
             document.getElementById('practice-notation-tab').addEventListener('click', () => setPracticeScoreView('notation'));
             document.getElementById('notation-rerender-btn').addEventListener('click', () => {
@@ -4429,8 +4446,44 @@
         let micHighPassFilter = null;
         let micLowPassFilter = null;
 
+        function resetMicAudioGraph() {
+            [micStreamSource, micHighPassFilter, micLowPassFilter, analyser].forEach(node => {
+                try { node?.disconnect(); } catch (_) {}
+            });
+            micStreamSource = null;
+            micHighPassFilter = null;
+            micLowPassFilter = null;
+            analyser = null;
+        }
+
+        function connectMicStreamToAudioGraph(stream) {
+            resetMicAudioGraph();
+            micStreamSource = audioCtx.createMediaStreamSource(stream);
+            micHighPassFilter = audioCtx.createBiquadFilter();
+            micHighPassFilter.type = 'highpass';
+            micHighPassFilter.frequency.value = 65;
+            micLowPassFilter = audioCtx.createBiquadFilter();
+            micLowPassFilter.type = 'lowpass';
+            micLowPassFilter.frequency.value = 1000;
+            micLowPassFilter.Q.value = 0.707;
+            analyser = audioCtx.createAnalyser();
+            analyser.fftSize = 2048;
+            micStreamSource.connect(micHighPassFilter);
+            micHighPassFilter.connect(micLowPassFilter);
+            micLowPassFilter.connect(analyser);
+        }
+
         async function startMicListening() {
-            await ensureAudioContextReady();
+            if (!await ensureAudioContextReady()) {
+                document.getElementById('tuner-feedback').innerText = '⚠️ 音訊引擎尚未恢復，請點擊繼續播放';
+                return;
+            }
+            const hasLiveAudioTrack = micStream?.getAudioTracks().some(track => track.readyState === 'live');
+            if (micStream && !hasLiveAudioTrack) {
+                micStream.getTracks().forEach(track => track.stop());
+                micStream = null;
+                resetMicAudioGraph();
+            }
             if (!micStream) {
                 try {
                     const stream = await navigator.mediaDevices.getUserMedia({
@@ -4442,29 +4495,13 @@
                         video: false
                     });
                     micStream = stream;
-                    micStreamSource = audioCtx.createMediaStreamSource(stream);
-
-                    // 1. 高通濾波器 (65Hz)：濾除桌面震動與超低頻噪聲
-                    micHighPassFilter = audioCtx.createBiquadFilter();
-                    micHighPassFilter.type = 'highpass';
-                    micHighPassFilter.frequency.value = 65;
-
-                    // 2. 低通濾波器 (1000Hz)：抑制高階泛音與氣音齒音，突顯人聲基頻
-                    micLowPassFilter = audioCtx.createBiquadFilter();
-                    micLowPassFilter.type = 'lowpass';
-                    micLowPassFilter.frequency.value = 1000;
-                    micLowPassFilter.Q.value = 0.707;
-
-                    analyser = audioCtx.createAnalyser();
-                    analyser.fftSize = 2048;
-
-                    micStreamSource.connect(micHighPassFilter);
-                    micHighPassFilter.connect(micLowPassFilter);
-                    micLowPassFilter.connect(analyser);
+                    connectMicStreamToAudioGraph(stream);
                 } catch (err) {
                     document.getElementById('tuner-feedback').innerText = "⚠️ 無法開啟麥克風";
                     return;
                 }
+            } else if (!micStreamSource || micStreamSource.context !== audioCtx) {
+                connectMicStreamToAudioGraph(micStream);
             }
             if (animFrameId) cancelAnimationFrame(animFrameId);
             pitchDetectionLoop();
@@ -4718,6 +4755,7 @@
             playbackStartedAtMs = performance.now() - targetStartMs;
             playbackPausedElapsedMs = 0;
             isPlaybackPaused = false;
+            playbackPausedByLifecycle = false;
 
             btnStop.classList.remove('hidden');
             if (activeAppMode === 'play_practice') {
@@ -4745,6 +4783,7 @@
             playbackStartedAtMs = performance.now();
             playbackPausedElapsedMs = 0;
             isPlaybackPaused = false;
+            playbackPausedByLifecycle = false;
 
             btnStop.classList.remove('hidden');
 
@@ -4797,15 +4836,71 @@
             }, waitMs);
         }
 
-        function togglePlaybackPause() {
+        function pausePlaybackForPageLifecycle() {
+            const isFullPlayback = activeAppMode === 'play_audio' || activeAppMode === 'play_practice';
+            if (!isFullPlayback || isPlaybackPaused || currentPlaybackIndex < 0) return;
+            if (playbackTimer) clearTimeout(playbackTimer);
+            playbackTimer = null;
+            clearPlaybackScrollTimers();
+            const currentEntry = playbackTimeline[currentPlaybackIndex];
+            // 鎖屏後從目前音符開頭恢復，避免背景節流的牆鐘時間把整首歌直接跳完。
+            playbackPausedElapsedMs = currentEntry?.startMs ?? Math.max(0, performance.now() - playbackStartedAtMs);
+            isPlaybackPaused = true;
+            playbackPausedByLifecycle = true;
+            stopCurrentVoice(0.01);
+            stopSustainedTone();
+            if (activeAppMode === 'play_practice') stopMicListening();
+            playbackStatus.innerText = '📱 螢幕關閉，已保留目前播放位置';
+            syncPracticeModeButtons();
+        }
+
+        async function resumePausedPlayback() {
+            const isFullPlayback = activeAppMode === 'play_audio' || activeAppMode === 'play_practice';
+            if (!isFullPlayback || !isPlaybackPaused || playbackLifecycleResumeInFlight) return false;
+            playbackLifecycleResumeInFlight = true;
+            const audioReady = await ensureAudioContextReady();
+            playbackLifecycleResumeInFlight = false;
+            if (!audioReady || document.hidden) {
+                playbackStatus.innerText = '▶️ 音訊等待喚醒，請點擊「繼續」';
+                syncPracticeModeButtons();
+                return false;
+            }
+            // 等待音訊期間使用者可能已停止或切換模式，恢復前再次確認狀態。
+            if ((activeAppMode !== 'play_audio' && activeAppMode !== 'play_practice') || !isPlaybackPaused) return false;
+            isPlaybackPaused = false;
+            playbackPausedByLifecycle = false;
+            playbackStartedAtMs = performance.now() - playbackPausedElapsedMs;
+            if (activeAppMode === 'play_practice') startMicListening();
+            playbackStatus.innerText = activeAppMode === 'play_practice' ? '🎤 播放全曲 (練聲) 中...' : '▶️ 播放全曲 (有聲) 中...';
+            syncPracticeModeButtons();
+            processNextPlaybackStep();
+            return true;
+        }
+
+        async function resumePlaybackAfterPageLifecycle() {
+            if (document.hidden) return;
+            const isFullPlayback = activeAppMode === 'play_audio' || activeAppMode === 'play_practice';
+            if (!isFullPlayback) return;
+            // 某些手機不會在鎖屏前送出 hidden；醒來時若 AudioContext 已中斷，先固定目前音符再恢復。
+            if (!isPlaybackPaused && audioCtx && audioCtx.state !== 'running') pausePlaybackForPageLifecycle();
+            if (playbackPausedByLifecycle) await resumePausedPlayback();
+        }
+
+        function initializePlaybackLifecycleHandling() {
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) pausePlaybackForPageLifecycle();
+                else resumePlaybackAfterPageLifecycle();
+            });
+            window.addEventListener('pagehide', pausePlaybackForPageLifecycle);
+            window.addEventListener('pageshow', resumePlaybackAfterPageLifecycle);
+            document.addEventListener('freeze', pausePlaybackForPageLifecycle);
+            document.addEventListener('resume', resumePlaybackAfterPageLifecycle);
+        }
+
+        async function togglePlaybackPause() {
             if (activeAppMode !== 'play_audio' && activeAppMode !== 'play_practice') return;
             if (isPlaybackPaused) {
-                isPlaybackPaused = false;
-                playbackStartedAtMs = performance.now() - playbackPausedElapsedMs;
-                if (activeAppMode === 'play_practice') startMicListening();
-                playbackStatus.innerText = activeAppMode === 'play_practice' ? '🎤 播放全曲 (練聲) 中...' : '▶️ 播放全曲 (有聲) 中...';
-                syncPracticeModeButtons();
-                processNextPlaybackStep();
+                await resumePausedPlayback();
                 return;
             }
 
@@ -4813,6 +4908,7 @@
             playbackTimer = null;
             playbackPausedElapsedMs = Math.max(0, performance.now() - playbackStartedAtMs);
             isPlaybackPaused = true;
+            playbackPausedByLifecycle = false;
             stopCurrentVoice(0.02);
             if (activeAppMode === 'play_practice') stopMicListening();
             playbackStatus.innerText = '⏸️ 已暫停 · 目前音符保持高亮';
@@ -4840,6 +4936,8 @@
             playbackStartedAtMs = 0;
             playbackPausedElapsedMs = 0;
             isPlaybackPaused = false;
+            playbackPausedByLifecycle = false;
+            playbackLifecycleResumeInFlight = false;
             btnStop.classList.add('hidden');
             stopCurrentVoice(0.03);
             stopSustainedTone();
