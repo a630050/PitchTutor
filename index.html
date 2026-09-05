@@ -1363,9 +1363,9 @@
                 </div>
                 <div class="tool-row items-center gap-1.5 bg-slate-950/80 px-2.5 py-1 rounded-lg border border-slate-800 mr-2" id="practice-bpm-toolbar" title="調整練唱與播放速度 (BPM)">
                     <span class="tool-label text-slate-400">速度</span>
-                    <button id="practice-bpm-minus" class="quiet-button px-1.5 py-0.5 text-xs font-bold text-slate-300 hover:text-white" type="button" title="降低 5 BPM">−5</button>
+                    <button id="practice-bpm-minus" class="quiet-button px-1.5 py-0.5 text-xs font-bold text-slate-300 hover:text-white" type="button" title="降低 1 BPM">−1</button>
                     <input type="range" id="practice-bpm-slider" min="40" max="150" step="1" value="82" class="w-16 accent-orange-500 cursor-pointer h-1.5 bg-slate-700 rounded-lg">
-                    <button id="practice-bpm-plus" class="quiet-button px-1.5 py-0.5 text-xs font-bold text-slate-300 hover:text-white" type="button" title="增加 5 BPM">+5</button>
+                    <button id="practice-bpm-plus" class="quiet-button px-1.5 py-0.5 text-xs font-bold text-slate-300 hover:text-white" type="button" title="增加 1 BPM">+1</button>
                     <div class="flex items-center gap-0.5 text-xs font-mono font-bold text-amber-400">
                         <span id="practice-bpm-display">82</span>
                         <span class="text-[9px] text-slate-500 font-sans">BPM</span>
@@ -4268,13 +4268,13 @@
             const practiceMinus = document.getElementById('practice-bpm-minus');
             if (practiceMinus) {
                 practiceMinus.addEventListener('click', () => {
-                    setGlobalBpm(currentBpm - 5);
+                    setGlobalBpm(currentBpm - 1);
                 });
             }
             const practicePlus = document.getElementById('practice-bpm-plus');
             if (practicePlus) {
                 practicePlus.addEventListener('click', () => {
-                    setGlobalBpm(currentBpm + 5);
+                    setGlobalBpm(currentBpm + 1);
                 });
             }
 

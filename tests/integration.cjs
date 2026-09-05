@@ -134,6 +134,8 @@ const server = http.createServer((request, response) => {
 
     assert.equal(await page.getAttribute('#editor-score-bpm', 'max'), '150');
     assert.equal(await page.getAttribute('#practice-bpm-slider', 'max'), '150');
+    assert.equal(await page.textContent('#practice-bpm-minus'), '−1');
+    assert.equal(await page.textContent('#practice-bpm-plus'), '+1');
     await page.$eval('#editor-score-bpm', input => {
       input.value = '999';
       input.dispatchEvent(new Event('input', { bubbles: true }));
@@ -327,6 +329,12 @@ const server = http.createServer((request, response) => {
 
     // 驗證單音跟唱（練習）模式下點擊音格與長按發聲
     await page.click('#workspace-tab-practice');
+    await page.evaluate(() => setGlobalBpm(80));
+    const baseBpm = 80;
+    await page.click('#practice-bpm-plus');
+    assert.equal(Number(await page.textContent('#practice-bpm-display')), 81);
+    await page.click('#practice-bpm-minus');
+    assert.equal(Number(await page.textContent('#practice-bpm-display')), 80);
     await page.click('#practice-cells-tab');
     await page.click('.practice-mode-button[data-practice-mode="practice"]');
     const firstTile = page.locator('#melody-container .note-tile').first();
