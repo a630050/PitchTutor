@@ -537,6 +537,60 @@
             font-weight: 800 !important;
             letter-spacing: 0.5px;
         }
+        /* 小節互動與雙擊播放樣式 */
+        .vf-measure-zone {
+            cursor: pointer;
+        }
+        .vf-measure-hotspot {
+            fill: transparent;
+            cursor: pointer;
+            transition: fill 0.15s ease;
+        }
+        .vf-measure-hotspot:hover {
+            fill: rgba(99, 102, 241, 0.04);
+        }
+        .vf-measure-badge {
+            cursor: pointer;
+            user-select: none;
+            transition: transform 0.15s ease;
+        }
+        .vf-measure-badge:hover {
+            transform: scale(1.08);
+        }
+        .vf-measure-badge-bg {
+            fill: #f1f5f9;
+            stroke: #cbd5e1;
+            stroke-width: 1px;
+            transition: fill 0.15s ease, stroke 0.15s ease;
+        }
+        .vf-measure-badge:hover .vf-measure-badge-bg {
+            fill: #e0e7ff;
+            stroke: #6366f1;
+        }
+        .vf-measure-badge-text {
+            font-family: 'Inter', 'Noto Sans TC', system-ui, sans-serif;
+            font-size: 10px;
+            font-weight: 800;
+            fill: #475569;
+            pointer-events: none;
+            transition: fill 0.15s ease;
+        }
+        .vf-measure-badge:hover .vf-measure-badge-text {
+            fill: #4338ca;
+        }
+        /* 正在播放該小節時的高亮樣式 */
+        .vf-measure-zone.is-playing-measure .vf-measure-hotspot {
+            fill: rgba(99, 102, 241, 0.08);
+            stroke: rgba(99, 102, 241, 0.35);
+            stroke-width: 1.5px;
+        }
+        .vf-measure-zone.is-playing-measure .vf-measure-badge-bg {
+            fill: #4f46e5 !important;
+            stroke: #818cf8 !important;
+        }
+        .vf-measure-zone.is-playing-measure .vf-measure-badge-text {
+            fill: #ffffff !important;
+        }
         .note-tile.is-playback-active { background: rgba(37,99,235,.42) !important; border-color: #60a5fa !important; color: #fff !important; box-shadow: 0 0 0 2px rgba(96,165,250,.35), 0 8px 18px rgba(15,23,42,.35); transform: scale(1.05); z-index: 10; }
         .note-tile.is-single-active { background: rgba(79,70,229,.3) !important; border-color: #818cf8 !important; color: #fff !important; }
         .notation-heading { margin: 0 0 6px 10px; color: #334155; font: 800 13px/1.4 'Noto Sans TC', sans-serif; }
@@ -1978,6 +2032,13 @@
         let selectedDegree = 1;
         let activeSingleNoteIndex = null;
         let currentPlaybackIndex = -1;
+        let isPlayingSingleMeasure = false;
+        let singleMeasureEndIndex = -1;
+        let singleMeasureOriginalMode = 'learn';
+        let currentPlayingMeasureIndex = -1;
+        let lastTouchEndTime = 0;
+        let lastMeasureDoubleTriggerTime = 0;
+        let lastMeasureDoubleTriggerIndex = -1;
         let playbackTimer = null;
         let playbackStartedAtMs = 0;
         let playbackTimeline = [];
@@ -4585,13 +4646,26 @@
                 }
             }, { passive: true });
 
-            domElement.addEventListener('touchend', () => {
+            let lastNoteTapTime = 0;
+            domElement.addEventListener('touchend', (e) => {
+                lastTouchEndTime = performance.now();
                 if (touchPressTimer) {
                     clearTimeout(touchPressTimer);
                     touchPressTimer = null;
                 }
                 stopSustainedTone();
                 if (!isTouchScrolling) {
+                    const now = lastTouchEndTime;
+                    if (now - lastNoteTapTime < 420) {
+                        lastNoteTapTime = 0;
+                        const measureIndex = getMeasureIndexForNote(index);
+                        if (measureIndex >= 0) {
+                            if (e.cancelable) e.preventDefault();
+                            triggerMeasureDoubleAction(measureIndex);
+                            return;
+                        }
+                    }
+                    lastNoteTapTime = now;
                     onNoteTileInteraction(index, 'click');
                 }
             });
@@ -4625,6 +4699,13 @@
             element.addEventListener('mouseleave', () => stopSustainedTone());
             bindNoteTouchInteraction(element, index);
 
+            // 音符雙擊支持：雙擊單個音符委託觸發其所屬小節的雙擊行為
+            element.addEventListener('dblclick', (e) => {
+                e.preventDefault();
+                const measureIndex = getMeasureIndexForNote(index);
+                if (measureIndex >= 0) triggerMeasureDoubleAction(measureIndex);
+            });
+
             element.addEventListener('keydown', event => {
                 if (event.key === 'Enter' || event.key === ' ') {
                     event.preventDefault();
@@ -4633,6 +4714,51 @@
             });
             if (!notationSourceMap.has(index)) notationSourceMap.set(index, []);
             notationSourceMap.get(index).push(element);
+        }
+
+        /**
+         * 綁定小節熱區與微標的點擊、雙擊及多端觸控手勢
+         * @param {Element} element DOM/SVG 元素
+         * @param {number} measureIndex 小節索引
+         */
+        function bindMeasureElementEvents(element, measureIndex) {
+            let lastTapTime = 0;
+
+            element.addEventListener('click', (e) => {
+                const now = performance.now();
+                if (now - lastTouchEndTime < 450) return; // 忽略觸控後伴隨的 click
+
+                if (now - lastTapTime < 420) {
+                    lastTapTime = 0;
+                    triggerMeasureDoubleAction(measureIndex);
+                } else {
+                    lastTapTime = now;
+                }
+            });
+
+            element.addEventListener('dblclick', (e) => {
+                e.preventDefault();
+                triggerMeasureDoubleAction(measureIndex);
+            });
+
+            element.addEventListener('touchend', (e) => {
+                lastTouchEndTime = performance.now();
+                const now = lastTouchEndTime;
+                if (now - lastTapTime < 420) {
+                    lastTapTime = 0;
+                    if (e.cancelable) e.preventDefault();
+                    triggerMeasureDoubleAction(measureIndex);
+                } else {
+                    lastTapTime = now;
+                }
+            });
+
+            element.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    triggerMeasureDoubleAction(measureIndex);
+                }
+            });
         }
 
         function renderNotationScore() {
@@ -4727,6 +4853,14 @@
                 const renderer = new VF.Renderer(host, VF.Renderer.Backends.SVG);
                 renderer.resize(canvasWidth, canvasHeight);
                 const context = renderer.getContext();
+                const svg = host.querySelector('svg');
+                const svgNS = 'http://www.w3.org/2000/svg';
+
+                const bgLayer = document.createElementNS(svgNS, 'g');
+                bgLayer.classList.add('vf-measure-layer-bg');
+                svg?.appendChild(bgLayer);
+
+                const measureBadges = [];
                 const [numBeats, beatValue] = currentTimeSignature.split('/').map(Number);
                 const leftMargin = isMobileScreen ? 8 : 10;
                 const usableWidth = canvasWidth - leftMargin * 2;
@@ -4737,6 +4871,23 @@
                     const row = Math.floor(measureIndex / measuresPerLine);
                     const x = leftMargin + column * staveWidth;
                     const y = (isLandscapeMobile ? 5 : 12) + row * rowHeight;
+
+                    // 在底層建立小節中央互動熱區
+                    const hotspot = document.createElementNS(svgNS, 'rect');
+                    hotspot.classList.add('vf-measure-hotspot', 'vf-measure-zone');
+                    hotspot.setAttribute('x', String(x));
+                    hotspot.setAttribute('y', String(y));
+                    hotspot.setAttribute('width', String(staveWidth));
+                    hotspot.setAttribute('height', String(rowHeight - (isLandscapeMobile ? 6 : 10)));
+                    hotspot.setAttribute('rx', '6');
+                    hotspot.setAttribute('ry', '6');
+                    hotspot.dataset.measureIndex = String(measureIndex);
+                    hotspot.setAttribute('role', 'button');
+                    hotspot.setAttribute('tabindex', '0');
+                    hotspot.setAttribute('aria-label', `第 ${measureIndex + 1} 小節中央，快速雙擊播放`);
+                    bindMeasureElementEvents(hotspot, measureIndex);
+                    bgLayer.appendChild(hotspot);
+
                     const stave = new VF.Stave(x, y, staveWidth);
                     if (column === 0) {
                         stave.addClef('treble').addKeySignature(currentKey);
@@ -4809,9 +4960,48 @@
                             notationSourceMap.get(index).push(tupletElement);
                         });
                     });
+
+                    // 建立該小節頂端正中央操作微標（Badge）
+                    const badge = document.createElementNS(svgNS, 'g');
+                    badge.classList.add('vf-measure-badge', 'vf-measure-zone');
+                    badge.dataset.measureIndex = String(measureIndex);
+                    badge.setAttribute('role', 'button');
+                    badge.setAttribute('tabindex', '0');
+                    badge.setAttribute('aria-label', `第 ${measureIndex + 1} 小節，快速雙擊播放`);
+
+                    const badgeWidth = isPortraitMobile ? 48 : 56;
+                    const badgeHeight = 20;
+                    const badgeCenterX = x + staveWidth / 2;
+                    const badgeY = y + (isLandscapeMobile ? 0 : 2);
+
+                    const badgeBg = document.createElementNS(svgNS, 'rect');
+                    badgeBg.classList.add('vf-measure-badge-bg');
+                    badgeBg.setAttribute('x', String(badgeCenterX - badgeWidth / 2));
+                    badgeBg.setAttribute('y', String(badgeY));
+                    badgeBg.setAttribute('width', String(badgeWidth));
+                    badgeBg.setAttribute('height', String(badgeHeight));
+                    badgeBg.setAttribute('rx', '10');
+                    badgeBg.setAttribute('ry', '10');
+
+                    const badgeText = document.createElementNS(svgNS, 'text');
+                    badgeText.classList.add('vf-measure-badge-text');
+                    badgeText.setAttribute('x', String(badgeCenterX));
+                    badgeText.setAttribute('y', String(badgeY + badgeHeight / 2));
+                    badgeText.textContent = `M${measureIndex + 1} ▶`;
+
+                    badge.appendChild(badgeBg);
+                    badge.appendChild(badgeText);
+                    bindMeasureElementEvents(badge, measureIndex);
+                    measureBadges.push(badge);
                 });
 
-                const svg = host.querySelector('svg');
+                if (measureBadges.length > 0 && svg) {
+                    const fgLayer = document.createElementNS(svgNS, 'g');
+                    fgLayer.classList.add('vf-measure-layer-fg');
+                    measureBadges.forEach(b => fgLayer.appendChild(b));
+                    svg.appendChild(fgLayer);
+                }
+
                 if (svg) {
                     svg.setAttribute('viewBox', `0 0 ${canvasWidth} ${canvasHeight}`);
                     svg.setAttribute('preserveAspectRatio', 'xMinYMin meet');
@@ -5273,7 +5463,7 @@
         btnModePlayPractice.addEventListener('click', () => activeAppMode === 'play_practice' ? togglePlaybackPause() : switchAppMode('play_practice'));
 
         function shouldHoldPlaybackWakeLock() {
-            const isFullPlayback = activeAppMode === 'play_audio' || activeAppMode === 'play_practice';
+            const isFullPlayback = activeAppMode === 'play_audio' || activeAppMode === 'play_practice' || isPlayingSingleMeasure;
             return isFullPlayback && !isPlaybackPaused && currentPlaybackIndex >= 0 && !document.hidden;
         }
 
@@ -5325,6 +5515,148 @@
                     setTimeout(() => releasePlaybackWakeLock(), 1000);
                 }
             });
+        }
+
+        /**
+         * 取得指定音符所屬的小節索引
+         * @param {number} noteIndex 音符全局索引
+         * @returns {number} 小節索引（未找到則回傳 -1）
+         */
+        function getMeasureIndexForNote(noteIndex) {
+            const measures = groupNotesIntoMeasures();
+            return measures.findIndex(measure => measure.items.some(item => noteIndex >= item.startIndex && noteIndex <= item.endIndex));
+        }
+
+        /**
+         * 高亮五線譜中正在播放的小節
+         * @param {number} measureIndex 小節索引
+         */
+        function highlightMeasure(measureIndex) {
+            clearMeasureHighlight();
+            const zones = document.querySelectorAll('#notation-stage .vf-measure-zone');
+            zones.forEach(zone => {
+                if (Number(zone.dataset.measureIndex) === measureIndex) {
+                    zone.classList.add('is-playing-measure');
+                }
+            });
+        }
+
+        /**
+         * 清除所有小節的播放高亮
+         */
+        function clearMeasureHighlight() {
+            const zones = document.querySelectorAll('#notation-stage .vf-measure-zone.is-playing-measure');
+            zones.forEach(zone => zone.classList.remove('is-playing-measure'));
+        }
+
+        /**
+         * 雙擊防抖觸發器（避免原生 dblclick 與多端觸控手勢雙擊重複觸發）
+         * @param {number} measureIndex 小節索引
+         */
+        function triggerMeasureDoubleAction(measureIndex) {
+            const now = performance.now();
+            if (lastMeasureDoubleTriggerIndex === measureIndex && (now - lastMeasureDoubleTriggerTime < 320)) return;
+            lastMeasureDoubleTriggerTime = now;
+            lastMeasureDoubleTriggerIndex = measureIndex;
+            handleMeasureDoubleClick(measureIndex);
+        }
+
+        /**
+         * 響應小節雙擊操作：
+         * - 若處於「全部播放模式」（play_audio / play_practice）：從該小節第 1 個音符開始繼續全曲播放
+         * - 若處於「單音練唱模式」（learn / practice）：只播放該小節所有音符，播完自動停止並恢復原模式
+         * @param {number} measureIndex 小節索引
+         */
+        function handleMeasureDoubleClick(measureIndex) {
+            const measures = groupNotesIntoMeasures();
+            if (measureIndex < 0 || measureIndex >= measures.length) return;
+            const measure = measures[measureIndex];
+            if (!measure) return;
+
+            if (activeAppMode === 'play_audio' || activeAppMode === 'play_practice') {
+                jumpPlaybackTo(measure.startIndex);
+                showWorkbenchToast(`▶ 從第 ${measureIndex + 1} 小節開頭繼續播放`);
+            } else {
+                playMeasure(measureIndex);
+            }
+        }
+
+        /**
+         * 播放指定小節的所有音符（單小節專屬播放）
+         * 播完該小節後自動停止發聲並恢復原單音模式
+         * @param {number} measureIndex 小節索引
+         */
+        function playMeasure(measureIndex) {
+            if (scoreNotes.length === 0) return;
+            const measures = groupNotesIntoMeasures();
+            if (measureIndex < 0 || measureIndex >= measures.length) return;
+            const measure = measures[measureIndex];
+            if (!measure || !measure.items || measure.items.length === 0) return;
+
+            const startIndex = measure.startIndex;
+            const lastItem = measure.items[measure.items.length - 1];
+            const endIndex = lastItem.endIndex;
+            if (startIndex > endIndex || startIndex >= scoreNotes.length) return;
+
+            ensureAudioContextReady();
+            if (playbackTimer) {
+                clearTimeout(playbackTimer);
+                playbackTimer = null;
+            }
+            stopCurrentVoice(0.01);
+            stopSustainedTone();
+
+            // 記錄觸發播放前的單音模式（若在全曲播放中觸發則重置為 learn）
+            if (activeAppMode === 'learn' || activeAppMode === 'practice') {
+                singleMeasureOriginalMode = activeAppMode;
+            } else if (!isPlayingSingleMeasure) {
+                singleMeasureOriginalMode = 'learn';
+            }
+
+            isPlayingSingleMeasure = true;
+            singleMeasureEndIndex = endIndex;
+            currentPlayingMeasureIndex = measureIndex;
+
+            // 確保播放時間軸完整
+            let elapsedMs = 0;
+            playbackTimeline = scoreNotes.map((note, index) => {
+                const durationMs = getNoteDurationSeconds(note) * 1000;
+                const entry = { index, startMs: elapsedMs, endMs: elapsedMs + durationMs, durationMs };
+                elapsedMs += durationMs;
+                return entry;
+            });
+
+            currentPlaybackIndex = startIndex;
+            const startEntry = playbackTimeline[startIndex];
+            playbackStartedAtMs = performance.now() - (startEntry ? startEntry.startMs : 0);
+            playbackPausedElapsedMs = 0;
+            isPlaybackPaused = false;
+            playbackPausedByLifecycle = false;
+            requestPlaybackWakeLock();
+
+            // 暫停麥克風監聽以避免揚聲器反饋
+            stopMicListening();
+
+            btnStop.classList.remove('hidden');
+            playbackStatus.innerText = `▶️ 正在播放第 ${measureIndex + 1} 小節 (${endIndex - startIndex + 1} 個音符)...`;
+
+            highlightMeasure(measureIndex);
+            processNextPlaybackStep();
+        }
+
+        /**
+         * 單小節播放完成時的回調：平滑停止發聲、清除高亮並自動恢復原模式
+         */
+        function finishSingleMeasurePlayback() {
+            const finishedMeasure = currentPlayingMeasureIndex;
+            const restoreMode = singleMeasureOriginalMode || 'learn';
+            isPlayingSingleMeasure = false;
+            singleMeasureEndIndex = -1;
+            currentPlayingMeasureIndex = -1;
+            clearMeasureHighlight();
+            stopPlayback();
+            switchAppMode(restoreMode);
+            showWorkbenchToast(`✓ 第 ${finishedMeasure + 1} 小節播放完畢`);
         }
 
         /**
@@ -5407,8 +5739,12 @@
 
         function processNextPlaybackStep() {
             if (isPlaybackPaused) return;
-            if (currentPlaybackIndex >= scoreNotes.length) {
-                finishFullPlayback();
+            if (currentPlaybackIndex >= scoreNotes.length || (isPlayingSingleMeasure && currentPlaybackIndex > singleMeasureEndIndex)) {
+                if (isPlayingSingleMeasure) {
+                    finishSingleMeasurePlayback();
+                } else {
+                    finishFullPlayback();
+                }
                 return;
             }
             const note = scoreNotes[currentPlaybackIndex];
@@ -5422,7 +5758,7 @@
 
             updateTunerDisplayForNote(note);
 
-            if (activeAppMode === 'play_audio') {
+            if (activeAppMode === 'play_audio' || isPlayingSingleMeasure) {
                 if (note.degree !== 0) {
                     playSynthesizedTone(midi, durationSec, 0.48);
                 } else {
@@ -5548,6 +5884,10 @@
             isPlaybackPaused = false;
             playbackPausedByLifecycle = false;
             playbackLifecycleResumeInFlight = false;
+            isPlayingSingleMeasure = false;
+            singleMeasureEndIndex = -1;
+            currentPlayingMeasureIndex = -1;
+            clearMeasureHighlight();
             releasePlaybackWakeLock();
             btnStop.classList.add('hidden');
             stopCurrentVoice(0.03);

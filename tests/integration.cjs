@@ -378,6 +378,8 @@ const server = http.createServer((request, response) => {
     // 驗證網址帶參數直接載入樂譜並切換至練唱模式
     const paramPage = await browser.newPage({ viewport: { width: 390, height: 844 } }); // 模擬手機直式
     await paramPage.addInitScript(() => localStorage.setItem('pitch-tutor-theme', 'day'));
+    const paramPageErrors = [];
+    paramPage.on('pageerror', error => paramPageErrors.push(error.message));
     await paramPage.goto(`http://127.0.0.1:${port}?score=隱形的翅膀_第一部.json&view=practice&mode=practice`);
     await paramPage.waitForSelector('#practice-page.is-active');
     assert.equal(await paramPage.getAttribute('html', 'data-theme'), 'day');
@@ -465,6 +467,38 @@ const server = http.createServer((request, response) => {
       assert.equal(currentPlayIdx, 4, 'Clicking score notation note 4 should jump playback to note 4');
     }
 
+    // 驗證全部播放模式下雙擊小節微標：從該小節第 1 個音符開頭繼續全曲播放
+    const badgeM1 = paramPage.locator('.vf-measure-badge[data-measure-index="1"]').first();
+    assert.equal(await badgeM1.count(), 1, 'Measure badge M2 should exist');
+    await badgeM1.dblclick();
+    const expectedM1Start = await paramPage.evaluate(() => groupNotesIntoMeasures()[1]?.startIndex ?? -1);
+    await paramPage.waitForFunction(startIdx => currentPlaybackIndex === startIdx, expectedM1Start, { timeout: 4000 });
+    currentPlayIdx = await paramPage.evaluate(() => currentPlaybackIndex);
+    assert.equal(currentPlayIdx, expectedM1Start, 'Double-clicking measure 2 badge during full playback should jump to measure 2 start');
+
+    // 驗證單音練唱模式下雙擊小節：專屬播放該小節所有音符，播完自動停止並恢復原模式
+    await paramPage.click('.practice-mode-button[data-practice-mode="learn"]');
+    assert.equal(await paramPage.evaluate(() => activeAppMode), 'learn');
+    assert.equal(await paramPage.evaluate(() => isPlayingSingleMeasure), false);
+
+    // 雙擊第 1 小節微標
+    const badgeM0 = paramPage.locator('.vf-measure-badge[data-measure-index="0"]').first();
+    await badgeM0.dblclick();
+    await paramPage.waitForFunction(() => isPlayingSingleMeasure, null, { timeout: 4000 });
+    assert.equal(await paramPage.evaluate(() => isPlayingSingleMeasure), true, 'Single measure playback should be active');
+    assert.equal(await paramPage.evaluate(() => currentPlayingMeasureIndex), 0, 'Should be playing measure 1');
+    assert.equal(await paramPage.locator('.vf-measure-badge[data-measure-index="0"]').first().evaluate(el => el.classList.contains('is-playing-measure')), true, 'Measure badge should be highlighted during measure playback');
+
+    // 等待第 1 小節播放完畢並自動停止
+    await paramPage.waitForFunction(() => !isPlayingSingleMeasure, null, { timeout: 10000 });
+    assert.equal(await paramPage.evaluate(() => isPlayingSingleMeasure), false, 'Measure playback should end');
+    assert.equal(await paramPage.evaluate(() => activeAppMode), 'learn', 'App mode should be restored to learn');
+    assert.equal(await paramPage.locator('.is-playing-measure').count(), 0, 'Measure highlight should be cleared');
+
+    // 重新切回全曲發聲播放供後續測試使用
+    await paramPage.click('.practice-mode-button[data-practice-mode="play_audio"]');
+    await paramPage.waitForSelector('#notation-stage .vf-note-playing', { timeout: 3000 });
+
     // 播放跳到後段時，譜面與頁面都要把高亮音符帶進可視範圍
     await paramPage.evaluate(() => {
       jumpPlaybackTo(100);
@@ -519,8 +553,9 @@ const server = http.createServer((request, response) => {
     }
     await paramPage.close();
 
+    assert.deepEqual(paramPageErrors, []);
     assert.deepEqual(pageErrors, []);
-    console.log('PASS integration: BPM, triplet atomicity, range paste, insertion, notation, playback highlight, collapsible panels, studio scrolling, reference slider & drag, practice note tone playback, YIN pitch detection, URL params, Playback Click-to-Jump & Mobile RWD, export');
+    console.log('PASS integration: BPM, triplet atomicity, range paste, insertion, notation, playback highlight, collapsible panels, studio scrolling, reference slider & drag, practice note tone playback, YIN pitch detection, URL params, Playback Click-to-Jump & Mobile RWD, Measure Double-Click Playback, export');
   } finally {
     if (browser) await browser.close();
     server.close();
