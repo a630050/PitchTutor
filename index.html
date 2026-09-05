@@ -1351,7 +1351,7 @@
                     <button class="choice-button instrument-choice is-active" type="button" data-instrument="piano" title="鋼琴：溫暖自然的觸鍵與延音">🎹 鋼琴</button>
                     <button class="choice-button instrument-choice" type="button" data-instrument="flute" title="長笛管樂：純淨連音，最適合視唱練唱">🪈 長笛</button>
                     <button class="choice-button instrument-choice" type="button" data-instrument="strings" title="溫暖弦樂：醇厚悠揚的平滑長音">🎻 弦樂</button>
-                    <button class="choice-button instrument-choice" type="button" data-instrument="vocal" title="人聲導唱：模擬 Ahh 人聲共鳴">🎤 人聲</button>
+                    <button class="choice-button instrument-choice" type="button" data-instrument="organ" title="風琴：宏亮豐滿的持續延音，和聲視唱練耳首選">🏛️ 風琴</button>
                 </div>
 
                 <div class="tool-row" id="duration-toolbar">
@@ -1413,7 +1413,7 @@
                     <button class="choice-button instrument-choice is-active" type="button" data-instrument="piano" title="鋼琴：溫暖自然的觸鍵與延音">🎹 鋼琴</button>
                     <button class="choice-button instrument-choice" type="button" data-instrument="flute" title="長笛管樂：純淨連音，最適合視唱練唱">🪈 長笛</button>
                     <button class="choice-button instrument-choice" type="button" data-instrument="strings" title="溫暖弦樂：醇厚悠揚的平滑長音">🎻 弦樂</button>
-                    <button class="choice-button instrument-choice" type="button" data-instrument="vocal" title="人聲導唱：模擬 Ahh 人聲共鳴">🎤 人聲</button>
+                    <button class="choice-button instrument-choice" type="button" data-instrument="organ" title="風琴：宏亮豐滿的持續延音，和聲視唱練耳首選">🏛️ 風琴</button>
                 </div>
                 <div class="tool-row items-center gap-1.5 bg-slate-950/80 px-2.5 py-1 rounded-lg border border-slate-800 mr-2" id="practice-bpm-toolbar" title="調整練唱與播放速度 (BPM)">
                     <span class="tool-label text-slate-400">速度</span>
@@ -2116,11 +2116,13 @@
             return { degree: bestMatch.degree, octave, accidental: bestMatch.accidental };
         }
 
-        let currentInstrument = 'piano'; // 'piano' | 'flute' | 'strings' | 'vocal'
+        let currentInstrument = 'piano'; // 'piano' | 'flute' | 'strings' | 'organ'
         let currentPlayingVoice = null;
 
         function setInstrument(inst) {
-            const valid = ['piano', 'flute', 'strings', 'vocal'];
+            const valid = ['piano', 'flute', 'strings', 'organ'];
+            // 平滑兼容迁移先前本地保存的 vocal
+            if (inst === 'vocal') inst = 'organ';
             currentInstrument = valid.includes(inst) ? inst : 'piano';
             document.querySelectorAll('.instrument-choice').forEach(button => {
                 button.classList.toggle('is-active', button.dataset.instrument === currentInstrument);
@@ -2244,8 +2246,8 @@
                 osc2.connect(filter);
                 filter.connect(masterGain);
 
-                masterGain.gain.linearRampToValueAtTime(volume * 0.7, now + 0.045);
-                masterGain.gain.setValueAtTime(volume * 0.65, now + Math.max(0.05, dur - 0.05));
+                masterGain.gain.linearRampToValueAtTime(volume * 0.75, now + 0.045);
+                masterGain.gain.setValueAtTime(volume * 0.70, now + Math.max(0.05, dur - 0.05));
                 masterGain.gain.linearRampToValueAtTime(0.0001, now + dur);
 
                 osc1.start(now);
@@ -2254,35 +2256,55 @@
                 osc2.stop(now + dur + 0.06);
                 oscList.push(osc1, osc2);
 
-            } else if (currentInstrument === 'vocal') {
-                // 🎤 人聲導唱：雙共振峰濾波 (Formant Bandpass)
-                const osc = audioCtx.createOscillator();
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(freq, now);
+            } else if (currentInstrument === 'organ') {
+                // 🏛️ 風琴 (管風琴 / 簧管風琴)：溫暖豐滿的持續延音，多音栓諧波疊加，音準清晰，和聲練唱首選
+                const osc1 = audioCtx.createOscillator();
+                const osc2 = audioCtx.createOscillator();
+                const osc3 = audioCtx.createOscillator();
+                const filter = audioCtx.createBiquadFilter();
 
-                const bp1 = audioCtx.createBiquadFilter();
-                bp1.type = 'bandpass';
-                bp1.frequency.setValueAtTime(Math.min(1200, freq * 1.5), now);
-                bp1.Q.setValueAtTime(4.5, now);
+                // 8' 主音栓：三角波溫暖基頻
+                osc1.type = 'triangle';
+                osc1.frequency.setValueAtTime(freq, now);
 
-                const bp2 = audioCtx.createBiquadFilter();
-                bp2.type = 'bandpass';
-                bp2.frequency.setValueAtTime(2500, now);
-                bp2.Q.setValueAtTime(4.0, now);
+                // 4' 八度音栓：正弦波提高音準辨識度與明亮感
+                osc2.type = 'sine';
+                osc2.frequency.setValueAtTime(freq * 2, now);
 
-                const g1 = audioCtx.createGain(); g1.gain.setValueAtTime(0.65, now);
-                const g2 = audioCtx.createGain(); g2.gain.setValueAtTime(0.35, now);
+                // 2 2/3' 五度音栓：正弦波賦予管風琴標誌性和聲豐滿度
+                osc3.type = 'sine';
+                osc3.frequency.setValueAtTime(freq * 3, now);
 
-                osc.connect(bp1); bp1.connect(g1); g1.connect(masterGain);
-                osc.connect(bp2); bp2.connect(g2); g2.connect(masterGain);
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(Math.min(4800, Math.max(1800, freq * 4)), now);
+                filter.Q.setValueAtTime(1.0, now);
 
-                masterGain.gain.linearRampToValueAtTime(volume * 0.85, now + 0.035);
-                masterGain.gain.setValueAtTime(volume * 0.75, now + Math.max(0.04, dur - 0.04));
+                const g1 = audioCtx.createGain(); g1.gain.setValueAtTime(0.55, now);
+                const g2 = audioCtx.createGain(); g2.gain.setValueAtTime(0.28, now);
+                const g3 = audioCtx.createGain(); g3.gain.setValueAtTime(0.14, now);
+
+                osc1.connect(g1); g1.connect(filter);
+                osc2.connect(g2); g2.connect(filter);
+                osc3.connect(g3); g3.connect(filter);
+                filter.connect(masterGain);
+
+                // 風琴具備飽滿穩定的持續延音 (Sustain)，前後配備微弱線性平滑防爆音包絡
+                const attackTime = Math.min(0.02, dur * 0.25);
+                const releaseTime = Math.min(0.035, dur * 0.35);
+                const sustainEndTime = Math.max(attackTime + 0.005, dur - releaseTime);
+                masterGain.gain.linearRampToValueAtTime(volume * 0.88, now + attackTime);
+                if (sustainEndTime > attackTime) {
+                    masterGain.gain.setValueAtTime(volume * 0.84, now + sustainEndTime);
+                }
                 masterGain.gain.linearRampToValueAtTime(0.0001, now + dur);
 
-                osc.start(now);
-                osc.stop(now + dur + 0.05);
-                oscList.push(osc);
+                osc1.start(now);
+                osc2.start(now);
+                osc3.start(now);
+                osc1.stop(now + dur + 0.05);
+                osc2.stop(now + dur + 0.05);
+                osc3.stop(now + dur + 0.05);
+                oscList.push(osc1, osc2, osc3);
 
             } else {
                 // 🎹 鋼琴：雙諧波振盪器 + 鋼琴自然觸鍵與平緩衰減
@@ -2354,18 +2376,29 @@
                 osc2.type = 'sawtooth'; osc2.frequency.setValueAtTime(freq, now); osc2.detune.setValueAtTime(8, now);
                 filter.type = 'lowpass'; filter.frequency.setValueAtTime(Math.min(1800, freq * 2.2), now);
                 osc1.connect(filter); osc2.connect(filter); filter.connect(masterGain);
-                masterGain.gain.linearRampToValueAtTime(volume * 0.7, now + 0.045);
+                masterGain.gain.linearRampToValueAtTime(volume * 0.75, now + 0.045);
                 osc1.start(now); osc2.start(now);
                 oscList.push(osc1, osc2);
-            } else if (currentInstrument === 'vocal') {
-                const osc = audioCtx.createOscillator();
-                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(freq, now);
-                const bp = audioCtx.createBiquadFilter();
-                bp.type = 'bandpass'; bp.frequency.setValueAtTime(800, now); bp.Q.setValueAtTime(4.0, now);
-                osc.connect(bp); bp.connect(masterGain);
-                masterGain.gain.linearRampToValueAtTime(volume * 0.85, now + 0.035);
-                osc.start(now);
-                oscList.push(osc);
+            } else if (currentInstrument === 'organ') {
+                const osc1 = audioCtx.createOscillator();
+                const osc2 = audioCtx.createOscillator();
+                const osc3 = audioCtx.createOscillator();
+                const filter = audioCtx.createBiquadFilter();
+                osc1.type = 'triangle'; osc1.frequency.setValueAtTime(freq, now);
+                osc2.type = 'sine'; osc2.frequency.setValueAtTime(freq * 2, now);
+                osc3.type = 'sine'; osc3.frequency.setValueAtTime(freq * 3, now);
+                filter.type = 'lowpass'; filter.frequency.setValueAtTime(Math.min(4800, Math.max(1800, freq * 4)), now);
+                filter.Q.setValueAtTime(1.0, now);
+                const g1 = audioCtx.createGain(); g1.gain.setValueAtTime(0.55, now);
+                const g2 = audioCtx.createGain(); g2.gain.setValueAtTime(0.28, now);
+                const g3 = audioCtx.createGain(); g3.gain.setValueAtTime(0.14, now);
+                osc1.connect(g1); g1.connect(filter);
+                osc2.connect(g2); g2.connect(filter);
+                osc3.connect(g3); g3.connect(filter);
+                filter.connect(masterGain);
+                masterGain.gain.linearRampToValueAtTime(volume * 0.86, now + 0.025);
+                osc1.start(now); osc2.start(now); osc3.start(now);
+                oscList.push(osc1, osc2, osc3);
             } else {
                 const osc1 = audioCtx.createOscillator();
                 const osc2 = audioCtx.createOscillator();
@@ -4354,6 +4387,10 @@
                     playSynthesizedTone(60, 0.65, 0.45);
                 });
             });
+            try {
+                const savedInst = localStorage.getItem('rehearsalDeskInstrument');
+                if (savedInst) setInstrument(savedInst);
+            } catch (_) {}
             document.querySelectorAll('.duration-choice').forEach(button => button.addEventListener('click', () => setStickyDuration(button.dataset.duration)));
             document.querySelectorAll('.accidental-choice').forEach(button => button.addEventListener('click', () => setAccidentalChoice(button.dataset.accidental)));
             document.querySelectorAll('.quick-pitch-key').forEach(button => button.addEventListener('click', () => insertStepNote(button.dataset.degree)));

@@ -394,8 +394,17 @@ const server = http.createServer((request, response) => {
     const modeGroupGridCols = await paramPage.locator('.practice-mode-group').evaluate(el => getComputedStyle(el).gridTemplateColumns.split(' ').length);
     assert.equal(modeGroupGridCols, 4, 'Mobile practice mode group should render 4 columns');
 
-    // 驗證音色板塊包含「音色」標籤並水平排列
+    // 驗證音色板塊包含「音色」標籤並水平排列，且第四種音色為風琴 (organ)
     assert.equal(await paramPage.locator('#practice-instrument-toolbar .tool-label').isVisible(), true, 'Instrument label should be visible');
+    const organBtn = paramPage.locator('#practice-instrument-toolbar .instrument-choice[data-instrument="organ"]');
+    assert.equal(await organBtn.count(), 1, 'Organ instrument button should exist');
+    assert.match(await organBtn.textContent(), /風琴/, 'Organ button should display organ text');
+    await organBtn.click();
+    assert.equal(await paramPage.evaluate(() => currentInstrument), 'organ', 'Current instrument should switch to organ');
+    assert.equal(await paramPage.evaluate(() => localStorage.getItem('rehearsalDeskInstrument')), 'organ');
+    await paramPage.evaluate(() => playSynthesizedTone(64, 0.3, 0.45));
+    assert.equal(await paramPage.evaluate(() => Boolean(currentPlayingVoice)), true, 'Organ synthesis should start playing voice');
+    await paramPage.evaluate(() => stopCurrentVoice(0.01));
 
     // 驗證聽標準音正方形按鈕與 tuner-panel 超薄單行高度 (<= 75px)
     const tunerBox = await paramPage.locator('#tuner-panel').boundingBox();
