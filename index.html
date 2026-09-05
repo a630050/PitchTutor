@@ -2500,6 +2500,12 @@
                 renderEditorScore();
             } else {
                 renderMelodyTrack();
+                if (practiceScoreView === 'notation') {
+                    notationDirty = true;
+                    requestAnimationFrame(() => {
+                        renderNotationScore();
+                    });
+                }
             }
             syncFloatingPlaybackControl();
         }
@@ -3770,13 +3776,13 @@
         const BUILTIN_SCORES = [
             {
                 id: 'invisible_wings_part1',
-                alias: ['invisible_wings', '隱形的翅膀_第一部', '隱形的翅膀'],
+                alias: ['invisible_wings', '隱形的翅膀_第一部', '隱形的翅膀', '隱形的翅膀 (第一部)'],
                 title: '隱形的翅膀 (第一部)',
                 key: 'Eb',
                 mode: 'major',
                 timeSignature: '4/4',
                 bpm: 75,
-                file: 'scores/隱形的翅膀_第一部.json',
+                file: 'scores/隱形的翅膀 (第一部).json',
                 desc: '3♭ E♭ 大調 · 4/4 拍 · ♩=75 · 經典合唱第一聲部 (附完整歌詞)'
             },
             {
@@ -3872,7 +3878,7 @@
             if (modal) modal.classList.remove('is-open');
         }
 
-        let currentLoadedScoreFile = 'scores/隱形的翅膀_第一部.json';
+        let currentLoadedScoreFile = 'scores/隱形的翅膀 (第一部).json';
 
         async function loadBuiltinScore(scoreInfo) {
             try {
@@ -4380,6 +4386,24 @@
                     }, 150);
                 }
             });
+            // 監聽五線譜容器寬度變化（例如分頁切換顯示、視窗縮放或側欄展開），自動以真實寬度排版
+            const notationContainer = document.getElementById('notation-panel');
+            if (notationContainer && window.ResizeObserver) {
+                let lastObservedNotationWidth = 0;
+                const notationObserver = new ResizeObserver(entries => {
+                    for (const entry of entries) {
+                        const currentWidth = Math.round(entry.contentRect.width);
+                        if (currentWidth > 0 && Math.abs(currentWidth - lastObservedNotationWidth) > 20) {
+                            lastObservedNotationWidth = currentWidth;
+                            if (activeWorkspaceView === 'practice' && practiceScoreView === 'notation') {
+                                notationDirty = true;
+                                renderNotationScore();
+                            }
+                        }
+                    }
+                });
+                notationObserver.observe(notationContainer);
+            }
 
             initializeThemeControl();
             initializeTextSizeControls();
@@ -4411,7 +4435,10 @@
             notationTab.classList.toggle('is-active', showNotation);
             followWrap.classList.toggle('hidden', !showNotation);
             rerender.classList.toggle('hidden', !showNotation);
-            if (showNotation) renderNotationScore();
+            if (showNotation) {
+                notationDirty = true;
+                renderNotationScore();
+            }
             updatePlaybackFocus(currentPlaybackIndex, false);
         }
 
@@ -4610,6 +4637,11 @@
 
         function renderNotationScore() {
             if (practiceScoreView !== 'notation' && !notationDirty) return;
+            // 若當前未處於練唱工作台（在輸譜頁），五線譜未顯示且寬度為 0，此時不進行盲目排版
+            if (activeWorkspaceView !== 'practice') {
+                notationDirty = true;
+                return;
+            }
             const stage = document.getElementById('notation-stage');
             if (!stage) return;
             if (!notationDirty && stage.childElementCount > 0) {
@@ -4651,10 +4683,20 @@
                 stage.append(heading, host);
 
                 const panel = document.getElementById('notation-panel');
-                const panelWidth = panel?.clientWidth || 360;
+                let panelWidth = panel?.clientWidth || 0;
                 const isPortraitMobile = window.innerWidth <= 680 && window.innerHeight >= window.innerWidth;
                 const isLandscapeMobile = window.innerHeight <= 520 && window.innerWidth > window.innerHeight;
                 const isMobileScreen = isPortraitMobile || isLandscapeMobile;
+
+                // 桌面端若容器尺寸尚未完全回算，以主工作區或視窗寬度估算，絕不取 360 降級為手機直式
+                if (panelWidth <= 0) {
+                    if (isMobileScreen) {
+                        panelWidth = window.innerWidth;
+                    } else {
+                        const mainElement = document.querySelector('main');
+                        panelWidth = Math.max(720, (mainElement?.clientWidth || window.innerWidth) - 40);
+                    }
+                }
                 const sidePadding = isMobileScreen ? 8 : 20;
                 const displayWidth = Math.max(260, panelWidth - sidePadding);
 

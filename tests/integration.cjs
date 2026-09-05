@@ -329,6 +329,15 @@ const server = http.createServer((request, response) => {
 
     // 驗證單音跟唱（練習）模式下點擊音格與長按發聲
     await page.click('#workspace-tab-practice');
+    // 驗證電腦端切換至練唱工作台時，五線譜自動以寬屏比例排版（每行 3 或 4 小節），絕不退化為手機 1 小節
+    await page.waitForFunction(() => {
+        const stage = document.getElementById('notation-stage');
+        const measures = Number(stage?.dataset?.measuresPerLine || 0);
+        return measures >= 3;
+    }, { timeout: 3000 });
+    const desktopMeasuresPerLine = await page.locator('#notation-stage').getAttribute('data-measures-per-line');
+    assert.ok(Number(desktopMeasuresPerLine) >= 3, `Desktop score notation should show at least 3 measures per line, got ${desktopMeasuresPerLine}`);
+
     await page.evaluate(() => setGlobalBpm(80));
     const baseBpm = 80;
     await page.click('#practice-bpm-plus');
@@ -375,7 +384,7 @@ const server = http.createServer((request, response) => {
     const loadedScoreTitle = await paramPage.evaluate(() => currentScoreTitle);
     assert.equal(loadedScoreTitle, '隱形的翅膀 (第一部)');
     const loadedNotesCount = await paramPage.evaluate(() => scoreNotes.length);
-    assert.equal(loadedNotesCount, 138);
+    assert.equal(loadedNotesCount, 232);
     const activeAppModeOnLoad = await paramPage.evaluate(() => activeAppMode);
     assert.equal(await paramPage.locator('#tuner-panel').isVisible(), true);
 
