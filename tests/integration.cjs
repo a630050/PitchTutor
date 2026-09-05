@@ -438,9 +438,9 @@ const server = http.createServer((request, response) => {
 
     // 驗證五線譜模式下點擊五線譜音符跳轉
     await paramPage.click('#practice-notation-tab');
-    await paramPage.waitForFunction(() => document.getElementById('notation-stage')?.dataset.measuresPerLine === '2');
+    await paramPage.waitForFunction(() => document.getElementById('notation-stage')?.dataset.measuresPerLine === '1');
     assert.equal(await paramPage.locator('#notation-stage').getAttribute('data-notation-layout'), 'mobile-portrait');
-    assert.equal(await paramPage.locator('#notation-stage').getAttribute('data-measures-per-line'), '2', 'Portrait mobile notation should show two measures per line');
+    assert.equal(await paramPage.locator('#notation-stage').getAttribute('data-measures-per-line'), '1', 'Portrait mobile notation should show one measure per line');
     const vfNote4 = paramPage.locator('.vf-source-note[data-source-index="4"]').first();
     if (await vfNote4.count() > 0) {
       await vfNote4.click();
@@ -490,12 +490,12 @@ const server = http.createServer((request, response) => {
 
     // 驗證手機橫式 RWD 佈局
     await paramPage.setViewportSize({ width: 844, height: 390 });
-    await paramPage.waitForFunction(() => document.getElementById('notation-stage')?.dataset.measuresPerLine === '4');
+    await paramPage.waitForFunction(() => document.getElementById('notation-stage')?.dataset.measuresPerLine === '2');
     assert.equal(await paramPage.locator('.workbench-header').isVisible(), true);
     assert.equal(await paramPage.locator('.practice-toolbar').isVisible(), true);
     assert.equal(await paramPage.locator('#tuner-panel').isVisible(), true);
     assert.equal(await paramPage.locator('#notation-stage').getAttribute('data-notation-layout'), 'mobile-landscape');
-    assert.equal(await paramPage.locator('#notation-stage').getAttribute('data-measures-per-line'), '4', 'Landscape mobile notation should show four measures per line');
+    assert.equal(await paramPage.locator('#notation-stage').getAttribute('data-measures-per-line'), '2', 'Landscape mobile notation should show two measures per line');
     if (process.env.MOBILE_SCREENSHOT_DIR) {
       await paramPage.locator('#notation-panel').scrollIntoViewIfNeeded();
       await paramPage.screenshot({ path: path.join(process.env.MOBILE_SCREENSHOT_DIR, 'mobile-landscape.png') });

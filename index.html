@@ -530,6 +530,13 @@
         .vf-rest-playing * { fill: #d97706 !important; stroke: #d97706 !important; }
         .vf-rest-playing { filter: drop-shadow(0 0 5px rgba(217,119,6,.8)); }
         .notation-lyric-playing { fill: #047857 !important; font-weight: 900 !important; }
+        .vf-lyric-text,
+        .vf-source-note[data-notation-role="lyric"],
+        .vf-source-note[data-notation-role="lyric"] text {
+            font-family: 'Noto Sans TC', system-ui, -apple-system, sans-serif !important;
+            font-weight: 800 !important;
+            letter-spacing: 0.5px;
+        }
         .note-tile.is-playback-active { background: rgba(37,99,235,.42) !important; border-color: #60a5fa !important; color: #fff !important; box-shadow: 0 0 0 2px rgba(96,165,250,.35), 0 8px 18px rgba(15,23,42,.35); transform: scale(1.05); z-index: 10; }
         .note-tile.is-single-active { background: rgba(79,70,229,.3) !important; border-color: #818cf8 !important; color: #fff !important; }
         .notation-heading { margin: 0 0 6px 10px; color: #334155; font: 800 13px/1.4 'Noto Sans TC', sans-serif; }
@@ -857,9 +864,9 @@
             .practice-toolbar.is-collapsed .practice-toolbar-body { display: none !important; }
             .practice-toolbar-toggle {
                 display: flex !important; align-items: center; justify-content: center;
-                width: 100%; height: 22px; margin-top: 1px; border-radius: 6px;
+                width: 100%; height: 24px; margin-top: 1px; border-radius: 6px;
                 background: rgba(30, 41, 59, 0.6); border: 1px dashed rgba(71, 85, 105, 0.6);
-                color: #94a3b8; font-size: 10px; font-weight: 800; cursor: pointer; user-select: none;
+                color: #94a3b8; font-size: 11px; font-weight: 800; cursor: pointer; user-select: none;
             }
             .practice-toolbar-toggle:active { background: rgba(51, 65, 85, 0.85); color: #f8fafc; }
             html[data-theme="day"] .practice-toolbar-toggle {
@@ -872,24 +879,26 @@
                 display: flex; align-items: center; gap: 6px; width: 100%; margin-right: 0;
             }
             #practice-instrument-toolbar .tool-label {
-                width: auto !important; font-size: 11px; font-weight: 800; color: #8fa0ad; flex-shrink: 0; display: inline-block !important;
+                width: auto !important; font-size: 12px; font-weight: 800; color: #8fa0ad; flex-shrink: 0; display: inline-block !important;
             }
             #practice-instrument-toolbar .instrument-choice {
-                flex: 1; min-width: 0; text-align: center; padding: 5px 2px; font-size: 10px; white-space: nowrap;
+                flex: 1; min-width: 0; text-align: center; padding: 5px 1px; font-size: 11.5px; font-weight: 800; white-space: nowrap;
             }
 
             #practice-bpm-toolbar {
-                display: flex; align-items: center; gap: 6px; width: 100%; height: 30px; padding: 0 8px; margin-right: 0; box-sizing: border-box;
+                display: flex; align-items: center; gap: 6px; width: 100%; height: 32px; padding: 0 8px; margin-right: 0; box-sizing: border-box;
             }
             #practice-bpm-toolbar .tool-label {
-                width: auto !important; font-size: 11px; font-weight: 800; color: #8fa0ad; flex-shrink: 0; display: inline-block !important;
+                width: auto !important; font-size: 12px; font-weight: 800; color: #8fa0ad; flex-shrink: 0; display: inline-block !important;
             }
             #practice-bpm-toolbar input[type="range"] { flex: 1; min-width: 50px; }
+            #practice-bpm-minus, #practice-bpm-plus { font-size: 13px !important; font-weight: 800 !important; }
+            #practice-bpm-display { font-size: 13px !important; }
 
             .practice-mode-group { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; width: 100%; }
-            .practice-mode-button { font-size: 10px; padding: 5px 2px; text-align: center; white-space: nowrap; }
+            .practice-mode-button { font-size: 11.5px; font-weight: 900; padding: 6px 1px; text-align: center; white-space: nowrap; }
             .practice-pause, .practice-stop {
-                height: 28px !important; padding: 4px 10px !important; font-size: 10px !important; line-height: 1 !important;
+                height: 30px !important; padding: 4px 10px !important; font-size: 12px !important; font-weight: 900 !important; line-height: 1 !important;
                 display: inline-flex !important; align-items: center; justify-content: center;
             }
 
@@ -957,6 +966,14 @@
                 overscroll-behavior-y: contain !important;
             }
 
+            /* 手機端五線譜歌詞大字體清晰展示 */
+            .vf-lyric-text,
+            .vf-source-note[data-notation-role="lyric"],
+            .vf-source-note[data-notation-role="lyric"] text {
+                font-size: 18px !important;
+                font-weight: 900 !important;
+            }
+
             #notation-rerender-btn { display: none !important; }
             .practice-score-tabs {
                 flex-wrap: nowrap !important;
@@ -966,8 +983,9 @@
                 flex-shrink: 0 !important;
             }
             .practice-score-tab {
-                padding: 4px 6px !important;
-                font-size: 9px !important;
+                padding: 4px 7px !important;
+                font-size: 11px !important;
+                font-weight: 800 !important;
                 white-space: nowrap !important;
             }
             .notation-follow-label { display: none !important; }
@@ -4640,16 +4658,16 @@
                 const sidePadding = isMobileScreen ? 8 : 20;
                 const displayWidth = Math.max(260, panelWidth - sidePadding);
 
-                // 手機使用較大的邏輯畫布再等比縮放：直式固定 2 小節，橫式固定 4 小節。
-                // 這能保留 VexFlow 的排版空間，同時把整行譜面縮到手機可視寬度。
+                // 手機使用較大的邏輯畫布再等比縮放：直式固定 1 小節，橫式固定 2 小節。
+                // 這能保留充裕的排版空間，比例更大，歌詞更清晰。
                 let measuresPerLine;
                 let canvasWidth;
                 if (isPortraitMobile) {
-                    measuresPerLine = 2;
-                    canvasWidth = 620;
+                    measuresPerLine = 1;
+                    canvasWidth = 380;
                 } else if (isLandscapeMobile) {
-                    measuresPerLine = 4;
-                    canvasWidth = 1160;
+                    measuresPerLine = 2;
+                    canvasWidth = 760;
                 } else {
                     canvasWidth = displayWidth;
                     if (canvasWidth >= 1240) measuresPerLine = 4;
@@ -4661,7 +4679,7 @@
                 stage.dataset.notationLayout = isPortraitMobile ? 'mobile-portrait' : (isLandscapeMobile ? 'mobile-landscape' : 'responsive');
 
                 const rowCount = Math.ceil(measures.length / measuresPerLine);
-                const rowHeight = isLandscapeMobile ? 132 : (isPortraitMobile ? 152 : 165);
+                const rowHeight = isLandscapeMobile ? 140 : (isPortraitMobile ? 162 : 165);
                 const canvasHeight = Math.max(150, rowCount * rowHeight + (isMobileScreen ? 10 : 20));
 
                 const renderer = new VF.Renderer(host, VF.Renderer.Backends.SVG);
@@ -4709,7 +4727,9 @@
                             }
                             let annotation = null;
                             if (sourceNote.lyric) {
+                                const lyricSize = isPortraitMobile ? 18 : (isLandscapeMobile ? 16 : 14);
                                 annotation = new VF.Annotation(sourceNote.lyric)
+                                    .setFont('Noto Sans TC, sans-serif', lyricSize, 'bold')
                                     .setVerticalJustification(VF.Annotation.VerticalJustify.BOTTOM);
                                 vexNote.addModifier(annotation, 0);
                             }
@@ -4735,6 +4755,7 @@
                         const noteElement = entry.vexNote.getSVGElement?.() || entry.vexNote.attrs?.el;
                         registerNotationElement(entry.index, noteElement, 'note');
                         const lyricElement = entry.annotation?.getSVGElement?.() || entry.annotation?.attrs?.el;
+                        if (lyricElement) lyricElement.classList.add('vf-lyric-text');
                         registerNotationElement(entry.index, lyricElement, 'lyric');
                     });
                     tuplets.forEach(entry => {
