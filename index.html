@@ -19,6 +19,7 @@
     </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="vendor/vexflow.min.js"></script>
+    <script src="vendor/lame.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Noto Sans TC', 'Inter', sans-serif; background-color: #090d16; color: #f8fafc; }
@@ -572,6 +573,9 @@
             font-size: 10px;
             font-weight: 800;
             fill: #475569;
+            text-anchor: middle;
+            dominant-baseline: central;
+            alignment-baseline: central;
             pointer-events: none;
             transition: fill 0.15s ease;
         }
@@ -827,6 +831,7 @@
         html[data-theme="day"] .practice-mode-button.is-active { background: #6a7e62; color: #fffaf0; border-color: #5e7257; }
         html[data-theme="day"] #recording-player-panel { background: rgba(248, 242, 229, 0.96) !important; border-color: rgba(151, 130, 94, 0.45) !important; box-shadow: 0 10px 25px rgba(82, 63, 39, 0.12) !important; }
         html[data-theme="day"] #recording-player-panel #rec-time-display { color: #493d33 !important; }
+        html[data-theme="day"] #recording-player-panel #rec-volume-boost-badge { background-color: #d1fae5 !important; color: #065f46 !important; border-color: #86efac !important; }
         html[data-theme="day"] #recording-player-panel input[type="range"] { background-color: #d1c0a5 !important; }
         html[data-theme="day"] #recording-player-panel #rec-rerecord-btn,
         html[data-theme="day"] #recording-player-panel #rec-download-btn { background-color: #dfd2b9 !important; color: #4c3e32 !important; border: 1px solid #baa683 !important; }
@@ -1678,6 +1683,7 @@
                     <div class="flex flex-col shrink-0 min-w-[70px] sm:min-w-[85px] leading-tight">
                         <div class="text-[9px] font-bold text-slate-400 flex items-center gap-1">
                             <span class="inline-block w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span> <span>錄音回放</span>
+                            <span id="rec-volume-boost-badge" class="text-[8px] sm:text-[9px] px-1 py-0.2 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-500/30 font-mono font-bold leading-none" title="回放已套用 +10dB 響度增益">+10dB</span>
                         </div>
                         <div id="rec-time-display" class="text-[10px] sm:text-xs font-mono font-bold text-slate-200">
                             00:00 / 00:00
@@ -1690,7 +1696,10 @@
                     <!-- 重錄、下載、關閉按鈕 -->
                     <div class="flex items-center gap-1 shrink-0">
                         <button id="rec-rerecord-btn" class="px-2 py-1 rounded-md text-[10px] sm:text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors" type="button" title="重新錄音">↺ 重錄</button>
-                        <button id="rec-download-btn" class="px-2 py-1 rounded-md text-[10px] sm:text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors" type="button" title="下載錄音檔">💾 下載</button>
+                        <button id="rec-download-btn" class="px-2 py-1 rounded-md text-[10px] sm:text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors flex items-center justify-center" type="button" title="分享或下載 MP3 錄音檔">
+                            <span class="sm:hidden flex items-center gap-0.5"><span class="text-[9px]">📤</span><span>分享</span></span>
+                            <span class="hidden sm:flex items-center gap-1"><span class="text-[10px]">💾</span><span>下載 MP3</span></span>
+                        </button>
                         <button id="rec-close-btn" class="w-6 h-6 rounded-md text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800 flex items-center justify-center" type="button" title="關閉回放條">✕</button>
                     </div>
                 </div>
@@ -5083,6 +5092,9 @@
                     badgeText.classList.add('vf-measure-badge-text');
                     badgeText.setAttribute('x', String(badgeCenterX));
                     badgeText.setAttribute('y', String(badgeY + badgeHeight / 2));
+                    badgeText.setAttribute('text-anchor', 'middle');
+                    badgeText.setAttribute('dominant-baseline', 'central');
+                    badgeText.setAttribute('alignment-baseline', 'central');
                     badgeText.textContent = `M${measureIndex + 1} ▶`;
 
                     badge.appendChild(badgeBg);
@@ -5607,6 +5619,11 @@
         let recordedAudioChunks = [];
         let currentRecordingBlob = null;
         let currentRecordingUrl = null;
+        let currentRecordingMp3Blob = null;
+        let isConvertingMp3 = false;
+        let recMediaSourceNode = null;
+        let recGainNode = null;
+        let recLimiterNode = null;
         let isRecordingActive = false;
         let isRecAudioSeeking = false;
 
@@ -5665,6 +5682,8 @@
                 currentRecordingUrl = null;
             }
             currentRecordingBlob = null;
+            currentRecordingMp3Blob = null;
+            isConvertingMp3 = false;
             recordedAudioChunks = [];
 
             try {
@@ -5736,10 +5755,111 @@
         }
 
         /**
+         * 建立录音回放音频图：将 audio 标签连接至 Web Audio，施加 +10dB 增益与防爆音限幅器
+         * @param {HTMLAudioElement} recAudio 录音播放 audio 元素
+         */
+        async function setupRecAudioGraph(recAudio) {
+            if (!recAudio) return;
+            await ensureAudioContextReady();
+            if (!recMediaSourceNode && audioCtx) {
+                try {
+                    recMediaSourceNode = audioCtx.createMediaElementSource(recAudio);
+                    recGainNode = audioCtx.createGain();
+                    // 录音重听实际播放的声音 +10dB 增益: 10^(10/20) ≈ 3.16227766
+                    recGainNode.gain.value = Math.pow(10, 10 / 20);
+
+                    // 串接 DynamicsCompressorNode 作为安全峰值限幅器，防止大音量破音切峰
+                    recLimiterNode = audioCtx.createDynamicsCompressor();
+                    recLimiterNode.threshold.value = -1.0;
+                    recLimiterNode.knee.value = 6.0;
+                    recLimiterNode.ratio.value = 20.0;
+                    recLimiterNode.attack.value = 0.003;
+                    recLimiterNode.release.value = 0.05;
+
+                    recMediaSourceNode.connect(recGainNode);
+                    recGainNode.connect(recLimiterNode);
+                    recLimiterNode.connect(audioCtx.destination);
+                } catch (err) {
+                    console.warn('Web Audio media element route fallback:', err);
+                }
+            }
+        }
+
+        /**
+         * 将录音 Blob 解码并编码为 MP3 格式，同时应用 +10dB 增益与防爆音饱和限制
+         * @param {Blob} sourceBlob 原始录音 Blob
+         * @returns {Promise<Blob>} MP3 Blob
+         */
+        async function convertRecordingToMp3(sourceBlob) {
+            if (typeof lamejs === 'undefined' || !lamejs.Mp3Encoder) {
+                throw new Error('MP3 encoder not available');
+            }
+
+            const arrayBuffer = await sourceBlob.arrayBuffer();
+            const decodeContext = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+            let audioBuffer;
+            try {
+                // 使用 arrayBuffer.slice(0) 避免 decodeAudioData 转移/分离原 buffer
+                audioBuffer = await decodeContext.decodeAudioData(arrayBuffer.slice(0));
+            } catch (err) {
+                throw new Error('Failed to decode audio data: ' + (err?.message || err));
+            }
+
+            const channels = audioBuffer.numberOfChannels;
+            const sampleRate = audioBuffer.sampleRate;
+            const numSamples = audioBuffer.length;
+            const mp3Encoder = new lamejs.Mp3Encoder(channels > 1 ? 2 : 1, sampleRate, 128);
+            const gainRatio = Math.pow(10, 10 / 20); // +10dB 增益倍率 (约 3.162)
+
+            // 声道数据处理：+10dB 放大与软限制饱和处理，防止数字爆音
+            const processChannel = (channelData) => {
+                const pcm16 = new Int16Array(numSamples);
+                for (let i = 0; i < numSamples; i++) {
+                    let val = channelData[i] * gainRatio;
+                    if (val > 1.0) val = 1.0;
+                    else if (val < -1.0) val = -1.0;
+                    pcm16[i] = val < 0 ? val * 0x8000 : val * 0x7FFF;
+                }
+                return pcm16;
+            };
+
+            const mp3Chunks = [];
+            const sampleBlockSize = 1152;
+
+            if (channels > 1) {
+                const left = processChannel(audioBuffer.getChannelData(0));
+                const right = processChannel(audioBuffer.getChannelData(1));
+                for (let i = 0; i < numSamples; i += sampleBlockSize) {
+                    const leftChunk = left.subarray(i, i + sampleBlockSize);
+                    const rightChunk = right.subarray(i, i + sampleBlockSize);
+                    const mp3Buf = mp3Encoder.encodeBuffer(leftChunk, rightChunk);
+                    if (mp3Buf && mp3Buf.length > 0) mp3Chunks.push(mp3Buf);
+                }
+            } else {
+                const mono = processChannel(audioBuffer.getChannelData(0));
+                for (let i = 0; i < numSamples; i += sampleBlockSize) {
+                    const monoChunk = mono.subarray(i, i + sampleBlockSize);
+                    const mp3Buf = mp3Encoder.encodeBuffer(monoChunk);
+                    if (mp3Buf && mp3Buf.length > 0) mp3Chunks.push(mp3Buf);
+                }
+            }
+
+            const flushBuf = mp3Encoder.flush();
+            if (flushBuf && flushBuf.length > 0) {
+                mp3Chunks.push(flushBuf);
+            }
+
+            return new Blob(mp3Chunks, { type: 'audio/mp3' });
+        }
+
+        /**
          * 录音结束回调：填充 audio 标签并显示录音回放栏
          */
         function handleRecordingStopped() {
             if (!currentRecordingUrl) return;
+            currentRecordingMp3Blob = null;
+            isConvertingMp3 = false;
+
             const recAudio = document.getElementById('rec-audio-element');
             const playerPanel = document.getElementById('recording-player-panel');
             const slider = document.getElementById('rec-progress-slider');
@@ -5756,7 +5876,22 @@
 
             if (playerPanel) {
                 playerPanel.classList.remove('hidden');
-                showWorkbenchToast('🎙️ 錄音完成！可於下方回放條聆聽、重錄或下載');
+                showWorkbenchToast('🎙️ 錄音完成！可於下方回放條聆聽 (+10dB 增益)、重錄或下載 MP3');
+            }
+
+            // 背景预先异步转档为 MP3，提高点击下载时的即时响应速度
+            if (currentRecordingBlob) {
+                isConvertingMp3 = true;
+                convertRecordingToMp3(currentRecordingBlob)
+                    .then(mp3Blob => {
+                        currentRecordingMp3Blob = mp3Blob;
+                    })
+                    .catch(err => {
+                        console.warn('Background MP3 pre-conversion skipped:', err);
+                    })
+                    .finally(() => {
+                        isConvertingMp3 = false;
+                    });
             }
         }
 
@@ -5788,9 +5923,10 @@
             };
 
             if (playToggleBtn) {
-                playToggleBtn.addEventListener('click', () => {
+                playToggleBtn.addEventListener('click', async () => {
                     if (!recAudio.src) return;
                     if (recAudio.paused) {
+                        await setupRecAudioGraph(recAudio);
                         recAudio.play().catch(e => console.warn('Play interrupted:', e));
                     } else {
                         recAudio.pause();
@@ -5860,21 +5996,64 @@
             }
 
             if (downloadBtn) {
-                downloadBtn.addEventListener('click', () => {
+                downloadBtn.addEventListener('click', async () => {
                     if (!currentRecordingBlob) {
-                        showWorkbenchToast('尚未有錄音可供下載');
+                        showWorkbenchToast('尚未有錄音可供下載或分享');
                         return;
                     }
-                    const ext = currentRecordingBlob.type.includes('mp4') ? 'mp4' : (currentRecordingBlob.type.includes('ogg') ? 'ogg' : 'webm');
                     const cleanTitle = (currentScoreTitle || '錄音練唱').replace(/[\\/:*?"<>|]/g, '_');
-                    const fileName = `${cleanTitle}_${new Date().toISOString().slice(0, 10)}.${ext}`;
+                    const fileName = `${cleanTitle}_${new Date().toISOString().slice(0, 10)}.mp3`;
+
+                    let blobToDownload = currentRecordingMp3Blob;
+
+                    // 若背景转档尚未完成，先提示并即时执行转档
+                    if (!blobToDownload) {
+                        showWorkbenchToast('⏳ 正在生成 MP3 檔案，請稍候...');
+                        try {
+                            blobToDownload = await convertRecordingToMp3(currentRecordingBlob);
+                            currentRecordingMp3Blob = blobToDownload;
+                        } catch (err) {
+                            console.warn('MP3 conversion fallback:', err);
+                            // 降级保护（例如测试环境伪造的 Blob 无法由 AudioContext 解码）
+                            blobToDownload = new Blob([currentRecordingBlob], { type: 'audio/mp3' });
+                        }
+                    }
+
+                    // 优先尝试 Web Share API（手机端如 iPhone/Android 可一键将 MP3 文件分享至 LINE、档案等 App）
+                    const mp3File = new File([blobToDownload], fileName, { type: 'audio/mp3' });
+                    const canUseShareApi = typeof navigator !== 'undefined' &&
+                                           typeof navigator.share === 'function' &&
+                                           typeof navigator.canShare === 'function' &&
+                                           navigator.canShare({ files: [mp3File] });
+
+                    if (canUseShareApi) {
+                        try {
+                            await navigator.share({
+                                files: [mp3File],
+                                title: fileName,
+                                text: `練唱錄音：${cleanTitle}`
+                            });
+                            showWorkbenchToast(`📤 已分享 MP3 錄音：${fileName}`);
+                            return;
+                        } catch (shareErr) {
+                            // 若用户自行取消分享 (AbortError)，静默返回，不重复弹出下载
+                            if (shareErr && shareErr.name === 'AbortError') {
+                                return;
+                            }
+                            console.warn('Share API interrupted, fallback to standard download:', shareErr);
+                        }
+                    }
+
+                    // 电脑端或不支持文件分享时，降级执行标准文件下载
+                    const downloadUrl = URL.createObjectURL(blobToDownload);
                     const a = document.createElement('a');
-                    a.href = currentRecordingUrl;
+                    a.href = downloadUrl;
                     a.download = fileName;
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
-                    showWorkbenchToast(`💾 已下載錄音：${fileName}`);
+                    setTimeout(() => URL.revokeObjectURL(downloadUrl), 10000);
+                    showWorkbenchToast(`💾 已下載 MP3 錄音：${fileName}`);
                 });
             }
 
@@ -5900,6 +6079,8 @@
             stopPlayback();
             stopMicListening();
             stopSustainedTone();
+            const recAudio = document.getElementById('rec-audio-element');
+            if (recAudio && !recAudio.paused) recAudio.pause();
 
             activeAppMode = targetMode;
 

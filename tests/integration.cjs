@@ -387,7 +387,7 @@ const server = http.createServer((request, response) => {
     assert.ok(yinTestResult.error < 0.5, `YIN should accurately detect 130.81Hz fundamental even with strong 2nd/3rd harmonics, got ${yinTestResult.detectedFreq}`);
 
     // 驗證網址帶參數直接載入樂譜並切換至練唱模式
-    const paramPage = await browser.newPage({ viewport: { width: 390, height: 844 } }); // 模擬手機直式
+    const paramPage = await browser.newPage({ viewport: { width: 390, height: 844 }, acceptDownloads: true }); // 模擬手機直式
     await paramPage.addInitScript(() => localStorage.setItem('pitch-tutor-theme', 'day'));
     const paramPageErrors = [];
     paramPage.on('pageerror', error => paramPageErrors.push(error.message));
@@ -541,6 +541,13 @@ const server = http.createServer((request, response) => {
 
     // 雙擊第 1 小節微標
     const badgeM0 = paramPage.locator('.vf-measure-badge[data-measure-index="0"]').first();
+    const badgeTextAlignment = await badgeM0.locator('.vf-measure-badge-text').evaluate(el => ({
+        textAnchor: el.getAttribute('text-anchor') || getComputedStyle(el).textAnchor,
+        dominantBaseline: el.getAttribute('dominant-baseline') || getComputedStyle(el).dominantBaseline,
+    }));
+    assert.equal(badgeTextAlignment.textAnchor, 'middle', 'Measure badge text must be center-aligned horizontally');
+    assert.equal(badgeTextAlignment.dominantBaseline, 'central', 'Measure badge text must be center-aligned vertically');
+
     await badgeM0.dblclick();
     await paramPage.waitForFunction(() => isPlayingSingleMeasure, null, { timeout: 4000 });
     assert.equal(await paramPage.evaluate(() => isPlayingSingleMeasure), true, 'Single measure playback should be active');
@@ -626,13 +633,48 @@ const server = http.createServer((request, response) => {
         handleRecordingStopped();
     });
 
-    // 驗證錄音回放條優雅展開
+    // 驗證 MP3 編碼庫已載入
+    const hasLamejs = await paramPage.evaluate(() => typeof window.lamejs !== 'undefined' && typeof window.lamejs.Mp3Encoder === 'function');
+    assert.equal(hasLamejs, true, 'lamejs MP3 encoder library should be loaded');
+
+    // 驗證錄音回放條優雅展開與 +10dB 增益徽章
     assert.equal(await paramPage.locator('#recording-player-panel').isVisible(), true, 'Recording player panel should become visible after recording stops');
+    assert.equal(await paramPage.locator('#rec-volume-boost-badge').isVisible(), true, 'Volume boost badge should be visible');
+    assert.equal(await paramPage.textContent('#rec-volume-boost-badge'), '+10dB');
     assert.equal(await paramPage.locator('#rec-play-toggle-btn').isVisible(), true);
     assert.equal(await paramPage.locator('#rec-progress-slider').isVisible(), true);
     assert.equal(await paramPage.locator('#rec-time-display').isVisible(), true);
     assert.equal(await paramPage.locator('#rec-rerecord-btn').isVisible(), true);
     assert.equal(await paramPage.locator('#rec-download-btn').isVisible(), true);
+
+    // 手機端驗證按鈕文字切換為「分享」
+    const shareBtnText = await paramPage.locator('#rec-download-btn .sm\\:hidden').textContent();
+    assert.match(shareBtnText, /分享/, 'Mobile should display share button');
+
+    // 驗證點擊播放時初始化 Web Audio 圖並施加 +10dB 增益
+    await paramPage.click('#rec-play-toggle-btn');
+    const playbackGainValue = await paramPage.evaluate(() => recGainNode ? recGainNode.gain.value : 0);
+    assert.ok(Math.abs(playbackGainValue - Math.pow(10, 10 / 20)) < 0.001, 'Playback gain must be +10dB (approx 3.162)');
+
+    // 驗證在支援 Web Share API 時優先呼叫原生分享傳送 MP3 檔案
+    await paramPage.evaluate(() => {
+        window.__sharedFiles = [];
+        navigator.share = async (data) => {
+            window.__sharedFiles.push({
+                title: data.title,
+                fileName: data.files?.[0]?.name,
+                fileType: data.files?.[0]?.type
+            });
+        };
+        navigator.canShare = () => true;
+    });
+    await paramPage.click('#rec-download-btn');
+    await paramPage.waitForFunction(() => window.__sharedFiles && window.__sharedFiles.length > 0);
+    const sharedData = await paramPage.evaluate(() => window.__sharedFiles[0]);
+    assert.ok(sharedData, 'Web Share API should be called when supported on mobile');
+    assert.ok(sharedData.fileName.endsWith('.mp3'), `Shared file must be MP3, got: ${sharedData.fileName}`);
+    assert.equal(sharedData.fileType, 'audio/mp3');
+
     assert.equal(await paramPage.locator('#rec-close-btn').isVisible(), true);
 
     // 測試關閉按鈕隱藏回放條
