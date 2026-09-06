@@ -389,9 +389,9 @@ const server = http.createServer((request, response) => {
     const activeAppModeOnLoad = await paramPage.evaluate(() => activeAppMode);
     assert.equal(await paramPage.locator('#tuner-panel').isVisible(), true);
 
-    // 驗證手機端模式按鈕為一列四欄
+    // 驗證手機端模式按鈕為一列五欄
     const modeGroupGridCols = await paramPage.locator('.practice-mode-group').evaluate(el => getComputedStyle(el).gridTemplateColumns.split(' ').length);
-    assert.equal(modeGroupGridCols, 4, 'Mobile practice mode group should render 4 columns');
+    assert.equal(modeGroupGridCols, 5, 'Mobile practice mode group should render 5 columns');
 
     // 驗證音色板塊包含「音色」標籤並水平排列，且第四種音色為風琴 (organ)
     assert.equal(await paramPage.locator('#practice-instrument-toolbar .tool-label').isVisible(), true, 'Instrument label should be visible');
@@ -583,7 +583,49 @@ const server = http.createServer((request, response) => {
     // 重新展開工具列以恢復正常操作按鈕
     await paramPage.click('#practice-toolbar-toggle');
     await paramPage.waitForSelector('#practice-stop-btn', { state: 'visible' });
+    // 驗證「錄音練唱」模式與錄音回放條交互
+    const recordPracticeBtn = paramPage.locator('.practice-mode-button[data-practice-mode="record_practice"]');
+    assert.equal(await recordPracticeBtn.count(), 1, 'Record practice button should exist in toolbar');
+    assert.equal(await recordPracticeBtn.textContent(), '錄音練唱');
+
+    // 點擊進入錄音練唱模式
+    await recordPracticeBtn.click();
+    assert.equal(await paramPage.evaluate(() => activeAppMode), 'record_practice');
+    assert.equal(await recordPracticeBtn.evaluate(el => el.classList.contains('is-active')), true);
+    assert.equal(await paramPage.locator('#practice-stop-btn').isVisible(), true);
+    assert.equal(await paramPage.locator('#practice-pause-btn').isVisible(), true);
+
+    // 驗證伴奏播放與錄音狀態啟動
+    const isPlayingAudio = await paramPage.evaluate(() => currentPlaybackIndex >= 0);
+    assert.equal(isPlayingAudio, true, 'Record practice mode should start playback');
+
+    // 驗證在播放過程中錄音回放欄預設為隱藏
+    assert.equal(await paramPage.locator('#recording-player-panel').evaluate(el => el.classList.contains('hidden')), true, 'Recording player panel should be hidden while recording');
+
+    // 停止錄音練唱
     await paramPage.click('#practice-stop-btn');
+    assert.equal(await paramPage.evaluate(() => activeAppMode), 'learn');
+
+    // 模擬已錄製完成的回調以測試錄音回放條功能
+    await paramPage.evaluate(() => {
+        recordedAudioChunks = [new Blob(['test-audio-data'], { type: 'audio/webm' })];
+        currentRecordingBlob = recordedAudioChunks[0];
+        currentRecordingUrl = 'blob:http://127.0.0.1/fake-rec-audio';
+        handleRecordingStopped();
+    });
+
+    // 驗證錄音回放條優雅展開
+    assert.equal(await paramPage.locator('#recording-player-panel').isVisible(), true, 'Recording player panel should become visible after recording stops');
+    assert.equal(await paramPage.locator('#rec-play-toggle-btn').isVisible(), true);
+    assert.equal(await paramPage.locator('#rec-progress-slider').isVisible(), true);
+    assert.equal(await paramPage.locator('#rec-time-display').isVisible(), true);
+    assert.equal(await paramPage.locator('#rec-rerecord-btn').isVisible(), true);
+    assert.equal(await paramPage.locator('#rec-download-btn').isVisible(), true);
+    assert.equal(await paramPage.locator('#rec-close-btn').isVisible(), true);
+
+    // 測試關閉按鈕隱藏回放條
+    await paramPage.click('#rec-close-btn');
+    assert.equal(await paramPage.locator('#recording-player-panel').evaluate(el => el.classList.contains('hidden')), true, 'Recording player panel should hide on close click');
 
     // 驗證手機橫式 RWD 佈局
     await paramPage.setViewportSize({ width: 844, height: 390 });

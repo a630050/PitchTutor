@@ -823,6 +823,12 @@
         html[data-theme="day"] .practice-toolbar { background: rgba(232,221,198,.76); }
         html[data-theme="day"] .practice-mode-button { background: #e3d5bb; color: #695b4e; border-color: #b9a785; }
         html[data-theme="day"] .practice-mode-button.is-active { background: #6a7e62; color: #fffaf0; border-color: #5e7257; }
+        html[data-theme="day"] #recording-player-panel { background: rgba(248, 242, 229, 0.96) !important; border-color: rgba(151, 130, 94, 0.45) !important; box-shadow: 0 10px 25px rgba(82, 63, 39, 0.12) !important; }
+        html[data-theme="day"] #recording-player-panel #rec-time-display { color: #493d33 !important; }
+        html[data-theme="day"] #recording-player-panel input[type="range"] { background-color: #d1c0a5 !important; }
+        html[data-theme="day"] #recording-player-panel #rec-rerecord-btn,
+        html[data-theme="day"] #recording-player-panel #rec-download-btn { background-color: #dfd2b9 !important; color: #4c3e32 !important; border: 1px solid #baa683 !important; }
+        html[data-theme="day"] #recording-player-panel #rec-close-btn { color: #7d6e5f !important; }
         html[data-theme="day"] .practice-score-tab { background: #e5d8c0; color: #66584b; border-color: #b8a681; }
         html[data-theme="day"] .practice-score-tab.is-active { background: #65775e; border-color: #53684d; color: #fff; }
         html[data-theme="day"] .notation-follow-label { color: #6f6256; }
@@ -886,7 +892,7 @@
             .editor-studio-panel { border-left: 0; border-top: 1px solid #22313d; }
             .score-paper { min-height: 360px; flex: none; }
             .practice-toolbar { flex-direction: column; align-items: stretch; gap: 8px; padding: 10px 12px 0; }
-            .practice-mode-group { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; width: 100%; }
+            .practice-mode-group { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; width: 100%; }
             .practice-mode-button { text-align: center; padding: 8px 4px; font-size: 11px; }
             body { height: auto !important; min-height: 100vh; overflow-x: clip !important; overflow-y: visible !important; }
             #practice-page { overflow: visible !important; height: auto !important; flex: none !important; }
@@ -949,8 +955,8 @@
             #practice-bpm-minus, #practice-bpm-plus { font-size: 13px !important; font-weight: 800 !important; }
             #practice-bpm-display { font-size: 13px !important; }
 
-            .practice-mode-group { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; width: 100%; }
-            .practice-mode-button { font-size: 11.5px; font-weight: 900; padding: 6px 1px; text-align: center; white-space: nowrap; }
+            .practice-mode-group { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; width: 100%; }
+            .practice-mode-button { font-size: 11px; font-weight: 900; padding: 6px 1px; text-align: center; white-space: nowrap; }
             .practice-pause, .practice-stop {
                 height: 30px !important; padding: 4px 10px !important; font-size: 12px !important; font-weight: 900 !important; line-height: 1 !important;
                 display: inline-flex !important; align-items: center; justify-content: center;
@@ -1105,6 +1111,11 @@
             <!-- 模式 4: 播放全曲 (练声/无声) -->
             <button id="mode-btn-play-practice" class="btn-press px-3 py-1 rounded-lg font-bold transition-all text-xs text-slate-400 hover:text-white flex items-center gap-1">
                 <span>🎤</span> <span>播放全曲 (練聲)</span>
+            </button>
+
+            <!-- 模式 5: 錄音練唱 (伴奏有聲+麥克風錄音) -->
+            <button id="mode-btn-record-practice" class="btn-press px-3 py-1 rounded-lg font-bold transition-all text-xs text-slate-400 hover:text-white flex items-center gap-1">
+                <span>🎙️</span> <span>錄音練唱</span>
             </button>
 
             <!-- 停止播放按钮 -->
@@ -1430,6 +1441,7 @@
                     <button class="practice-mode-button" type="button" data-practice-mode="practice">單音跟唱</button>
                     <button class="practice-mode-button" type="button" data-practice-mode="play_audio">播放全曲</button>
                     <button class="practice-mode-button" type="button" data-practice-mode="play_practice">全曲練唱</button>
+                    <button class="practice-mode-button" type="button" data-practice-mode="record_practice" title="邊聽伴奏邊唱，同步錄下個人歌聲並即時測音">錄音練唱</button>
                     <button id="practice-pause-btn" class="practice-pause hidden" type="button">暫停</button>
                     <button id="practice-stop-btn" class="practice-stop hidden" type="button">停止</button>
                 </div>
@@ -1637,6 +1649,36 @@
                         </div>
                     </div>
                 </div>
+            </section>
+
+            <!-- 錄音回放條 (平常無錄音時隱藏，錄音完成後優雅展開) -->
+            <section id="recording-player-panel" class="glass-panel p-2 sm:p-2.5 rounded-xl shadow-xl shrink-0 hidden" aria-label="錄音回放">
+                <div class="flex items-center gap-2 sm:gap-3 w-full">
+                    <!-- 播放/暫停按鈕 -->
+                    <button id="rec-play-toggle-btn" class="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white flex items-center justify-center shrink-0 cursor-pointer shadow transition-all" type="button" title="播放 / 暫停錄音" aria-label="播放錄音">
+                        <span id="rec-play-icon" class="text-xs font-black leading-none">▶</span>
+                    </button>
+                    <!-- 錄音標籤與時間 -->
+                    <div class="flex flex-col shrink-0 min-w-[70px] sm:min-w-[85px] leading-tight">
+                        <div class="text-[9px] font-bold text-slate-400 flex items-center gap-1">
+                            <span class="inline-block w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span> <span>錄音回放</span>
+                        </div>
+                        <div id="rec-time-display" class="text-[10px] sm:text-xs font-mono font-bold text-slate-200">
+                            00:00 / 00:00
+                        </div>
+                    </div>
+                    <!-- 互動式進度條 -->
+                    <div class="flex-1 min-w-0 flex items-center">
+                        <input type="range" id="rec-progress-slider" min="0" max="100" step="0.1" value="0" class="w-full accent-emerald-500 cursor-pointer h-1.5 bg-slate-700 rounded-lg">
+                    </div>
+                    <!-- 重錄、下載、關閉按鈕 -->
+                    <div class="flex items-center gap-1 shrink-0">
+                        <button id="rec-rerecord-btn" class="px-2 py-1 rounded-md text-[10px] sm:text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors" type="button" title="重新錄音">↺ 重錄</button>
+                        <button id="rec-download-btn" class="px-2 py-1 rounded-md text-[10px] sm:text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors" type="button" title="下載錄音檔">💾 下載</button>
+                        <button id="rec-close-btn" class="w-6 h-6 rounded-md text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800 flex items-center justify-center" type="button" title="關閉回放條">✕</button>
+                    </div>
+                </div>
+                <audio id="rec-audio-element" class="hidden" preload="auto"></audio>
             </section>
 
             <!-- 右下区: 練唱樂譜軌道 (五線譜 / 音格) -->
@@ -3376,7 +3418,7 @@
             });
             const stopButton = document.getElementById('practice-stop-btn');
             const pauseButton = document.getElementById('practice-pause-btn');
-            const isFullPlayback = activeAppMode === 'play_audio' || activeAppMode === 'play_practice';
+            const isFullPlayback = activeAppMode === 'play_audio' || activeAppMode === 'play_practice' || activeAppMode === 'record_practice';
             if (stopButton) stopButton.classList.toggle('hidden', !isFullPlayback);
             if (pauseButton) {
                 pauseButton.classList.toggle('hidden', !isFullPlayback);
@@ -3390,7 +3432,7 @@
             const button = document.getElementById('floating-playback-toggle');
             const icon = document.getElementById('floating-playback-icon');
             if (!button) return;
-            const isFullPlayback = activeAppMode === 'play_audio' || activeAppMode === 'play_practice';
+            const isFullPlayback = activeAppMode === 'play_audio' || activeAppMode === 'play_practice' || activeAppMode === 'record_practice';
             const controlsRect = document.querySelector('.practice-mode-group')?.getBoundingClientRect();
             const controlsActuallyVisible = !!controlsRect && controlsRect.height > 0 && controlsRect.bottom > 8 && controlsRect.top < window.innerHeight - 8;
             const isToolbarCollapsed = !!document.querySelector('.practice-toolbar.is-collapsed');
@@ -4437,7 +4479,7 @@
             });
             document.querySelectorAll('.practice-mode-button').forEach(button => {
                 button.addEventListener('click', () => {
-                    if (button.dataset.practiceMode === activeAppMode && (activeAppMode === 'play_audio' || activeAppMode === 'play_practice')) {
+                    if (button.dataset.practiceMode === activeAppMode && (activeAppMode === 'play_audio' || activeAppMode === 'play_practice' || activeAppMode === 'record_practice')) {
                         togglePlaybackPause();
                     } else {
                         switchAppMode(button.dataset.practiceMode);
@@ -4508,6 +4550,7 @@
             initializePanelResizers();
             initializeCollapsiblePanels();
             initializeReferenceStageInteractions();
+            initRecordingPlayer();
             const shareBtn = document.getElementById('app-share-link-btn');
             if (shareBtn) shareBtn.addEventListener('click', copyStudentShareUrl);
 
@@ -5141,9 +5184,9 @@
             else updatePlaybackFocus(currentPlaybackIndex, false);
         }
 
-        // 单音卡片交互逻辑 (根据四大模式)
+        // 单音卡片交互逻辑 (根据各大模式)
         function onNoteTileInteraction(index, eventType) {
-            if (activeAppMode === 'play_audio' || activeAppMode === 'play_practice') {
+            if (activeAppMode === 'play_audio' || activeAppMode === 'play_practice' || activeAppMode === 'record_practice') {
                 if (eventType === 'click' || eventType === 'press') {
                     jumpPlaybackTo(index);
                 }
@@ -5523,11 +5566,296 @@
             }
         }
 
-        // --- 四大核心模式切换逻辑 ---
+        // --- 录音功能与录音回放条控制 ---
+        let mediaRecorder = null;
+        let recordedAudioChunks = [];
+        let currentRecordingBlob = null;
+        let currentRecordingUrl = null;
+        let isRecordingActive = false;
+        let isRecAudioSeeking = false;
+
+        /**
+         * 获取当前浏览器环境支持的最佳音频 MIME 类型
+         * 优先使用 webm/opus，iOS/Safari 回退使用 mp4/aac
+         * @returns {string} 支持的 MIME 类型字符串
+         */
+        function getSupportedAudioMimeType() {
+            if (typeof MediaRecorder === 'undefined' || !MediaRecorder.isTypeSupported) {
+                return '';
+            }
+            const mimeCandidates = [
+                'audio/webm;codecs=opus',
+                'audio/webm',
+                'audio/ogg;codecs=opus',
+                'audio/mp4',
+                'audio/aac'
+            ];
+            for (const mime of mimeCandidates) {
+                if (MediaRecorder.isTypeSupported(mime)) {
+                    return mime;
+                }
+            }
+            return '';
+        }
+
+        /**
+         * 格式化音频秒数为 mm:ss
+         * @param {number} seconds 秒数
+         * @returns {string} 格式化后的时间
+         */
+        function formatAudioTime(seconds) {
+            if (!Number.isFinite(seconds) || seconds < 0) return '00:00';
+            const m = Math.floor(seconds / 60);
+            const s = Math.floor(seconds % 60);
+            return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        }
+
+        /**
+         * 启动麦克风录音
+         * NOTE: 直接录制麦克风输入流 micStream，不混入合成器伴奏，确保录到纯净人声
+         */
+        async function startRecording() {
+            if (isRecordingActive) return;
+            if (!micStream || !micStream.active) {
+                await startMicListening();
+            }
+            if (!micStream) {
+                showWorkbenchToast('⚠️ 無法開啟麥克風，錄音未啟動');
+                return;
+            }
+
+            if (currentRecordingUrl) {
+                URL.revokeObjectURL(currentRecordingUrl);
+                currentRecordingUrl = null;
+            }
+            currentRecordingBlob = null;
+            recordedAudioChunks = [];
+
+            try {
+                const mimeType = getSupportedAudioMimeType();
+                const options = mimeType ? { mimeType } : undefined;
+                mediaRecorder = new MediaRecorder(micStream, options);
+
+                mediaRecorder.ondataavailable = event => {
+                    if (event.data && event.data.size > 0) {
+                        recordedAudioChunks.push(event.data);
+                    }
+                };
+
+                mediaRecorder.onstop = () => {
+                    if (recordedAudioChunks.length > 0) {
+                        const finalMime = mediaRecorder.mimeType || 'audio/webm';
+                        currentRecordingBlob = new Blob(recordedAudioChunks, { type: finalMime });
+                        currentRecordingUrl = URL.createObjectURL(currentRecordingBlob);
+                        handleRecordingStopped();
+                    }
+                    isRecordingActive = false;
+                };
+
+                mediaRecorder.onerror = event => {
+                    console.error('MediaRecorder error:', event.error);
+                    isRecordingActive = false;
+                };
+
+                mediaRecorder.start(100);
+                isRecordingActive = true;
+            } catch (err) {
+                console.error('Failed to start MediaRecorder:', err);
+                isRecordingActive = false;
+            }
+        }
+
+        /**
+         * 暂停录音（全曲播放暂停时调用）
+         */
+        function pauseRecording() {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                try {
+                    mediaRecorder.pause();
+                } catch (_) {}
+            }
+        }
+
+        /**
+         * 恢复录音（全曲播放继续时调用）
+         */
+        function resumeRecording() {
+            if (mediaRecorder && mediaRecorder.state === 'paused') {
+                try {
+                    mediaRecorder.resume();
+                } catch (_) {}
+            }
+        }
+
+        /**
+         * 停止录音
+         */
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                try {
+                    mediaRecorder.stop();
+                } catch (_) {}
+            }
+            isRecordingActive = false;
+        }
+
+        /**
+         * 录音结束回调：填充 audio 标签并显示录音回放栏
+         */
+        function handleRecordingStopped() {
+            if (!currentRecordingUrl) return;
+            const recAudio = document.getElementById('rec-audio-element');
+            const playerPanel = document.getElementById('recording-player-panel');
+            const slider = document.getElementById('rec-progress-slider');
+            const timeDisplay = document.getElementById('rec-time-display');
+            const playIcon = document.getElementById('rec-play-icon');
+
+            if (recAudio) {
+                recAudio.src = currentRecordingUrl;
+                recAudio.currentTime = 0;
+            }
+            if (slider) slider.value = 0;
+            if (playIcon) playIcon.textContent = '▶';
+            if (timeDisplay) timeDisplay.textContent = '00:00 / --:--';
+
+            if (playerPanel) {
+                playerPanel.classList.remove('hidden');
+                showWorkbenchToast('🎙️ 錄音完成！可於下方回放條聆聽、重錄或下載');
+            }
+        }
+
+        /**
+         * 初始化录音回放条交互事件
+         */
+        function initRecordingPlayer() {
+            const playerPanel = document.getElementById('recording-player-panel');
+            const playToggleBtn = document.getElementById('rec-play-toggle-btn');
+            const playIcon = document.getElementById('rec-play-icon');
+            const recAudio = document.getElementById('rec-audio-element');
+            const slider = document.getElementById('rec-progress-slider');
+            const timeDisplay = document.getElementById('rec-time-display');
+            const rerecordBtn = document.getElementById('rec-rerecord-btn');
+            const downloadBtn = document.getElementById('rec-download-btn');
+            const closeBtn = document.getElementById('rec-close-btn');
+
+            if (!recAudio) return;
+
+            const updateDisplay = () => {
+                const cur = recAudio.currentTime || 0;
+                const dur = recAudio.duration || 0;
+                if (timeDisplay) {
+                    timeDisplay.textContent = `${formatAudioTime(cur)} / ${dur ? formatAudioTime(dur) : '--:--'}`;
+                }
+                if (!isRecAudioSeeking && slider && dur > 0) {
+                    slider.value = (cur / dur) * 100;
+                }
+            };
+
+            if (playToggleBtn) {
+                playToggleBtn.addEventListener('click', () => {
+                    if (!recAudio.src) return;
+                    if (recAudio.paused) {
+                        recAudio.play().catch(e => console.warn('Play interrupted:', e));
+                    } else {
+                        recAudio.pause();
+                    }
+                });
+            }
+
+            recAudio.addEventListener('play', () => {
+                if (playIcon) playIcon.textContent = '⏸';
+                if (playToggleBtn) {
+                    playToggleBtn.classList.remove('bg-emerald-600', 'hover:bg-emerald-500');
+                    playToggleBtn.classList.add('bg-amber-600', 'hover:bg-amber-500');
+                }
+            });
+
+            recAudio.addEventListener('pause', () => {
+                if (playIcon) playIcon.textContent = '▶';
+                if (playToggleBtn) {
+                    playToggleBtn.classList.remove('bg-amber-600', 'hover:bg-amber-500');
+                    playToggleBtn.classList.add('bg-emerald-600', 'hover:bg-emerald-500');
+                }
+            });
+
+            recAudio.addEventListener('ended', () => {
+                if (playIcon) playIcon.textContent = '▶';
+                if (playToggleBtn) {
+                    playToggleBtn.classList.remove('bg-amber-600', 'hover:bg-amber-500');
+                    playToggleBtn.classList.add('bg-emerald-600', 'hover:bg-emerald-500');
+                }
+                if (slider) slider.value = 0;
+                recAudio.currentTime = 0;
+                updateDisplay();
+            });
+
+            recAudio.addEventListener('loadedmetadata', updateDisplay);
+            recAudio.addEventListener('durationchange', updateDisplay);
+            recAudio.addEventListener('timeupdate', updateDisplay);
+
+            if (slider) {
+                slider.addEventListener('mousedown', () => { isRecAudioSeeking = true; });
+                slider.addEventListener('touchstart', () => { isRecAudioSeeking = true; }, { passive: true });
+                slider.addEventListener('input', () => {
+                    const dur = recAudio.duration || 0;
+                    if (dur > 0 && timeDisplay) {
+                        const targetTime = (Number(slider.value) / 100) * dur;
+                        timeDisplay.textContent = `${formatAudioTime(targetTime)} / ${formatAudioTime(dur)}`;
+                    }
+                });
+                const commitSeek = () => {
+                    isRecAudioSeeking = false;
+                    const dur = recAudio.duration || 0;
+                    if (dur > 0) {
+                        recAudio.currentTime = (Number(slider.value) / 100) * dur;
+                    }
+                };
+                slider.addEventListener('mouseup', commitSeek);
+                slider.addEventListener('touchend', commitSeek);
+                slider.addEventListener('change', commitSeek);
+            }
+
+            if (rerecordBtn) {
+                rerecordBtn.addEventListener('click', () => {
+                    recAudio.pause();
+                    recAudio.currentTime = 0;
+                    switchAppMode('record_practice');
+                });
+            }
+
+            if (downloadBtn) {
+                downloadBtn.addEventListener('click', () => {
+                    if (!currentRecordingBlob) {
+                        showWorkbenchToast('尚未有錄音可供下載');
+                        return;
+                    }
+                    const ext = currentRecordingBlob.type.includes('mp4') ? 'mp4' : (currentRecordingBlob.type.includes('ogg') ? 'ogg' : 'webm');
+                    const cleanTitle = (currentScoreTitle || '錄音練唱').replace(/[\\/:*?"<>|]/g, '_');
+                    const fileName = `${cleanTitle}_${new Date().toISOString().slice(0, 10)}.${ext}`;
+                    const a = document.createElement('a');
+                    a.href = currentRecordingUrl;
+                    a.download = fileName;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    showWorkbenchToast(`💾 已下載錄音：${fileName}`);
+                });
+            }
+
+            if (closeBtn) {
+                closeBtn.addEventListener('click', () => {
+                    recAudio.pause();
+                    if (playerPanel) playerPanel.classList.add('hidden');
+                });
+            }
+        }
+
+        // --- 五大核心模式切换逻辑 ---
         const btnModeLearn = document.getElementById('mode-btn-learn');
         const btnModePractice = document.getElementById('mode-btn-practice');
         const btnModePlayAudio = document.getElementById('mode-btn-play-audio');
         const btnModePlayPractice = document.getElementById('mode-btn-play-practice');
+        const btnModeRecordPractice = document.getElementById('mode-btn-record-practice');
         const btnStop = document.getElementById('stop-btn');
         const playbackStatus = document.getElementById('playback-status');
         const cardTrackHeaderTitle = document.getElementById('card-track-header-title');
@@ -5539,18 +5867,18 @@
 
             activeAppMode = targetMode;
 
-            // 重置四个按钮样式
-            [btnModeLearn, btnModePractice, btnModePlayAudio, btnModePlayPractice].forEach(b => {
-                b.className = "btn-press px-3 py-1 rounded-lg font-bold transition-all text-xs text-slate-400 hover:text-white flex items-center gap-1";
+            // 重置顶部五个模式按钮样式
+            [btnModeLearn, btnModePractice, btnModePlayAudio, btnModePlayPractice, btnModeRecordPractice].forEach(b => {
+                if (b) b.className = "btn-press px-3 py-1 rounded-lg font-bold transition-all text-xs text-slate-400 hover:text-white flex items-center gap-1";
             });
 
             if (targetMode === 'learn') {
-                btnModeLearn.className = "btn-press px-3 py-1 rounded-lg font-bold transition-all text-xs bg-blue-600 text-white shadow flex items-center gap-1";
+                if (btnModeLearn) btnModeLearn.className = "btn-press px-3 py-1 rounded-lg font-bold transition-all text-xs bg-blue-600 text-white shadow flex items-center gap-1";
                 playbackStatus.innerText = "📖 學習模式 · 點擊/長按卡片聽音";
                 cardTrackHeaderTitle.innerText = "📖 學習模式：點擊/長按發聲聽音";
                 document.getElementById('tuner-feedback').innerText = "📖 學習模式: 點擊/長按卡片聽標準音";
             } else if (targetMode === 'practice') {
-                btnModePractice.className = "btn-press px-3 py-1 rounded-lg font-bold transition-all text-xs bg-emerald-600 text-white shadow flex items-center gap-1";
+                if (btnModePractice) btnModePractice.className = "btn-press px-3 py-1 rounded-lg font-bold transition-all text-xs bg-emerald-600 text-white shadow flex items-center gap-1";
                 playbackStatus.innerText = "🎯 練習模式 · 點擊/長按音格發聲聽音，對著麥克風唱出音高 (收音)";
                 cardTrackHeaderTitle.innerText = "🎯 練習模式：點擊/長按發聲聽音，對著麥克風唱";
                 document.getElementById('tuner-feedback').innerText = "🎤 練習模式: 點擊/長按可聽標準音，請對著麥克風唱...";
@@ -5558,26 +5886,31 @@
                     startMicListening();
                 }
             } else if (targetMode === 'play_audio') {
-                btnModePlayAudio.className = "btn-press px-3 py-1 rounded-lg font-bold transition-all text-xs bg-indigo-600 text-white shadow flex items-center gap-1";
+                if (btnModePlayAudio) btnModePlayAudio.className = "btn-press px-3 py-1 rounded-lg font-bold transition-all text-xs bg-indigo-600 text-white shadow flex items-center gap-1";
                 cardTrackHeaderTitle.innerText = "▶️ 全曲發聲播放中...";
                 startFullPlayback('audio');
             } else if (targetMode === 'play_practice') {
-                btnModePlayPractice.className = "btn-press px-3 py-1 rounded-lg font-bold transition-all text-xs bg-teal-600 text-white shadow flex items-center gap-1";
+                if (btnModePlayPractice) btnModePlayPractice.className = "btn-press px-3 py-1 rounded-lg font-bold transition-all text-xs bg-teal-600 text-white shadow flex items-center gap-1";
                 cardTrackHeaderTitle.innerText = "🎤 全曲練唱模式跟唱中...";
                 startFullPlayback('practice');
+            } else if (targetMode === 'record_practice') {
+                if (btnModeRecordPractice) btnModeRecordPractice.className = "btn-press px-3 py-1 rounded-lg font-bold transition-all text-xs bg-rose-600 text-white shadow flex items-center gap-1";
+                cardTrackHeaderTitle.innerText = "🎙️ 錄音練唱模式（伴奏播放+錄音+測音）...";
+                startFullPlayback('record_practice');
             }
 
             renderMelodyTrack();
             syncPracticeModeButtons();
         }
 
-        btnModeLearn.addEventListener('click', () => switchAppMode('learn'));
-        btnModePractice.addEventListener('click', () => switchAppMode('practice'));
-        btnModePlayAudio.addEventListener('click', () => activeAppMode === 'play_audio' ? togglePlaybackPause() : switchAppMode('play_audio'));
-        btnModePlayPractice.addEventListener('click', () => activeAppMode === 'play_practice' ? togglePlaybackPause() : switchAppMode('play_practice'));
+        if (btnModeLearn) btnModeLearn.addEventListener('click', () => switchAppMode('learn'));
+        if (btnModePractice) btnModePractice.addEventListener('click', () => switchAppMode('practice'));
+        if (btnModePlayAudio) btnModePlayAudio.addEventListener('click', () => activeAppMode === 'play_audio' ? togglePlaybackPause() : switchAppMode('play_audio'));
+        if (btnModePlayPractice) btnModePlayPractice.addEventListener('click', () => activeAppMode === 'play_practice' ? togglePlaybackPause() : switchAppMode('play_practice'));
+        if (btnModeRecordPractice) btnModeRecordPractice.addEventListener('click', () => activeAppMode === 'record_practice' ? togglePlaybackPause() : switchAppMode('record_practice'));
 
         function shouldHoldPlaybackWakeLock() {
-            const isFullPlayback = activeAppMode === 'play_audio' || activeAppMode === 'play_practice' || isPlayingSingleMeasure;
+            const isFullPlayback = activeAppMode === 'play_audio' || activeAppMode === 'play_practice' || activeAppMode === 'record_practice' || isPlayingSingleMeasure;
             return isFullPlayback && !isPlaybackPaused && currentPlaybackIndex >= 0 && !document.hidden;
         }
 
@@ -5687,7 +6020,7 @@
             const measure = measures[measureIndex];
             if (!measure) return;
 
-            if (activeAppMode === 'play_audio' || activeAppMode === 'play_practice') {
+            if (activeAppMode === 'play_audio' || activeAppMode === 'play_practice' || activeAppMode === 'record_practice') {
                 jumpPlaybackTo(measure.startIndex);
                 showWorkbenchToast(`▶ 從第 ${measureIndex + 1} 小節開頭繼續播放`);
             } else {
@@ -5779,7 +6112,7 @@
          */
         function jumpPlaybackTo(targetIndex) {
             if (targetIndex < 0 || targetIndex >= scoreNotes.length) return;
-            if (activeAppMode !== 'play_audio' && activeAppMode !== 'play_practice') return;
+            if (activeAppMode !== 'play_audio' && activeAppMode !== 'play_practice' && activeAppMode !== 'record_practice') return;
 
             ensureAudioContextReady();
             if (playbackTimer) {
@@ -5812,6 +6145,9 @@
             if (activeAppMode === 'play_practice') {
                 startMicListening();
                 playbackStatus.innerText = "🎤 播放全曲 (練聲) 中...";
+            } else if (activeAppMode === 'record_practice') {
+                startMicListening();
+                playbackStatus.innerText = "🎙️ 錄音練唱中（伴奏播放+錄音+測音）...";
             } else {
                 stopMicListening();
                 playbackStatus.innerText = "▶️ 播放全曲 (有聲) 中...";
@@ -5843,6 +6179,12 @@
                 scoreNotes.forEach(n => n.practiceResult = null);
                 startMicListening();
                 playbackStatus.innerText = "🎤 播放全曲 (練聲) 中...";
+            } else if (mode === 'record_practice') {
+                scoreNotes.forEach(n => n.practiceResult = null);
+                startMicListening();
+                startRecording();
+                playbackStatus.innerText = "🎙️ 錄音練唱中（伴奏播放+錄音+測音）...";
+                showWorkbenchToast("🎙️ 開始錄音練唱，伴奏已響起，請跟隨歌唱！");
             } else {
                 stopMicListening();
                 playbackStatus.innerText = "▶️ 播放全曲 (有聲) 中...";
@@ -5872,7 +6214,7 @@
 
             updateTunerDisplayForNote(note);
 
-            if (activeAppMode === 'play_audio' || isPlayingSingleMeasure) {
+            if (activeAppMode === 'play_audio' || activeAppMode === 'record_practice' || isPlayingSingleMeasure) {
                 if (note.degree !== 0) {
                     playSynthesizedTone(midi, durationSec, 0.48);
                 } else {
@@ -5884,7 +6226,7 @@
 
             const waitMs = Math.max(0, playbackStartedAtMs + timelineEntry.endMs - performance.now());
             playbackTimer = setTimeout(() => {
-                if (activeAppMode === 'play_practice' && note.degree !== 0) {
+                if ((activeAppMode === 'play_practice' || activeAppMode === 'record_practice') && note.degree !== 0) {
                     evaluateNotePractice(note);
                 }
                 currentPlaybackIndex++;
@@ -5893,7 +6235,7 @@
         }
 
         function pausePlaybackForPageLifecycle() {
-            const isFullPlayback = activeAppMode === 'play_audio' || activeAppMode === 'play_practice';
+            const isFullPlayback = activeAppMode === 'play_audio' || activeAppMode === 'play_practice' || activeAppMode === 'record_practice';
             if (!isFullPlayback || isPlaybackPaused || currentPlaybackIndex < 0) return;
             if (playbackTimer) clearTimeout(playbackTimer);
             playbackTimer = null;
@@ -5906,13 +6248,14 @@
             releasePlaybackWakeLock();
             stopCurrentVoice(0.01);
             stopSustainedTone();
-            if (activeAppMode === 'play_practice') stopMicListening();
+            if (activeAppMode === 'play_practice' || activeAppMode === 'record_practice') stopMicListening();
+            if (activeAppMode === 'record_practice') pauseRecording();
             playbackStatus.innerText = '📱 螢幕關閉，已保留目前播放位置';
             syncPracticeModeButtons();
         }
 
         async function resumePausedPlayback() {
-            const isFullPlayback = activeAppMode === 'play_audio' || activeAppMode === 'play_practice';
+            const isFullPlayback = activeAppMode === 'play_audio' || activeAppMode === 'play_practice' || activeAppMode === 'record_practice';
             if (!isFullPlayback || !isPlaybackPaused || playbackLifecycleResumeInFlight) return false;
             playbackLifecycleResumeInFlight = true;
             const audioReady = await ensureAudioContextReady();
@@ -5923,13 +6266,24 @@
                 return false;
             }
             // 等待音訊期間使用者可能已停止或切換模式，恢復前再次確認狀態。
-            if ((activeAppMode !== 'play_audio' && activeAppMode !== 'play_practice') || !isPlaybackPaused) return false;
+            if ((activeAppMode !== 'play_audio' && activeAppMode !== 'play_practice' && activeAppMode !== 'record_practice') || !isPlaybackPaused) return false;
             isPlaybackPaused = false;
             playbackPausedByLifecycle = false;
             playbackStartedAtMs = performance.now() - playbackPausedElapsedMs;
             requestPlaybackWakeLock();
-            if (activeAppMode === 'play_practice') startMicListening();
-            playbackStatus.innerText = activeAppMode === 'play_practice' ? '🎤 播放全曲 (練聲) 中...' : '▶️ 播放全曲 (有聲) 中...';
+            if (activeAppMode === 'play_practice' || activeAppMode === 'record_practice') {
+                startMicListening();
+            }
+            if (activeAppMode === 'record_practice') {
+                resumeRecording();
+            }
+            if (activeAppMode === 'play_practice') {
+                playbackStatus.innerText = '🎤 播放全曲 (練聲) 中...';
+            } else if (activeAppMode === 'record_practice') {
+                playbackStatus.innerText = '🎙️ 錄音練唱中（伴奏播放+錄音+測音）...';
+            } else {
+                playbackStatus.innerText = '▶️ 播放全曲 (有聲) 中...';
+            }
             syncPracticeModeButtons();
             processNextPlaybackStep();
             return true;
@@ -5937,7 +6291,7 @@
 
         async function resumePlaybackAfterPageLifecycle() {
             if (document.hidden) return;
-            const isFullPlayback = activeAppMode === 'play_audio' || activeAppMode === 'play_practice';
+            const isFullPlayback = activeAppMode === 'play_audio' || activeAppMode === 'play_practice' || activeAppMode === 'record_practice';
             if (!isFullPlayback) return;
             // 某些手機不會在鎖屏前送出 hidden；醒來時若 AudioContext 已中斷，先固定目前音符再恢復。
             if (!isPlaybackPaused && audioCtx && audioCtx.state !== 'running') pausePlaybackForPageLifecycle();
@@ -5957,7 +6311,7 @@
         }
 
         async function togglePlaybackPause() {
-            if (activeAppMode !== 'play_audio' && activeAppMode !== 'play_practice') return;
+            if (activeAppMode !== 'play_audio' && activeAppMode !== 'play_practice' && activeAppMode !== 'record_practice') return;
             if (isPlaybackPaused) {
                 await resumePausedPlayback();
                 return;
@@ -5970,7 +6324,8 @@
             playbackPausedByLifecycle = false;
             releasePlaybackWakeLock();
             stopCurrentVoice(0.02);
-            if (activeAppMode === 'play_practice') stopMicListening();
+            if (activeAppMode === 'play_practice' || activeAppMode === 'record_practice') stopMicListening();
+            if (activeAppMode === 'record_practice') pauseRecording();
             playbackStatus.innerText = '⏸️ 已暫停 · 目前音符保持高亮';
             syncPracticeModeButtons();
         }
@@ -5988,6 +6343,9 @@
         }
 
         function stopPlayback() {
+            if (isRecordingActive) {
+                stopRecording();
+            }
             if (playbackTimer) clearTimeout(playbackTimer);
             playbackTimer = null;
             clearPlaybackScrollTimers();
@@ -6012,9 +6370,12 @@
         btnStop.addEventListener('click', () => switchAppMode('learn'));
 
         function finishFullPlayback() {
-            const wasPractice = (activeAppMode === 'play_practice');
+            const wasPractice = (activeAppMode === 'play_practice' || activeAppMode === 'record_practice');
             stopCurrentVoice(0.03);
             stopSustainedTone();
+            if (isRecordingActive) {
+                stopRecording();
+            }
             switchAppMode('learn');
             if (wasPractice) showPracticeSummary();
         }
