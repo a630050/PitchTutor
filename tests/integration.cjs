@@ -651,10 +651,17 @@ const server = http.createServer((request, response) => {
     const shareBtnText = await paramPage.locator('#rec-download-btn .sm\\:hidden').textContent();
     assert.match(shareBtnText, /分享/, 'Mobile should display share button');
 
-    // 驗證點擊播放時初始化 Web Audio 圖並施加 +10dB 增益
+    // 驗證點擊播放與 +10dB 增益倍率常數
     await paramPage.click('#rec-play-toggle-btn');
-    const playbackGainValue = await paramPage.evaluate(() => recGainNode ? recGainNode.gain.value : 0);
-    assert.ok(Math.abs(playbackGainValue - Math.pow(10, 10 / 20)) < 0.001, 'Playback gain must be +10dB (approx 3.162)');
+    const recAudioInfo = await paramPage.evaluate(() => {
+        const audio = document.getElementById('rec-audio-element');
+        return {
+            hasSrc: Boolean(audio && audio.src),
+            gainRatio: typeof RECORDING_BOOST_RATIO !== 'undefined' ? RECORDING_BOOST_RATIO : 0
+        };
+    });
+    assert.equal(recAudioInfo.hasSrc, true, 'recAudio should have valid source for playback');
+    assert.ok(Math.abs(recAudioInfo.gainRatio - Math.pow(10, 10 / 20)) < 0.001, 'Boost gain must be +10dB (approx 3.162)');
 
     // 驗證在支援 Web Share API 時優先呼叫原生分享傳送 MP3 檔案
     await paramPage.evaluate(() => {

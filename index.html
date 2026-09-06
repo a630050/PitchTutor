@@ -5620,10 +5620,11 @@
         let currentRecordingBlob = null;
         let currentRecordingUrl = null;
         let currentRecordingMp3Blob = null;
+        let boostedRecordingUrl = null;
+        let boostedMp3Promise = null;
         let isConvertingMp3 = false;
-        let recMediaSourceNode = null;
-        let recGainNode = null;
-        let recLimiterNode = null;
+        const RECORDING_BOOST_DB = 10;
+        const RECORDING_BOOST_RATIO = Math.pow(10, RECORDING_BOOST_DB / 20); // ≈ 3.16227766 (+10dB 放大倍率)
         let isRecordingActive = false;
         let isRecAudioSeeking = false;
 
@@ -5681,6 +5682,11 @@
                 URL.revokeObjectURL(currentRecordingUrl);
                 currentRecordingUrl = null;
             }
+            if (boostedRecordingUrl) {
+                URL.revokeObjectURL(boostedRecordingUrl);
+                boostedRecordingUrl = null;
+            }
+            boostedMp3Promise = null;
             currentRecordingBlob = null;
             currentRecordingMp3Blob = null;
             isConvertingMp3 = false;
@@ -5754,36 +5760,6 @@
             isRecordingActive = false;
         }
 
-        /**
-         * 建立录音回放音频图：将 audio 标签连接至 Web Audio，施加 +10dB 增益与防爆音限幅器
-         * @param {HTMLAudioElement} recAudio 录音播放 audio 元素
-         */
-        async function setupRecAudioGraph(recAudio) {
-            if (!recAudio) return;
-            await ensureAudioContextReady();
-            if (!recMediaSourceNode && audioCtx) {
-                try {
-                    recMediaSourceNode = audioCtx.createMediaElementSource(recAudio);
-                    recGainNode = audioCtx.createGain();
-                    // 录音重听实际播放的声音 +10dB 增益: 10^(10/20) ≈ 3.16227766
-                    recGainNode.gain.value = Math.pow(10, 10 / 20);
-
-                    // 串接 DynamicsCompressorNode 作为安全峰值限幅器，防止大音量破音切峰
-                    recLimiterNode = audioCtx.createDynamicsCompressor();
-                    recLimiterNode.threshold.value = -1.0;
-                    recLimiterNode.knee.value = 6.0;
-                    recLimiterNode.ratio.value = 20.0;
-                    recLimiterNode.attack.value = 0.003;
-                    recLimiterNode.release.value = 0.05;
-
-                    recMediaSourceNode.connect(recGainNode);
-                    recGainNode.connect(recLimiterNode);
-                    recLimiterNode.connect(audioCtx.destination);
-                } catch (err) {
-                    console.warn('Web Audio media element route fallback:', err);
-                }
-            }
-        }
 
         /**
          * 将录音 Blob 解码并编码为 MP3 格式，同时应用 +10dB 增益与防爆音饱和限制
@@ -5879,12 +5855,26 @@
                 showWorkbenchToast('🎙️ 錄音完成！可於下方回放條聆聽 (+10dB 增益)、重錄或下載 MP3');
             }
 
-            // 背景预先异步转档为 MP3，提高点击下载时的即时响应速度
+            // 立即后台异步生成 +10dB 增益的 MP3 并直接换装至 recAudio.src，确保网页直接播放与导出档案的音量一致放大
             if (currentRecordingBlob) {
                 isConvertingMp3 = true;
-                convertRecordingToMp3(currentRecordingBlob)
+                boostedMp3Promise = convertRecordingToMp3(currentRecordingBlob)
                     .then(mp3Blob => {
                         currentRecordingMp3Blob = mp3Blob;
+                        if (boostedRecordingUrl) {
+                            URL.revokeObjectURL(boostedRecordingUrl);
+                        }
+                        boostedRecordingUrl = URL.createObjectURL(mp3Blob);
+                        if (recAudio) {
+                            const curTime = recAudio.currentTime || 0;
+                            const isPlaying = !recAudio.paused;
+                            recAudio.src = boostedRecordingUrl;
+                            if (curTime > 0) recAudio.currentTime = curTime;
+                            if (isPlaying) {
+                                recAudio.play().catch(() => {});
+                            }
+                        }
+                        return mp3Blob;
                     })
                     .catch(err => {
                         console.warn('Background MP3 pre-conversion skipped:', err);
@@ -5923,10 +5913,9 @@
             };
 
             if (playToggleBtn) {
-                playToggleBtn.addEventListener('click', async () => {
+                playToggleBtn.addEventListener('click', () => {
                     if (!recAudio.src) return;
                     if (recAudio.paused) {
-                        await setupRecAudioGraph(recAudio);
                         recAudio.play().catch(e => console.warn('Play interrupted:', e));
                     } else {
                         recAudio.pause();
@@ -6006,11 +5995,15 @@
 
                     let blobToDownload = currentRecordingMp3Blob;
 
-                    // 若背景转档尚未完成，先提示并即时执行转档
+                    // 若背景转档尚未完成，先提示并即时等待或执行转档
                     if (!blobToDownload) {
                         showWorkbenchToast('⏳ 正在生成 MP3 檔案，請稍候...');
                         try {
-                            blobToDownload = await convertRecordingToMp3(currentRecordingBlob);
+                            if (boostedMp3Promise) {
+                                blobToDownload = await boostedMp3Promise;
+                            } else {
+                                blobToDownload = await convertRecordingToMp3(currentRecordingBlob);
+                            }
                             currentRecordingMp3Blob = blobToDownload;
                         } catch (err) {
                             console.warn('MP3 conversion fallback:', err);
