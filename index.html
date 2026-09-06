@@ -32,7 +32,7 @@
         .note-tile:hover { transform: translateY(-2px); box-shadow: 0 6px 12px -2px rgba(59, 130, 246, 0.3); }
         .note-tile:active { transform: translateY(0); }
         
-        #tuner-needle { transition: transform 0.08s ease-out; }
+        #tuner-needle { will-change: left; }
         .btn-press { transition: transform 0.1s ease; }
         .btn-press:active { transform: scale(0.95); }
 
@@ -1627,8 +1627,8 @@
                             <span class="text-emerald-400">🎯 準確</span>
                             <span class="text-amber-400">♯ 偏高</span>
                         </div>
-                        <div class="relative w-full h-5 sm:h-6 bg-slate-900/90 rounded-full border border-slate-700 flex items-center px-2 overflow-hidden">
-                            <div class="absolute left-1/2 top-0 bottom-0 w-8 -translate-x-1/2 bg-emerald-500/20 border-x border-emerald-500/30"></div>
+                        <div class="relative w-full h-5 sm:h-6 bg-slate-900/90 rounded-full border border-slate-700 flex items-center px-2 overflow-hidden" title="測音範圍：±200 音分 (上下各 1 全音)，中央綠區為 ±30 音分準音區">
+                            <div class="absolute top-0 bottom-0 bg-emerald-500/20 border-x border-emerald-500/30" style="left: 32%; width: 36%;"></div>
                             <div class="absolute left-1/2 top-0 bottom-0 w-0.5 bg-emerald-400 -translate-x-1/2 z-10"></div>
                             <div id="tuner-needle" class="absolute left-1/2 top-0.5 bottom-0.5 w-1.5 bg-white rounded-full shadow border border-slate-900 -translate-x-1/2 z-20"></div>
                         </div>
@@ -5375,13 +5375,47 @@
             return fundamentalFreq;
         }
 
-        let smoothedNeedlePos = 0;
+        // 測音平滑緩衝隊列、UI 節流時間戳與百分比位置
+        let smoothedNeedlePercent = 50; // 中心點為 50%
+        let pitchHistoryBuffer = []; // 儲存最近 5~7 幀音分差，用於中位數與移動均值去噪
+        let lastFeedbackTextUpdateTime = 0; // 控制文字提示更新節流 (~160ms 一次)
+
+        /**
+         * 將音分差 (-200 ~ +200) 非線性映射至指示條百分比 (4% ~ 96%)
+         * - 中心準音區 (±30 音分)：佔據中央約 36% 寬度 (32% ~ 68%)，方便精細對準
+         * - 外圍大偏差區 (30 ~ 200 音分)：非線性平緩壓縮至兩側剩餘空間 (4% ~ 32% 及 68% ~ 96%)
+         * - 預留 4% 兩側邊界安全留白，杜絕指針跑出邊界或被容器截斷
+         * @param {number} cents 音分差
+         * @returns {number} 指針 left 百分比 (4 ~ 96)
+         */
+        function mapCentsToPercent(cents) {
+            const clamped = Math.max(-200, Math.min(200, cents));
+            if (Math.abs(clamped) <= 30) {
+                // ±30 音分線性映射至 32% ~ 68%
+                return 50 + (clamped / 30) * 18;
+            }
+            if (clamped > 30) {
+                const ratio = (clamped - 30) / 170; // 0 ~ 1
+                return 68 + ratio * 27; // 68% ~ 95%
+            }
+            const ratio = (-clamped - 30) / 170; // 0 ~ 1
+            return 32 - ratio * 27; // 32% ~ 5%
+        }
 
         function pitchDetectionLoop() {
             if (!analyser || !audioCtx) return;
             const buffer = new Float32Array(analyser.fftSize);
             analyser.getFloatTimeDomainData(buffer);
-            const freq = detectPitchYIN(buffer, audioCtx.sampleRate);
+
+            // 計算輸入音頻的 RMS 能量（音量門限 Noise Gate，過濾無聲、吸氣與微弱環境底噪）
+            let sumSquares = 0;
+            for (let i = 0; i < buffer.length; i++) {
+                sumSquares += buffer[i] * buffer[i];
+            }
+            const rms = Math.sqrt(sumSquares / buffer.length);
+            const isAudible = rms >= 0.007;
+
+            const freq = isAudible ? detectPitchYIN(buffer, audioCtx.sampleRate) : -1;
             const feedbackEl = document.getElementById('tuner-feedback');
             const freqTextEl = document.getElementById('tuner-freq-text');
 
@@ -5392,38 +5426,67 @@
                 targetMidi = noteToMidi(scoreNotes[activeSingleNoteIndex], currentKey);
             }
 
+            const nowMs = performance.now();
+
             if (freq !== -1 && targetMidi > 0) {
                 const detectedMidi = freqToMidi(freq);
-                freqTextEl.innerText = `實測: ${freq.toFixed(1)} Hz (${midiToPitchName(Math.round(detectedMidi))})`;
-                
+
                 // 找出最貼近歌手當前音區的八度目標音 (支持男聲/女聲跨八度跟唱，避免半音翻轉)
                 const octaveShift = Math.round((detectedMidi - targetMidi) / 12);
                 const alignedTargetMidi = targetMidi + octaveShift * 12;
                 const semitoneDiff = detectedMidi - alignedTargetMidi;
-                const diffCents = semitoneDiff * 100;
+                const rawDiffCents = semitoneDiff * 100;
 
-                if (activeAppMode === 'play_practice') livePitchSamples.push(diffCents);
+                // 採樣層平滑：中位數過濾噪音频點野點 + 移動加權均值
+                pitchHistoryBuffer.push(rawDiffCents);
+                if (pitchHistoryBuffer.length > 7) {
+                    pitchHistoryBuffer.shift();
+                }
 
-                // 限制在 -100 ~ +100 音分顯示範圍內平滑過渡
-                const clampedCents = Math.max(-100, Math.min(100, diffCents));
-                smoothedNeedlePos = smoothedNeedlePos * 0.65 + clampedCents * 0.35;
-                updateNeedle(smoothedNeedlePos);
+                const sorted = [...pitchHistoryBuffer].sort((a, b) => a - b);
+                const medianCents = sorted[Math.floor(sorted.length / 2)];
+                const validSamples = pitchHistoryBuffer.filter(c => Math.abs(c - medianCents) <= 75);
+                const filteredCents = validSamples.length > 0
+                    ? validSamples.reduce((sum, c) => sum + c, 0) / validSamples.length
+                    : medianCents;
 
-                if (Math.abs(diffCents) <= 30) {
-                    feedbackEl.innerText = "🎯 準確！請保持該音高";
-                    feedbackEl.className = "text-center text-xs font-bold text-emerald-400";
-                } else if (diffCents > 30) {
-                    feedbackEl.innerText = `⬇️ 偏高了 ${Math.round(diffCents)} 音分 (稍微降低)`;
-                    feedbackEl.className = "text-center text-xs font-bold text-amber-400";
-                } else {
-                    feedbackEl.innerText = `⬆️ 偏低了 ${Math.round(Math.abs(diffCents))} 音分 (氣息頂上去)`;
-                    feedbackEl.className = "text-center text-xs font-bold text-red-400";
+                if (activeAppMode === 'play_practice') livePitchSamples.push(filteredCents);
+
+                // 微死區（Deadzone）：在準音極小範圍內 (<= 5 音分) 消除生理微顫高頻抖動
+                let targetCents = filteredCents;
+                if (Math.abs(targetCents) <= 5) {
+                    targetCents = 0;
+                }
+
+                // 映射至 ±200 音分大視野非線性百分比
+                const targetPercent = mapCentsToPercent(targetCents);
+                smoothedNeedlePercent = smoothedNeedlePercent * 0.72 + targetPercent * 0.28;
+                updateNeedle(smoothedNeedlePercent, filteredCents);
+
+                // 文字提示節流更新 (約 160ms 一次，消除頻閃與重影)
+                if (nowMs - lastFeedbackTextUpdateTime >= 160) {
+                    lastFeedbackTextUpdateTime = nowMs;
+                    freqTextEl.innerText = `實測: ${freq.toFixed(1)} Hz (${midiToPitchName(Math.round(detectedMidi))})`;
+                    if (Math.abs(filteredCents) <= 30) {
+                        feedbackEl.innerText = "🎯 準確！請保持該音高";
+                        feedbackEl.className = "text-center text-xs font-bold text-emerald-400";
+                    } else if (filteredCents > 30) {
+                        feedbackEl.innerText = `⬇️ 偏高了 ${Math.round(filteredCents)} 音分 (稍微降低)`;
+                        feedbackEl.className = "text-center text-xs font-bold text-amber-400";
+                    } else {
+                        feedbackEl.innerText = `⬆️ 偏低了 ${Math.round(Math.abs(filteredCents))} 音分 (氣息頂上去)`;
+                        feedbackEl.className = "text-center text-xs font-bold text-red-400";
+                    }
                 }
             } else {
-                freqTextEl.innerText = "頻率: -- Hz";
-                smoothedNeedlePos = smoothedNeedlePos * 0.85;
-                updateNeedle(smoothedNeedlePos);
-                if (Math.abs(smoothedNeedlePos) < 5) {
+                // 無聲、換氣或環境雜音：清空音分緩衝，指針平緩回中
+                pitchHistoryBuffer.length = 0;
+                smoothedNeedlePercent = smoothedNeedlePercent * 0.88 + 50 * 0.12;
+                updateNeedle(smoothedNeedlePercent, 0, true);
+
+                if (Math.abs(smoothedNeedlePercent - 50) < 1.5 && nowMs - lastFeedbackTextUpdateTime >= 160) {
+                    lastFeedbackTextUpdateTime = nowMs;
+                    freqTextEl.innerText = "頻率: -- Hz";
                     if (activeAppMode === 'practice') feedbackEl.innerText = "🎤 練習模式: 點擊/長按可聽標準音，請對著麥克風唱...";
                     else feedbackEl.innerText = "📖 學習模式: 點擊/長按卡片聽標準音";
                     feedbackEl.className = "text-center text-xs font-bold text-slate-400";
@@ -5432,17 +5495,31 @@
             animFrameId = requestAnimationFrame(pitchDetectionLoop);
         }
 
-        function updateNeedle(cents) {
+        /**
+         * 更新測音指針視覺位置與色彩樣式
+         * @param {number} percent 指針百分比 (4 ~ 96)
+         * @param {number} cents 經過濾波平滑的音分差
+         * @param {boolean} isIdle 是否處於靜音回中狀態
+         */
+        function updateNeedle(percent, cents, isIdle = false) {
             const needle = document.getElementById('tuner-needle');
-            const clampCents = Math.max(-100, Math.min(100, cents));
-            const pixelOffset = (clampCents / 100) * 140;
-            needle.style.transform = `translateX(calc(-50% + ${pixelOffset}px))`;
-            if (Math.abs(clampCents) <= 30) {
-                needle.className = "absolute left-1/2 top-1 bottom-1 w-2 bg-emerald-400 rounded-full shadow border border-slate-900 -translate-x-1/2 z-20";
-            } else if (clampCents > 30) {
-                needle.className = "absolute left-1/2 top-1 bottom-1 w-2 bg-amber-400 rounded-full shadow border border-slate-900 -translate-x-1/2 z-20";
+            if (!needle) return;
+            const clampedPercent = Math.max(4, Math.min(96, percent));
+            needle.style.left = `${clampedPercent}%`;
+            needle.style.transform = 'translateX(-50%)';
+
+            if (isIdle) {
+                needle.className = "absolute top-0.5 bottom-0.5 w-1.5 bg-slate-300 rounded-full shadow border border-slate-900 z-20 opacity-70";
+                return;
+            }
+
+            const absCents = Math.abs(cents);
+            if (absCents <= 30) {
+                needle.className = "absolute top-0.5 bottom-0.5 w-2 bg-emerald-400 rounded-full shadow border border-slate-900 z-20";
+            } else if (cents > 30) {
+                needle.className = "absolute top-0.5 bottom-0.5 w-2 bg-amber-400 rounded-full shadow border border-slate-900 z-20";
             } else {
-                needle.className = "absolute left-1/2 top-1 bottom-1 w-2 bg-red-400 rounded-full shadow border border-slate-900 -translate-x-1/2 z-20";
+                needle.className = "absolute top-0.5 bottom-0.5 w-2 bg-red-400 rounded-full shadow border border-slate-900 z-20";
             }
         }
 

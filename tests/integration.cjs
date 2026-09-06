@@ -412,6 +412,44 @@ const server = http.createServer((request, response) => {
     assert.equal(await paramPage.locator('#tuner-hear-sound').isVisible(), true);
     assert.equal(await paramPage.locator('#notation-rerender-btn').isVisible(), false, 'Rerender button should be hidden from UI');
 
+    // 驗證測音非線性映射函數 mapCentsToPercent (±200 音分大視野與中心放大)
+    const mappingResults = await paramPage.evaluate(() => {
+        return {
+            zero: mapCentsToPercent(0),
+            plus30: mapCentsToPercent(30),
+            minus30: mapCentsToPercent(-30),
+            plus150: mapCentsToPercent(150),
+            minus150: mapCentsToPercent(-150),
+            plus200: mapCentsToPercent(200),
+            minus200: mapCentsToPercent(-200),
+            beyondPlus: mapCentsToPercent(350),
+            beyondMinus: mapCentsToPercent(-350),
+        };
+    });
+    assert.equal(mappingResults.zero, 50, '0 cents should map to 50%');
+    assert.equal(mappingResults.plus30, 68, '+30 cents should map to 68%');
+    assert.equal(mappingResults.minus30, 32, '-30 cents should map to 32%');
+    assert.ok(mappingResults.plus150 > 85 && mappingResults.plus150 < 90, '+150 cents should map inside the bar (~87%)');
+    assert.ok(mappingResults.minus150 > 10 && mappingResults.minus150 < 15, '-150 cents should map inside the bar (~13%)');
+    assert.equal(mappingResults.plus200, 95, '+200 cents should map to 95%');
+    assert.equal(mappingResults.minus200, 5, '-200 cents should map to 5%');
+    assert.equal(mappingResults.beyondPlus, 95, 'Beyond +200 cents should be clamped to 95%');
+    assert.equal(mappingResults.beyondMinus, 5, 'Beyond -200 cents should be clamped to 5%');
+
+    // 驗證指針在 ±150 音分大偏差時完全留在容器內 (left 百分比在 4% ~ 96% 之間)
+    await paramPage.evaluate(() => updateNeedle(mapCentsToPercent(150), 150));
+    const needleLeft150 = await paramPage.locator('#tuner-needle').evaluate(el => parseFloat(el.style.left));
+    assert.ok(needleLeft150 >= 80 && needleLeft150 <= 95, `Needle left should be within bounds, got ${needleLeft150}%`);
+    assert.equal(await paramPage.locator('#tuner-needle').evaluate(el => el.classList.contains('bg-amber-400')), true, 'Sharp note should show amber needle');
+
+    await paramPage.evaluate(() => updateNeedle(mapCentsToPercent(-150), -150));
+    const needleLeftMinus150 = await paramPage.locator('#tuner-needle').evaluate(el => parseFloat(el.style.left));
+    assert.ok(needleLeftMinus150 >= 5 && needleLeftMinus150 <= 20, `Needle left should be within bounds, got ${needleLeftMinus150}%`);
+    assert.equal(await paramPage.locator('#tuner-needle').evaluate(el => el.classList.contains('bg-red-400')), true, 'Flat note should show red needle');
+
+    await paramPage.evaluate(() => updateNeedle(50, 0, true));
+    assert.equal(await paramPage.locator('#tuner-needle').evaluate(el => el.classList.contains('bg-slate-300')), true, 'Idle needle should be neutral slate');
+
     // 驗證預設樂譜視圖為五線譜
     assert.equal(await paramPage.evaluate(() => practiceScoreView), 'notation', 'Default practice score view should be notation');
     assert.equal(await paramPage.locator('#practice-notation-tab.is-active').count(), 1, 'Notation tab should be active by default');
