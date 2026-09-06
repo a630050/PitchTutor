@@ -88,28 +88,26 @@ const server = http.createServer((request, response) => {
     await page.goto(`http://127.0.0.1:${port}`, { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('#editor-page.is-active');
 
-    assert.equal(await page.getAttribute('html', 'data-theme'), 'night');
+    assert.equal(await page.getAttribute('html', 'data-theme'), 'day');
     assert.equal(await page.locator('#app-header #theme-toggle').count(), 1, 'Theme switch should live in the header brand lockup');
     assert.equal(await page.locator('#summary-modal').evaluate(element => getComputedStyle(element).display), 'none');
-    assert.equal(await page.getAttribute('#theme-toggle', 'aria-checked'), 'false');
-    const nightHeaderColor = await page.locator('.workbench-header').evaluate(element => getComputedStyle(element).backgroundColor);
-    await page.click('#theme-toggle');
-    assert.equal(await page.getAttribute('html', 'data-theme'), 'day');
     assert.equal(await page.getAttribute('#theme-toggle', 'aria-checked'), 'true');
-    assert.equal(await page.evaluate(() => localStorage.getItem('pitch-tutor-theme')), 'day');
     const dayHeaderColor = await page.locator('.workbench-header').evaluate(element => getComputedStyle(element).backgroundColor);
-    assert.notEqual(dayHeaderColor, nightHeaderColor, 'Day mode should visibly change the interface palette');
+    await page.click('#theme-toggle');
+    assert.equal(await page.getAttribute('html', 'data-theme'), 'night');
+    assert.equal(await page.getAttribute('#theme-toggle', 'aria-checked'), 'false');
+    assert.equal(await page.evaluate(() => localStorage.getItem('pitch-tutor-theme')), 'night');
+    const nightHeaderColor = await page.locator('.workbench-header').evaluate(element => getComputedStyle(element).backgroundColor);
+    assert.notEqual(dayHeaderColor, nightHeaderColor, 'Night mode should visibly change the interface palette');
     assert.ok((await page.locator('#theme-toggle').boundingBox()).width >= 60, 'Theme switch brand lockup should be easily clickable');
 
     await page.reload({ waitUntil: 'domcontentloaded' });
     await page.waitForSelector('#editor-page.is-active');
-    assert.equal(await page.getAttribute('html', 'data-theme'), 'day', 'Saved day mode should be restored on reload');
-    assert.equal(await page.getAttribute('#theme-toggle', 'aria-checked'), 'true');
-    await page.click('#theme-toggle');
-    assert.equal(await page.getAttribute('html', 'data-theme'), 'night');
-    assert.equal(await page.evaluate(() => localStorage.getItem('pitch-tutor-theme')), 'night');
+    assert.equal(await page.getAttribute('html', 'data-theme'), 'night', 'Saved night mode should be restored on reload');
+    assert.equal(await page.getAttribute('#theme-toggle', 'aria-checked'), 'false');
     await page.click('#theme-toggle');
     assert.equal(await page.getAttribute('html', 'data-theme'), 'day');
+    assert.equal(await page.evaluate(() => localStorage.getItem('pitch-tutor-theme')), 'day');
     if (process.env.THEME_SCREENSHOT_PATH) {
       await page.screenshot({ path: process.env.THEME_SCREENSHOT_PATH, fullPage: true });
     }
@@ -127,8 +125,9 @@ const server = http.createServer((request, response) => {
     });
     await storageFailurePage.goto(`http://127.0.0.1:${port}`, { waitUntil: 'domcontentloaded' });
     await storageFailurePage.waitForSelector('#editor-page.is-active');
+    assert.equal(await storageFailurePage.getAttribute('html', 'data-theme'), 'day', 'Default should be day mode without storage');
     await storageFailurePage.click('#theme-toggle');
-    assert.equal(await storageFailurePage.getAttribute('html', 'data-theme'), 'day', 'Theme should still switch when browser storage is unavailable');
+    assert.equal(await storageFailurePage.getAttribute('html', 'data-theme'), 'night', 'Theme should still switch when browser storage is unavailable');
     assert.deepEqual(storageFailureErrors, []);
     await storageFailurePage.close();
 

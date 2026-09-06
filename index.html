@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#0f1a24">
+    <meta name="theme-color" content="#e8ddc6">
     <title>排練桌｜快速輸譜與音準練唱</title>
     <script>
         (() => {
             const storageKey = 'pitch-tutor-theme';
             window.PITCH_TUTOR_THEME_STORAGE_KEY = storageKey;
-            let savedTheme = 'night';
+            let savedTheme = 'day';
             try {
                 const storedTheme = localStorage.getItem(storageKey);
                 if (storedTheme === 'day' || storedTheme === 'night') savedTheme = storedTheme;
-            } catch (_) { /* 無法使用儲存空間時維持夜間模式 */ }
+            } catch (_) { /* 無法使用儲存空間時維持白天模式 */ }
             document.documentElement.dataset.theme = savedTheme;
         })();
     </script>
@@ -1138,12 +1138,12 @@
 
     <!-- 新工作台導覽：只保留「輸譜／練唱」兩個使用者任務 -->
     <header id="app-header" class="workbench-header shrink-0">
-        <div id="theme-toggle" class="brand-lockup" role="button" tabindex="0" title="點擊切換深墨／暖陽主題" aria-label="點擊切換深墨／暖陽主題" aria-checked="false">
+        <div id="theme-toggle" class="brand-lockup" role="button" tabindex="0" title="切換為深墨夜間模式" aria-label="切換為深墨夜間模式" aria-checked="true">
             <div class="brand-mark" aria-hidden="true">♩</div>
             <div class="min-w-0">
                 <div class="brand-title flex items-center gap-1.5">
                     <span>排練桌</span>
-                    <span id="brand-theme-badge" class="brand-theme-badge">☾ 夜</span>
+                    <span id="brand-theme-badge" class="brand-theme-badge">☼ 日</span>
                 </div>
                 <div class="brand-subtitle">快速輸譜 · 專注練唱</div>
             </div>
@@ -3562,7 +3562,7 @@
         const APP_THEME_STORAGE_KEY = window.PITCH_TUTOR_THEME_STORAGE_KEY || 'pitch-tutor-theme';
 
         function applyAppTheme(theme, persist = true) {
-            const normalizedTheme = theme === 'day' ? 'day' : 'night';
+            const normalizedTheme = theme === 'night' ? 'night' : 'day';
             const isDay = normalizedTheme === 'day';
             document.documentElement.dataset.theme = normalizedTheme;
 
