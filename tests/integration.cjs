@@ -116,6 +116,18 @@ const server = http.createServer((request, response) => {
     await page.click('#close-summary-btn');
     assert.equal(await page.locator('#summary-modal').evaluate(element => getComputedStyle(element).display), 'none');
 
+    // 驗證載入樂譜中心彈窗在白天模式下的曲名色彩與對比度
+    await page.evaluate(() => openLoadScoreModal());
+    await page.waitForSelector('#load-score-modal.is-open');
+    const firstScoreTitle = page.locator('.score-lib-card .score-lib-title').first();
+    assert.equal(await firstScoreTitle.isVisible(), true, 'Score title should be visible in modal');
+    const scoreTitleColor = await firstScoreTitle.evaluate(el => getComputedStyle(el).color);
+    assert.equal(scoreTitleColor, 'rgb(26, 18, 11)', 'Day-mode score title must be high-contrast dark brown');
+    const scoreDescColor = await page.locator('.score-lib-card .score-lib-desc').first().evaluate(el => getComputedStyle(el).color);
+    assert.equal(scoreDescColor, 'rgb(93, 77, 61)', 'Day-mode score description must be warm legible brown');
+    await page.evaluate(() => closeLoadScoreModal());
+    await page.waitForSelector('#load-score-modal:not(.is-open)');
+
     const storageFailurePage = await browser.newPage({ viewport: { width: 900, height: 700 } });
     const storageFailureErrors = [];
     storageFailurePage.on('pageerror', error => storageFailureErrors.push(error.message));
@@ -626,6 +638,30 @@ const server = http.createServer((request, response) => {
     // 測試關閉按鈕隱藏回放條
     await paramPage.click('#rec-close-btn');
     assert.equal(await paramPage.locator('#recording-player-panel').evaluate(el => el.classList.contains('hidden')), true, 'Recording player panel should hide on close click');
+
+    // 驗證全曲練唱 / 錄音練唱中途終止時，針對已偵測片段即時結算打分
+    await paramPage.click('.practice-mode-button[data-practice-mode="play_practice"]');
+    assert.equal(await paramPage.evaluate(() => activeAppMode), 'play_practice');
+    // 模擬已唱過 3 個有效音符
+    await paramPage.evaluate(() => {
+        const validNotes = scoreNotes.filter(n => n.degree !== 0);
+        if (validNotes[0]) validNotes[0].practiceResult = { status: 'accurate', diffCents: 5 };
+        if (validNotes[1]) validNotes[1].practiceResult = { status: 'accurate', diffCents: -12 };
+        if (validNotes[2]) validNotes[2].practiceResult = { status: 'high', diffCents: 45 };
+        currentPlaybackIndex = 3;
+    });
+    // 使用者唱到一半點擊停止
+    await paramPage.click('#practice-stop-btn');
+    assert.equal(await paramPage.evaluate(() => activeAppMode), 'learn');
+    // 斷言彈出片段評估報告
+    assert.equal(await paramPage.locator('#summary-modal').isVisible(), true, 'Summary modal should show for early stopped practice');
+    assert.equal(await paramPage.textContent('#summary-modal-title'), '練唱片段評估報告');
+    assert.match(await paramPage.textContent('#summary-modal-subtitle'), /已針對終止前唱過的 3 個音符進行即時結算/);
+    assert.equal(await paramPage.textContent('#score-accuracy'), '67%');
+    assert.equal(await paramPage.textContent('#score-accurate-count'), '2 / 3');
+    // 關閉結算彈窗
+    await paramPage.click('#close-summary-btn');
+    assert.equal(await paramPage.locator('#summary-modal').evaluate(el => el.classList.contains('hidden')), true);
 
     // 驗證手機橫式 RWD 佈局
     await paramPage.setViewportSize({ width: 844, height: 390 });

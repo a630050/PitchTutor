@@ -695,6 +695,8 @@
             cursor: pointer; transition: all 0.12s ease;
         }
         .score-lib-card:hover { border-color: var(--baton); background: #182a38; transform: translateY(-1px); }
+        .score-lib-title { color: #f1f5f9; font-size: 12px; font-weight: 800; transition: color 0.12s ease; }
+        .score-lib-desc { color: #94a3b8; font-size: 9px; margin-top: 2px; transition: color 0.12s ease; }
 
         .inline-lyric-input {
             width: 90%;
@@ -860,8 +862,22 @@
         html[data-theme="day"] .app-modal-footer { background: #e8dbc3; border-color: #c4b18c; }
         html[data-theme="day"] .app-modal-title { color: #44382f; }
         html[data-theme="day"] .app-modal-close { background: #eee3cf; color: #655649; border-color: #b9a682; }
-        html[data-theme="day"] .score-lib-card { background: #eee3d0; border-color: #c1ad87; }
-        html[data-theme="day"] .score-lib-card:hover { background: #e2d2b5; }
+        html[data-theme="day"] .app-modal-content [class*="text-slate-100"],
+        html[data-theme="day"] .app-modal-content [class*="text-slate-200"],
+        html[data-theme="day"] .app-modal-content [class*="text-slate-300"] { color: #241a12 !important; }
+        html[data-theme="day"] .app-modal-content [class*="text-slate-400"],
+        html[data-theme="day"] .app-modal-content [class*="text-slate-500"] { color: #635343 !important; }
+        html[data-theme="day"] .app-modal-content [class*="border-slate-800"],
+        html[data-theme="day"] .app-modal-content [class*="border-slate-"] { border-color: #cebfa4 !important; }
+        html[data-theme="day"] .app-modal-content .field-label { color: #3b2d20 !important; font-weight: 800; }
+        html[data-theme="day"] .score-lib-card { background: #eee3d0; border-color: #c1ad87; box-shadow: 0 1px 4px rgba(78, 62, 42, 0.08); }
+        html[data-theme="day"] .score-lib-card:hover { background: #e2d2b5; border-color: #9e845c; }
+        html[data-theme="day"] .score-lib-card .score-lib-title,
+        html[data-theme="day"] .score-lib-card .text-slate-100,
+        html[data-theme="day"] .score-lib-card [class*="text-slate-100"] { color: #1a120b !important; font-weight: 800; }
+        html[data-theme="day"] .score-lib-card .score-lib-desc,
+        html[data-theme="day"] .score-lib-card .text-slate-400,
+        html[data-theme="day"] .score-lib-card [class*="text-slate-400"] { color: #5d4d3d !important; font-weight: 600; }
         html[data-theme="day"] .toast { background: #f6eddb; color: #45382e; border-color: #b9a681; box-shadow: 0 12px 30px rgba(70,52,32,.2); }
         html[data-theme="day"] #summary-modal { background-color: rgba(72,61,49,.55) !important; }
         html[data-theme="day"] #summary-modal [class*="bg-slate-900"],
@@ -1721,8 +1737,8 @@
                 🏆
             </div>
             <div>
-                <h3 class="text-base font-black text-white">練唱完成評估報告</h3>
-                <p class="text-[10px] text-slate-400 mt-0.5">系統已完成整首歌曲的比對與分析</p>
+                <h3 id="summary-modal-title" class="text-base font-black text-white">練唱完成評估報告</h3>
+                <p id="summary-modal-subtitle" class="text-[10px] text-slate-400 mt-0.5">系統已完成整首歌曲的比對與分析</p>
             </div>
 
             <div class="grid grid-cols-3 gap-2 bg-slate-900/80 p-2.5 rounded-2xl border border-slate-800">
@@ -3993,8 +4009,8 @@
                 card.className = 'score-lib-card';
                 card.innerHTML = `
                     <div class="min-w-0 pr-2">
-                        <div class="text-xs font-bold text-slate-100 truncate">${escapeHtml(item.title)}</div>
-                        <div class="text-[9px] text-slate-400 mt-0.5 truncate">${escapeHtml(item.desc)}</div>
+                        <div class="text-xs font-bold text-slate-100 score-lib-title truncate">${escapeHtml(item.title)}</div>
+                        <div class="text-[9px] text-slate-400 score-lib-desc mt-0.5 truncate">${escapeHtml(item.desc)}</div>
                     </div>
                     <button class="primary-small px-3 py-1 text-[10px] shrink-0" type="button">載入</button>
                 `;
@@ -4487,7 +4503,7 @@
                 });
             });
             document.getElementById('practice-pause-btn').addEventListener('click', togglePlaybackPause);
-            document.getElementById('practice-stop-btn').addEventListener('click', () => switchAppMode('learn'));
+            document.getElementById('practice-stop-btn').addEventListener('click', handlePlaybackUserStop);
             const toolbarToggle = document.getElementById('practice-toolbar-toggle');
             const toolbarToggleText = document.getElementById('practice-toolbar-toggle-text');
             const practiceToolbar = document.querySelector('.practice-toolbar');
@@ -5418,23 +5434,26 @@
             return fundamentalFreq;
         }
 
-        // 測音平滑緩衝隊列、UI 節流時間戳與百分比位置
-        let smoothedNeedlePercent = 50; // 中心點為 50%
-        let pitchHistoryBuffer = []; // 儲存最近 5~7 幀音分差，用於中位數與移動均值去噪
-        let lastFeedbackTextUpdateTime = 0; // 控制文字提示更新節流 (~160ms 一次)
+        // 测音平滑缓冲队列、UI 节流时间戳与百分比位置
+        let smoothedNeedlePercent = 50; // 中心点为 50%
+        let pitchHistoryBuffer = []; // 存储最近 11 帧音分差，用于中位数与移动均值去噪
+        let lastFeedbackTextUpdateTime = 0; // 控制文字提示更新节流 (~180ms 一次)
+        let wasAudible = false; // 施密特迟滞状态记录
+        let lastAudibleTimeMs = 0; // 最近一次检测到有效人声的时间戳
+        let lastStableCents = 0; // 最近一次稳定的音分差
 
         /**
-         * 將音分差 (-200 ~ +200) 非線性映射至指示條百分比 (4% ~ 96%)
-         * - 中心準音區 (±30 音分)：佔據中央約 36% 寬度 (32% ~ 68%)，方便精細對準
-         * - 外圍大偏差區 (30 ~ 200 音分)：非線性平緩壓縮至兩側剩餘空間 (4% ~ 32% 及 68% ~ 96%)
-         * - 預留 4% 兩側邊界安全留白，杜絕指針跑出邊界或被容器截斷
+         * 将音分差 (-200 ~ +200) 非线性映射至指示条百分比 (4% ~ 96%)
+         * - 中心准音区 (±30 音分)：占据中央约 36% 宽度 (32% ~ 68%)，方便精细对准
+         * - 外围大偏差区 (30 ~ 200 音分)：非线性平缓压缩至两侧剩余空间 (4% ~ 32% 及 68% ~ 96%)
+         * - 预留 4% 两侧边界安全留白，杜绝指针跑出边界或被容器截断
          * @param {number} cents 音分差
-         * @returns {number} 指針 left 百分比 (4 ~ 96)
+         * @returns {number} 指针 left 百分比 (4 ~ 96)
          */
         function mapCentsToPercent(cents) {
             const clamped = Math.max(-200, Math.min(200, cents));
             if (Math.abs(clamped) <= 30) {
-                // ±30 音分線性映射至 32% ~ 68%
+                // ±30 音分线性映射至 32% ~ 68%
                 return 50 + (clamped / 30) * 18;
             }
             if (clamped > 30) {
@@ -5450,20 +5469,21 @@
             const buffer = new Float32Array(analyser.fftSize);
             analyser.getFloatTimeDomainData(buffer);
 
-            // 計算輸入音頻的 RMS 能量（音量門限 Noise Gate，過濾無聲、吸氣與微弱環境底噪）
+            // 计算输入音频的 RMS 能量（带施密特迟滞的 Noise Gate，避免临界音量反复抽搐）
             let sumSquares = 0;
             for (let i = 0; i < buffer.length; i++) {
                 sumSquares += buffer[i] * buffer[i];
             }
             const rms = Math.sqrt(sumSquares / buffer.length);
-            const isAudible = rms >= 0.007;
+            const isAudible = wasAudible ? (rms >= 0.004) : (rms >= 0.008);
+            wasAudible = isAudible;
 
             const freq = isAudible ? detectPitchYIN(buffer, audioCtx.sampleRate) : -1;
             const feedbackEl = document.getElementById('tuner-feedback');
             const freqTextEl = document.getElementById('tuner-freq-text');
 
             let targetMidi = 0;
-            if (activeAppMode === 'play_practice' && currentPlaybackIndex >= 0) {
+            if ((activeAppMode === 'play_practice' || activeAppMode === 'record_practice') && currentPlaybackIndex >= 0) {
                 targetMidi = noteToMidi(scoreNotes[currentPlaybackIndex], currentKey);
             } else if (activeAppMode === 'practice' && activeSingleNoteIndex !== null && scoreNotes[activeSingleNoteIndex]) {
                 targetMidi = noteToMidi(scoreNotes[activeSingleNoteIndex], currentKey);
@@ -5472,42 +5492,49 @@
             const nowMs = performance.now();
 
             if (freq !== -1 && targetMidi > 0) {
+                lastAudibleTimeMs = nowMs;
                 const detectedMidi = freqToMidi(freq);
 
-                // 找出最貼近歌手當前音區的八度目標音 (支持男聲/女聲跨八度跟唱，避免半音翻轉)
+                // 找出最贴近歌手当前音区的八度目标音 (支持男声/女声跨八度跟唱，避免半音翻转)
                 const octaveShift = Math.round((detectedMidi - targetMidi) / 12);
                 const alignedTargetMidi = targetMidi + octaveShift * 12;
                 const semitoneDiff = detectedMidi - alignedTargetMidi;
                 const rawDiffCents = semitoneDiff * 100;
 
-                // 採樣層平滑：中位數過濾噪音频點野點 + 移動加權均值
+                // 采样层平滑：11 帧中位数过滤噪声野点 + 邻近采样均值
                 pitchHistoryBuffer.push(rawDiffCents);
-                if (pitchHistoryBuffer.length > 7) {
+                if (pitchHistoryBuffer.length > 11) {
                     pitchHistoryBuffer.shift();
                 }
 
                 const sorted = [...pitchHistoryBuffer].sort((a, b) => a - b);
                 const medianCents = sorted[Math.floor(sorted.length / 2)];
-                const validSamples = pitchHistoryBuffer.filter(c => Math.abs(c - medianCents) <= 75);
+                const validSamples = pitchHistoryBuffer.filter(c => Math.abs(c - medianCents) <= 60);
                 const filteredCents = validSamples.length > 0
                     ? validSamples.reduce((sum, c) => sum + c, 0) / validSamples.length
                     : medianCents;
+                lastStableCents = filteredCents;
 
-                if (activeAppMode === 'play_practice') livePitchSamples.push(filteredCents);
+                if (activeAppMode === 'play_practice' || activeAppMode === 'record_practice') {
+                    livePitchSamples.push(filteredCents);
+                }
 
-                // 微死區（Deadzone）：在準音極小範圍內 (<= 5 音分) 消除生理微顫高頻抖動
+                // 准音核心区生理微颤防抖死区 (<= 8 音分判定为完全对准)
                 let targetCents = filteredCents;
-                if (Math.abs(targetCents) <= 5) {
+                if (Math.abs(targetCents) <= 8) {
                     targetCents = 0;
                 }
 
-                // 映射至 ±200 音分大視野非線性百分比
+                // 映射至 ±200 音分大视野百分比
                 const targetPercent = mapCentsToPercent(targetCents);
-                smoothedNeedlePercent = smoothedNeedlePercent * 0.72 + targetPercent * 0.28;
+                
+                // 自适应双极惯性阻尼：准音区采用高阻尼(0.88/0.12)咬死不动，大偏差区适度跟进(0.82/0.18)
+                const damping = Math.abs(targetCents) <= 30 ? 0.88 : 0.82;
+                smoothedNeedlePercent = smoothedNeedlePercent * damping + targetPercent * (1 - damping);
                 updateNeedle(smoothedNeedlePercent, filteredCents);
 
-                // 文字提示節流更新 (約 160ms 一次，消除頻閃與重影)
-                if (nowMs - lastFeedbackTextUpdateTime >= 160) {
+                // 文字提示节流更新 (约 180ms 一次，消除频闪与重影)
+                if (nowMs - lastFeedbackTextUpdateTime >= 180) {
                     lastFeedbackTextUpdateTime = nowMs;
                     freqTextEl.innerText = `實測: ${freq.toFixed(1)} Hz (${midiToPitchName(Math.round(detectedMidi))})`;
                     if (Math.abs(filteredCents) <= 30) {
@@ -5522,17 +5549,26 @@
                     }
                 }
             } else {
-                // 無聲、換氣或環境雜音：清空音分緩衝，指針平緩回中
-                pitchHistoryBuffer.length = 0;
-                smoothedNeedlePercent = smoothedNeedlePercent * 0.88 + 50 * 0.12;
-                updateNeedle(smoothedNeedlePercent, 0, true);
+                // 短暂换气或字间气隙软保持 (250ms 内不粗暴回中，保持指针平稳)
+                const isShortGap = (nowMs - lastAudibleTimeMs < 250) && pitchHistoryBuffer.length > 0;
+                if (isShortGap) {
+                    // 维持在最后音高，极其轻微衰减
+                    updateNeedle(smoothedNeedlePercent, lastStableCents);
+                } else {
+                    // 确认已长时静音：清空音分缓冲，指针平缓优雅回中
+                    pitchHistoryBuffer.length = 0;
+                    smoothedNeedlePercent = smoothedNeedlePercent * 0.92 + 50 * 0.08;
+                    updateNeedle(smoothedNeedlePercent, 0, true);
 
-                if (Math.abs(smoothedNeedlePercent - 50) < 1.5 && nowMs - lastFeedbackTextUpdateTime >= 160) {
-                    lastFeedbackTextUpdateTime = nowMs;
-                    freqTextEl.innerText = "頻率: -- Hz";
-                    if (activeAppMode === 'practice') feedbackEl.innerText = "🎤 練習模式: 點擊/長按可聽標準音，請對著麥克風唱...";
-                    else feedbackEl.innerText = "📖 學習模式: 點擊/長按卡片聽標準音";
-                    feedbackEl.className = "text-center text-xs font-bold text-slate-400";
+                    if (Math.abs(smoothedNeedlePercent - 50) < 1.5 && nowMs - lastFeedbackTextUpdateTime >= 180) {
+                        lastFeedbackTextUpdateTime = nowMs;
+                        freqTextEl.innerText = "頻率: -- Hz";
+                        if (activeAppMode === 'practice') feedbackEl.innerText = "🎤 練習模式: 點擊/長按可聽標準音，請對著麥克風唱...";
+                        else if (activeAppMode === 'play_practice') feedbackEl.innerText = "🎤 全曲練唱: 請跟隨伴奏對著麥克風唱...";
+                        else if (activeAppMode === 'record_practice') feedbackEl.innerText = "🎙️ 錄音練唱: 伴奏已響起，請對著麥克風歌唱...";
+                        else feedbackEl.innerText = "📖 學習模式: 點擊/長按卡片聽標準音";
+                        feedbackEl.className = "text-center text-xs font-bold text-slate-400";
+                    }
                 }
             }
             animFrameId = requestAnimationFrame(pitchDetectionLoop);
@@ -6367,7 +6403,34 @@
             updatePlaybackFocus(-1, false);
         }
 
-        btnStop.addEventListener('click', () => switchAppMode('learn'));
+        /**
+         * 处理用户主动停止播放：若处于全曲练唱或录音练唱中，对终止前已唱片段即时打分结算
+         */
+        function handlePlaybackUserStop() {
+            const wasPractice = (activeAppMode === 'play_practice' || activeAppMode === 'record_practice');
+            
+            // 若当前正在播放的音符已有采样数据，先结算当前音符
+            if (wasPractice && currentPlaybackIndex >= 0 && currentPlaybackIndex < scoreNotes.length) {
+                const currentNote = scoreNotes[currentPlaybackIndex];
+                if (currentNote && currentNote.degree !== 0 && livePitchSamples.length > 0) {
+                    evaluateNotePractice(currentNote);
+                }
+            }
+
+            const testedNotesCount = wasPractice
+                ? scoreNotes.filter(n => n.degree !== 0 && n.practiceResult).length
+                : 0;
+
+            stopPlayback();
+            switchAppMode('learn');
+
+            // 若已有检测过的音符，弹出片段评估报告
+            if (wasPractice && testedNotesCount > 0) {
+                showPracticeSummary(true);
+            }
+        }
+
+        btnStop.addEventListener('click', handlePlaybackUserStop);
 
         function finishFullPlayback() {
             const wasPractice = (activeAppMode === 'play_practice' || activeAppMode === 'record_practice');
@@ -6377,10 +6440,14 @@
                 stopRecording();
             }
             switchAppMode('learn');
-            if (wasPractice) showPracticeSummary();
+            if (wasPractice) showPracticeSummary(false);
         }
 
-        function showPracticeSummary() {
+        /**
+         * 显示练唱评估报告（支持全曲完成与中途终止片段结算）
+         * @param {boolean} isEarlyStop 是否为中途终止结算
+         */
+        function showPracticeSummary(isEarlyStop = false) {
             let accurateCount = 0, highCount = 0, lowCount = 0, noteCount = 0;
             scoreNotes.forEach(n => {
                 if (n.degree !== 0 && n.practiceResult) {
@@ -6390,7 +6457,9 @@
                     else if (n.practiceResult.status === 'low') lowCount++;
                 }
             });
-            const accuracy = noteCount > 0 ? Math.round((accurateCount / noteCount) * 100) : 0;
+            if (noteCount === 0) return;
+
+            const accuracy = Math.round((accurateCount / noteCount) * 100);
             document.getElementById('score-accuracy').innerText = `${accuracy}%`;
             document.getElementById('score-accurate-count').innerText = `${accurateCount} / ${noteCount}`;
             document.getElementById('score-total-points').innerText = Math.round(accuracy * 10);
@@ -6398,6 +6467,18 @@
             document.getElementById('stat-accurate').innerText = accurateCount;
             document.getElementById('stat-high').innerText = highCount;
             document.getElementById('stat-low').innerText = lowCount;
+
+            const titleEl = document.getElementById('summary-modal-title');
+            const subEl = document.getElementById('summary-modal-subtitle');
+            if (titleEl) {
+                titleEl.innerText = isEarlyStop ? '練唱片段評估報告' : '練唱完成評估報告';
+            }
+            if (subEl) {
+                subEl.innerText = isEarlyStop 
+                    ? `已針對終止前唱過的 ${noteCount} 個音符進行即時結算` 
+                    : '系統已完成整首歌曲的比對與分析';
+            }
+
             document.getElementById('summary-modal').classList.remove('hidden');
         }
 
