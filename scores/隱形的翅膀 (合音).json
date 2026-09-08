@@ -1,0 +1,269 @@
+{
+  "schemaVersion": 2,
+  "title": "隱形的翅膀 (合音)",
+  "key": "Eb",
+  "mode": "major",
+  "timeSignature": "4/4",
+  "bpm": 75,
+  "notes": [
+    {
+      "degree": 6,
+      "octave": -1,
+      "accidental": 0,
+      "duration": 2,
+      "lyric": "嗚"
+    },
+    {
+      "degree": 5,
+      "octave": -1,
+      "accidental": 0,
+      "duration": 2,
+      "lyric": "嗚"
+    },
+    {
+      "degree": 4,
+      "octave": -1,
+      "accidental": 0,
+      "duration": 2,
+      "lyric": "嗚"
+    },
+    {
+      "degree": 5,
+      "octave": -1,
+      "accidental": 0,
+      "duration": 2,
+      "lyric": "嗚"
+    },
+    {
+      "degree": 6,
+      "octave": -1,
+      "accidental": 0,
+      "duration": 2,
+      "lyric": "嗚"
+    },
+    {
+      "degree": 1,
+      "octave": 0,
+      "accidental": 0,
+      "duration": 2,
+      "lyric": "嗚"
+    },
+    {
+      "degree": 7,
+      "octave": -1,
+      "accidental": 0,
+      "duration": 1,
+      "lyric": "嗚"
+    },
+    {
+      "degree": 5,
+      "octave": -1,
+      "accidental": 0,
+      "duration": 1,
+      "lyric": "嗚"
+    },
+    {
+      "degree": 6,
+      "octave": -1,
+      "accidental": 0,
+      "duration": 1,
+      "lyric": "嗚"
+    },
+    {
+      "degree": 7,
+      "octave": -1,
+      "accidental": 0,
+      "duration": 1,
+      "lyric": "嗚"
+    },
+    {
+      "degree": 6,
+      "octave": -1,
+      "accidental": 0,
+      "duration": 2,
+      "lyric": "嗚"
+    },
+    {
+      "degree": 5,
+      "octave": -1,
+      "accidental": 0,
+      "duration": 2,
+      "lyric": "嗚"
+    },
+    {
+      "degree": 4,
+      "octave": -1,
+      "accidental": 0,
+      "duration": 2,
+      "lyric": "嗚"
+    },
+    {
+      "degree": 5,
+      "octave": -1,
+      "accidental": 0,
+      "duration": 2,
+      "lyric": "嗚"
+    },
+    {
+      "degree": 6,
+      "octave": -1,
+      "accidental": 0,
+      "duration": 2,
+      "lyric": "嗚"
+    },
+    {
+      "degree": 7,
+      "octave": -1,
+      "accidental": 0,
+      "duration": 2,
+      "lyric": "嗚"
+    },
+    {
+      "degree": 1,
+      "octave": 0,
+      "accidental": 0,
+      "duration": 3,
+      "lyric": "嗚"
+    },
+    {
+      "degree": 0,
+      "octave": 0,
+      "accidental": 0,
+      "duration": 1,
+      "lyric": ""
+    },
+    {
+      "degree": 1,
+      "octave": 0,
+      "accidental": 0,
+      "duration": 1,
+      "lyric": "嗚"
+    },
+    {
+      "degree": 6,
+      "octave": -1,
+      "accidental": 0,
+      "duration": 1,
+      "lyric": "嗚"
+    },
+    {
+      "degree": 7,
+      "octave": -1,
+      "accidental": 0,
+      "duration": 2,
+      "lyric": "嗚"
+    },
+    {
+      "degree": 6,
+      "octave": -1,
+      "accidental": 0,
+      "duration": 2,
+      "lyric": "嗚"
+    },
+    {
+      "degree": 3,
+      "octave": -1,
+      "accidental": 0,
+      "duration": 2,
+      "lyric": "嗚"
+    },
+    {
+      "degree": 4,
+      "octave": -1,
+      "accidental": 0,
+      "duration": 2,
+      "lyric": "嗚"
+    },
+    {
+      "degree": 5,
+      "octave": -1,
+      "accidental": 0,
+      "duration": 2,
+      "lyric": "嗚"
+    },
+    {
+      "degree": 3,
+      "octave": -1,
+      "accidental": 0,
+      "duration": 3,
+      "lyric": "嗚"
+    },
+    {
+      "degree": 1,
+      "octave": 0,
+      "accidental": 0,
+      "duration": 0.5,
+      "lyric": "留"
+    },
+    {
+      "degree": 1,
+      "octave": 0,
+      "accidental": 0,
+      "duration": 0.5,
+      "lyric": "一"
+    },
+    {
+      "degree": 1,
+      "octave": 0,
+      "accidental": 0,
+      "duration": 0.5,
+      "lyric": "個"
+    },
+    {
+      "degree": 1,
+      "octave": 1,
+      "accidental": 0,
+      "duration": 1,
+      "lyric": "願"
+    },
+    {
+      "degree": 6,
+      "octave": 0,
+      "accidental": 0,
+      "duration": 0.5,
+      "lyric": "望"
+    },
+    {
+      "degree": 5,
+      "octave": 0,
+      "accidental": 0,
+      "duration": 0.5,
+      "lyric": "讓"
+    },
+    {
+      "degree": 3,
+      "octave": 0,
+      "accidental": 0,
+      "duration": 0.5,
+      "lyric": "自"
+    },
+    {
+      "degree": 2,
+      "octave": 0,
+      "accidental": 0,
+      "duration": 0.5,
+      "lyric": "己"
+    },
+    {
+      "degree": 1,
+      "octave": 0,
+      "accidental": 0,
+      "duration": 0.5,
+      "lyric": "想"
+    },
+    {
+      "degree": 1,
+      "octave": 0,
+      "accidental": 0,
+      "duration": 3,
+      "lyric": "像"
+    },
+    {
+      "degree": 0,
+      "octave": 0,
+      "accidental": 0,
+      "duration": 1,
+      "lyric": ""
+    }
+  ]
+}
