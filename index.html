@@ -4155,12 +4155,26 @@
                 }
 
                 // 依參數切換至練唱或指定分頁
-                if (viewParam === 'practice' || viewParam === 'learn' || modeParam) {
+                const scoreViewParam = urlParams.get('scoreView') || urlParams.get('notation') || urlParams.get('staff');
+                const shouldShowNotation = scoreViewParam ? (scoreViewParam === 'notation' || scoreViewParam === 'staff' || scoreViewParam === '1' || scoreViewParam === 'true') : true;
+
+                if (viewParam === 'practice' || viewParam === 'learn' || viewParam === 'notation' || viewParam === 'staff' || modeParam) {
                     setWorkspaceView('practice');
-                    if (modeParam && ['learn', 'practice', 'play_audio', 'play_practice'].includes(modeParam)) {
+                    if (modeParam && ['learn', 'practice', 'play_audio', 'play_practice', 'record_practice'].includes(modeParam)) {
                         switchAppMode(modeParam);
                     } else {
                         switchAppMode('practice');
+                    }
+                    if (shouldShowNotation) {
+                        setPracticeScoreView('notation');
+                        setTimeout(() => {
+                            if (activeWorkspaceView === 'practice' && practiceScoreView === 'notation') {
+                                notationDirty = true;
+                                renderNotationScore();
+                            }
+                        }, 120);
+                    } else if (scoreViewParam === 'cells') {
+                        setPracticeScoreView('cells');
                     }
                 } else if (viewParam === 'editor') {
                     setWorkspaceView('editor');
@@ -4171,7 +4185,7 @@
         }
 
         /**
-         * 複製學員練唱專屬分享連結 (包含 ?score=...&view=practice&mode=practice)
+         * 複製學員練唱專屬分享連結 (包含 ?score=...&view=practice&mode=practice&scoreView=notation)
          */
         function copyStudentShareUrl() {
             try {
@@ -4181,6 +4195,7 @@
                 url.searchParams.set('score', scoreName);
                 url.searchParams.set('view', 'practice');
                 url.searchParams.set('mode', activeAppMode === 'learn' ? 'learn' : 'practice');
+                url.searchParams.set('scoreView', practiceScoreView || 'notation');
                 const finalUrl = url.toString();
 
                 const copyFallback = (text) => {
