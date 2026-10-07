@@ -1569,7 +1569,7 @@
     },
     {
       "degree": 1,
-      "octave": 1,
+      "octave": 0,
       "accidental": 0,
       "duration": 0.5,
       "lyric": "個"
