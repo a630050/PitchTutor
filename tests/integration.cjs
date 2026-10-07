@@ -413,6 +413,12 @@ const server = http.createServer((request, response) => {
     assert.equal(await paramPage.evaluate(() => currentScoreTitle), '隱形的翅膀 (第二三部)');
     assert.equal(await paramPage.evaluate(() => scoreNotes.length), 264);
 
+    // 驗證第一部完整版合音八度網址參數載入 (隱形的翅膀 (第一部)_完整版合音八度)
+    await paramPage.goto(`http://127.0.0.1:${port}?score=invisible_wings_part1_8va&view=practice&mode=practice`);
+    await paramPage.waitForSelector('#practice-page.is-active');
+    assert.equal(await paramPage.evaluate(() => currentScoreTitle), '隱形的翅膀 (第一部 合音高八度)');
+    assert.equal(await paramPage.evaluate(() => scoreNotes.length), 232);
+
     // 驗證手機端模式按鈕為一列五欄
     const modeGroupGridCols = await paramPage.locator('.practice-mode-group').evaluate(el => getComputedStyle(el).gridTemplateColumns.split(' ').length);
     assert.equal(modeGroupGridCols, 5, 'Mobile practice mode group should render 5 columns');
